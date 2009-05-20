@@ -12,4 +12,7 @@
 /files
 /package/feeds
 /package/openwrt-packages
+/*.log
+/dl.backup
+/old
 .svn
