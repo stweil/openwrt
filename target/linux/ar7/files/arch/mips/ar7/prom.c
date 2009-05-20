@@ -63,6 +63,10 @@ static void  __init ar7_init_cmdline(int argc, char *argv[])
 
 	cp = &(arcs_cmdline[0]);
 	while (actr < argc) {
+		if (argv[actr] == 0) {
+			printk("unexpected kernel arguments\n");
+			break;
+		}
 		strcpy(cp, argv[actr]);
 		cp += strlen(argv[actr]);
 		*cp++ = ' ';
@@ -197,9 +201,9 @@ static void __init ar7_init_env(struct env_var *env)
 {
 	int i;
 	struct psbl_rec *psbl = (struct psbl_rec *)(KSEG1ADDR(0x14000300));
-	void *psp_env = (void *)KSEG1ADDR(psbl->env_base);
+        void *psp_env = (void *)KSEG1ADDR(psbl->env_base);
 
-	if (strcmp(psp_env, psp_env_version) == 0) {
+	if (0 && (strcmp(psp_env, psp_env_version) == 0)) {
 		parse_psp_env(psp_env);
 	} else {
 		for (i = 0; i < MAX_ENTRY; i++, env++)
@@ -281,6 +285,9 @@ char prom_getchar(void)
 
 int prom_putchar(char c)
 {
+	/* Crude cr/nl handling is better than none */
+	if (c == '\n')
+		prom_putchar('\r');
 	while ((serial_in(UART_LSR) & UART_LSR_TEMT) == 0);
 	serial_out(UART_TX, c);
 	return 1;
@@ -301,9 +308,6 @@ void prom_printf(const char *fmt, ...)
 	buf_end = buf + l;
 
 	for (p = buf; p < buf_end; p++) {
-		/* Crude cr/nl handling is better than none */
-		if (*p == '\n')
-			prom_putchar('\r');
 		prom_putchar(*p);
 	}
 }

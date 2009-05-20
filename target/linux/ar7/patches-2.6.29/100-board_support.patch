@@ -1,5 +1,7 @@
---- a/arch/mips/Kconfig
-+++ b/arch/mips/Kconfig
+Index: linux/arch/mips/Kconfig
+===================================================================
+--- linux.orig/arch/mips/Kconfig	2009-03-25 22:34:55.000000000 +0100
++++ linux/arch/mips/Kconfig	2009-03-25 22:35:01.000000000 +0100
 @@ -19,6 +19,24 @@
  	prompt "System type"
  	default SGI_IP22
@@ -25,9 +27,11 @@
  config MACH_ALCHEMY
  	bool "Alchemy processor based machines"
  
---- linux/arch/mips/kernel/traps.c
-+++ linux/arch/mips/kernel/traps.c
-@@ -1203,9 +1203,22 @@ void *set_except_vector(int n, void *add
+Index: linux/arch/mips/kernel/traps.c
+===================================================================
+--- linux.orig/arch/mips/kernel/traps.c	2009-03-25 22:34:55.000000000 +0100
++++ linux/arch/mips/kernel/traps.c	2009-03-25 22:35:01.000000000 +0100
+@@ -1256,9 +1256,22 @@
  
  	exception_handlers[n] = handler;
  	if (n == 0 && cpu_has_divec) {
@@ -53,9 +57,11 @@
  	}
  	return (void *)old_handler;
  }
---- a/arch/mips/Makefile
-+++ b/arch/mips/Makefile
-@@ -167,6 +167,13 @@
+Index: linux/arch/mips/Makefile
+===================================================================
+--- linux.orig/arch/mips/Makefile	2009-03-25 22:34:55.000000000 +0100
++++ linux/arch/mips/Makefile	2009-03-25 22:35:01.000000000 +0100
+@@ -173,6 +173,13 @@
  #
  
  #
@@ -69,18 +75,3 @@
  # Acer PICA 61, Mips Magnum 4000 and Olivetti M700.
  #
  core-$(CONFIG_MACH_JAZZ)	+= arch/mips/jazz/
---- a/include/asm-mips/page.h
-+++ b/include/asm-mips/page.h
-@@ -182,8 +182,10 @@
- #define VM_DATA_DEFAULT_FLAGS	(VM_READ | VM_WRITE | VM_EXEC | \
- 				 VM_MAYREAD | VM_MAYWRITE | VM_MAYEXEC)
- 
--#define UNCAC_ADDR(addr)	((addr) - PAGE_OFFSET + UNCAC_BASE)
--#define CAC_ADDR(addr)		((addr) - UNCAC_BASE + PAGE_OFFSET)
-+#define UNCAC_ADDR(addr)	((addr) - PAGE_OFFSET + UNCAC_BASE +	\
-+				 PHYS_OFFSET)
-+#define CAC_ADDR(addr)		((addr) - UNCAC_BASE + PAGE_OFFSET -	\
-+				 PHYS_OFFSET)
- 
- #include <asm-generic/memory_model.h>
- #include <asm-generic/page.h>

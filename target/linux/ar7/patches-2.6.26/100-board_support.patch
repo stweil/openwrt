@@ -62,7 +62,7 @@
 +#
 +core-$(CONFIG_AR7)		+= arch/mips/ar7/
 +cflags-$(CONFIG_AR7)		+= -Iinclude/asm-mips/ar7
-+load-$(CONFIG_AR7)		+= 0xffffffff94100000
++load-$(CONFIG_AR7)		+= 0xffffffff94000000
 +
 +#
  # Acer PICA 61, Mips Magnum 4000 and Olivetti M700.

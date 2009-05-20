@@ -11,7 +11,8 @@ DROP_SECTIONS:=.reginfo .mdebug .comment .note .pdr .options .MIPS.options
 OBJCOPY_SREC:=$(TARGET_CROSS)objcopy -S -O srec $(addprefix --remove-section=,$(DROP_SECTIONS))
 
 LOADADDR:=0x94600000
-KERNEL_ENTRY:=0x94100000
+#~ KERNEL_ENTRY:=0x94100000
+KERNEL_ENTRY:=0x94000000
 RAMSTART:=0x94000000
 RAMSIZE:=0x00100000
 

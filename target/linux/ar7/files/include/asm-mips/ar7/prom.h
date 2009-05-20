@@ -20,6 +20,8 @@
 #define __PROM_H__
 
 extern char *prom_getenv(const char *name);
+extern char prom_getchar(void);
+extern int prom_putchar(char c);
 extern void prom_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 extern void prom_meminit(void);
 

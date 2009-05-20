@@ -1,0 +1,44 @@
+Index: linux/drivers/serial/8250.c
+===================================================================
+--- linux.orig/drivers/serial/8250.c	2009-03-24 00:12:14.000000000 +0100
++++ linux/drivers/serial/8250.c	2009-03-25 22:31:44.000000000 +0100
+@@ -286,6 +286,13 @@
+ 		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_10,
+ 		.flags		= UART_CAP_FIFO,
+ 	},
++	[PORT_AR7] = {
++		.name		= "TI-AR7",
++		.fifo_size	= 16,
++		.tx_loadsz	= 16,
++		.fcr		= UART_FCR_ENABLE_FIFO | UART_FCR_R_TRIG_00,
++		.flags		= UART_CAP_FIFO | UART_CAP_AFE,
++	},
+ };
+ 
+ #if defined (CONFIG_SERIAL_8250_AU1X00)
+@@ -2687,7 +2694,11 @@
+ {
+ 	struct uart_8250_port *up = (struct uart_8250_port *)port;
+ 
++#ifdef CONFIG_AR7
++	wait_for_xmitr(up, BOTH_EMPTY);
++#else
+ 	wait_for_xmitr(up, UART_LSR_THRE);
++#endif
+ 	serial_out(up, UART_TX, ch);
+ }
+ 
+Index: linux/include/linux/serial_core.h
+===================================================================
+--- linux.orig/include/linux/serial_core.h	2009-03-24 00:12:14.000000000 +0100
++++ linux/include/linux/serial_core.h	2009-03-25 22:32:54.000000000 +0100
+@@ -41,7 +41,8 @@
+ #define PORT_XSCALE	15
+ #define PORT_RM9000	16	/* PMC-Sierra RM9xxx internal UART */
+ #define PORT_OCTEON	17	/* Cavium OCTEON internal UART */
+-#define PORT_MAX_8250	17	/* max port ID */
++#define PORT_AR7	18
++#define PORT_MAX_8250	18	/* max port ID */
+ 
+ /*
+  * ARM specific type numbers.  These are not currently guaranteed

@@ -1,0 +1,15 @@
+Index: linux-2.6.27.21/drivers/mtd/ar7part.c
+===================================================================
+--- linux-2.6.27.21.orig/drivers/mtd/ar7part.c	2009-03-23 23:04:09.000000000 +0100
++++ linux-2.6.27.21/drivers/mtd/ar7part.c	2009-03-25 23:20:44.000000000 +0100
+@@ -38,6 +38,10 @@
+ #define SQUASHFS_MAGIC	0x73717368
+ #endif
+ 
++#ifndef SQUASHFS_MAGIC
++#define SQUASHFS_MAGIC	0x73717368
++#endif
++
+ struct ar7_bin_rec {
+ 	unsigned int checksum;
+ 	unsigned int length;

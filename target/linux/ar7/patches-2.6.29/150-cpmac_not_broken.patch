@@ -1,0 +1,13 @@
+Index: linux/drivers/net/Kconfig
+===================================================================
+--- linux.orig/drivers/net/Kconfig	2009-03-25 22:34:45.000000000 +0100
++++ linux/drivers/net/Kconfig	2009-03-25 22:35:22.000000000 +0100
+@@ -1741,7 +1741,7 @@
+ 
+ config CPMAC
+ 	tristate "TI AR7 CPMAC Ethernet support (EXPERIMENTAL)"
+-	depends on NET_ETHERNET && EXPERIMENTAL && AR7 && BROKEN
++	depends on NET_ETHERNET && EXPERIMENTAL && AR7
+ 	select PHYLIB
+ 	help
+ 	  TI AR7 CPMAC Ethernet support

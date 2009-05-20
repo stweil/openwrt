@@ -17,9 +17,11 @@ because other drivers do it in the same way.
 
         Signed-off-by: Stefan Weil <weil@mail.berlios.de>
 
---- a/drivers/net/cpmac.c
-+++ b/drivers/net/cpmac.c
-@@ -557,6 +557,7 @@ fatal_error:
+Index: linux/drivers/net/cpmac.c
+===================================================================
+--- linux.orig/drivers/net/cpmac.c	2009-02-19 18:48:04.000000000 +0100
++++ linux/drivers/net/cpmac.c	2009-02-19 18:50:03.000000000 +0100
+@@ -551,6 +551,7 @@
  static int cpmac_start_xmit(struct sk_buff *skb, struct net_device *dev)
  {
  	int queue, len;
@@ -27,7 +29,7 @@ because other drivers do it in the same way.
  	struct cpmac_desc *desc;
  	struct cpmac_priv *priv = netdev_priv(dev);
  
-@@ -566,7 +567,10 @@ static int cpmac_start_xmit(struct sk_bu
+@@ -560,7 +561,10 @@
  	if (unlikely(skb_padto(skb, ETH_ZLEN)))
  		return NETDEV_TX_OK;
  
@@ -39,7 +41,7 @@ because other drivers do it in the same way.
  	queue = skb_get_queue_mapping(skb);
  	netif_stop_subqueue(dev, queue);
  
-@@ -578,9 +582,9 @@ static int cpmac_start_xmit(struct sk_bu
+@@ -572,9 +576,9 @@
  		return NETDEV_TX_BUSY;
  	}
  
@@ -51,7 +53,7 @@ because other drivers do it in the same way.
  	desc->dataflags = CPMAC_SOP | CPMAC_EOP | CPMAC_OWN;
  	desc->skb = skb;
  	desc->data_mapping = dma_map_single(&dev->dev, skb->data, len,
-@@ -621,13 +625,13 @@ static void cpmac_end_xmit(struct net_de
+@@ -615,13 +619,13 @@
  
  		dev_kfree_skb_irq(desc->skb);
  		desc->skb = NULL;
@@ -67,7 +69,7 @@ because other drivers do it in the same way.
  			netif_wake_subqueue(dev, queue);
  	}
  }
-@@ -737,7 +741,6 @@ static void cpmac_clear_tx(struct net_de
+@@ -731,7 +735,6 @@
  
  static void cpmac_hw_error(struct work_struct *work)
  {
@@ -75,7 +77,7 @@ because other drivers do it in the same way.
  	struct cpmac_priv *priv =
  		container_of(work, struct cpmac_priv, reset_work);
  
-@@ -824,7 +827,6 @@ static irqreturn_t cpmac_irq(int irq, vo
+@@ -818,7 +821,6 @@
  
  static void cpmac_tx_timeout(struct net_device *dev)
  {
@@ -83,7 +85,7 @@ because other drivers do it in the same way.
  	struct cpmac_priv *priv = netdev_priv(dev);
  
  	spin_lock(&priv->lock);
-@@ -927,8 +929,9 @@ static void cpmac_adjust_link(struct net
+@@ -921,8 +923,9 @@
  {
  	struct cpmac_priv *priv = netdev_priv(dev);
  	int new_state = 0;
@@ -94,7 +96,7 @@ because other drivers do it in the same way.
  	if (priv->phy->link) {
  		netif_tx_start_all_queues(dev);
  		if (priv->phy->duplex != priv->oldduplex) {
-@@ -955,7 +958,8 @@ static void cpmac_adjust_link(struct net
+@@ -949,7 +952,8 @@
  	if (new_state && netif_msg_link(priv) && net_ratelimit())
  		phy_print_status(priv->phy);
  
@@ -104,7 +106,7 @@ because other drivers do it in the same way.
  }
  
  static int cpmac_open(struct net_device *dev)
-@@ -1103,7 +1107,7 @@ static int external_switch;
+@@ -1097,7 +1101,7 @@
  
  static int __devinit cpmac_probe(struct platform_device *pdev)
  {

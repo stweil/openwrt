@@ -1,0 +1,31 @@
+Index: linux/drivers/mtd/Kconfig
+===================================================================
+--- linux.orig/drivers/mtd/Kconfig	2009-02-19 18:48:18.000000000 +0100
++++ linux/drivers/mtd/Kconfig	2009-02-19 18:48:53.000000000 +0100
+@@ -188,6 +188,12 @@
+ 	  You will still need the parsing functions to be called by the driver
+ 	  for your particular device. It won't happen automatically.
+ 
++config MTD_AR7_PARTS
++	tristate "TI AR7 partitioning support"
++	depends on MTD_PARTITIONS
++	---help---
++	  TI AR7 partitioning support
++
+ comment "User Modules And Translation Layers"
+ 
+ config MTD_CHAR
+Index: linux/drivers/mtd/maps/physmap.c
+===================================================================
+--- linux.orig/drivers/mtd/maps/physmap.c	2009-02-19 18:48:18.000000000 +0100
++++ linux/drivers/mtd/maps/physmap.c	2009-02-19 18:48:53.000000000 +0100
+@@ -75,7 +75,8 @@
+ 
+ static const char *rom_probe_types[] = { "cfi_probe", "jedec_probe", "map_rom", NULL };
+ #ifdef CONFIG_MTD_PARTITIONS
+-static const char *part_probe_types[] = { "cmdlinepart", "RedBoot", NULL };
++static const char *part_probe_types[] = {"cmdlinepart", "RedBoot",
++					"ar7part", NULL };
+ #endif
+ 
+ static int physmap_flash_probe(struct platform_device *dev)

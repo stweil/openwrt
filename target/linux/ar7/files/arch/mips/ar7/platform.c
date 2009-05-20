@@ -25,6 +25,8 @@
 #include <linux/dma-mapping.h>
 #include <linux/platform_device.h>
 #include <linux/mtd/physmap.h>
+#include <linux/phy.h>
+#include <linux/phy_fixed.h>
 #include <linux/serial.h>
 #include <linux/serial_8250.h>
 #include <linux/ioport.h>
@@ -153,6 +155,7 @@ static struct resource vlynq_low_res[] = {
 	},
 };
 
+#if defined(CONFIG_VLYNQ1)
 static struct resource vlynq_high_res[] = {
 	{
 		.name = "regs",
@@ -179,7 +182,9 @@ static struct resource vlynq_high_res[] = {
 		.end = 143,
 	},
 };
+#endif
 
+#if defined(CONFIG_USB_SUPPORT)
 static struct resource usb_res[] = {
 	{
 		.name = "regs",
@@ -200,6 +205,7 @@ static struct resource usb_res[] = {
 		.end = 0x034001fff,
 	},
 };
+#endif
 
 static struct physmap_flash_data physmap_flash_data = {
 	.width = 2,
@@ -224,12 +230,14 @@ static struct plat_vlynq_data vlynq_low_data = {
 	.gpio_bit = 18,
 };
 
+#if defined(CONFIG_VLYNQ1)
 static struct plat_vlynq_data vlynq_high_data = {
 	.ops.on = vlynq_on,
 	.ops.off = vlynq_off,
 	.reset_bit = 16,
 	.gpio_bit = 19,
 };
+#endif
 
 static struct platform_device physmap_flash = {
 	.id = 0,
@@ -272,6 +280,7 @@ static struct platform_device vlynq_low = {
 	.num_resources = ARRAY_SIZE(vlynq_low_res),
 };
 
+#if defined(CONFIG_VLYNQ1)
 static struct platform_device vlynq_high = {
 	.id = 1,
 	.name = "vlynq",
@@ -279,7 +288,7 @@ static struct platform_device vlynq_high = {
 	.resource = vlynq_high_res,
 	.num_resources = ARRAY_SIZE(vlynq_high_res),
 };
-
+#endif
 
 /* This is proper way to define uart ports, but they are then detected
  * as xscale and, obviously, don't work...
@@ -290,7 +299,7 @@ static struct plat_serial8250_port uart0_data = {
 	.mapbase = AR7_REGS_UART0,
 	.irq = AR7_IRQ_UART0,
 	.regshift = 2,
-	.iotype = UPIO_MEM,
+	.iotype = UPIO_MEM32,
 	.flags = UPF_BOOT_AUTOCONF | UPF_IOREMAP,
 };
 
@@ -298,7 +307,7 @@ static struct plat_serial8250_port uart1_data = {
 	.mapbase = UR8_REGS_UART1,
 	.irq = AR7_IRQ_UART1,
 	.regshift = 2,
-	.iotype = UPIO_MEM,
+	.iotype = UPIO_MEM32,
 	.flags = UPF_BOOT_AUTOCONF | UPF_IOREMAP,
 };
 
@@ -320,6 +329,7 @@ static struct platform_device uart = {
 };
 #endif
 
+#if defined(CONFIG_AR7_LEDS)
 static struct gpio_led default_leds[] = {
 	{ .name = "status", .gpio = 8, .active_low = 1, },
 };
@@ -363,13 +373,16 @@ static struct platform_device ar7_gpio_leds = {
 		.platform_data = &ar7_led_data,
 	}
 };
+#endif
 
+#if defined(CONFIG_USB_SUPPORT)
 static struct platform_device ar7_udc = {
 	.id = -1,
 	.name = "ar7_udc",
 	.resource = usb_res,
 	.num_resources = ARRAY_SIZE(usb_res),
 };
+#endif
 
 static inline unsigned char char2hex(char h)
 {
@@ -405,6 +418,7 @@ static void cpmac_get_mac(int instance, unsigned char *dev_addr)
 			char2hex(mac[i * 3 + 1]);
 }
 
+#if defined(CONFIG_AR7_LEDS)
 static void __init detect_leds(void)
 {
 	char *prId, *usb_prod;
@@ -435,6 +449,7 @@ static void __init detect_leds(void)
 		ar7_led_data.leds = dg834g_leds;
 	}
 }
+#endif
 
 static int __init ar7_register_devices(void)
 {
@@ -442,34 +457,30 @@ static int __init ar7_register_devices(void)
 
 #ifdef CONFIG_SERIAL_8250
 
-	static struct uart_port uart_port[2];
+	struct uart_port uart_port;
 
-	memset(uart_port, 0, sizeof(struct uart_port) * 2);
+	memset(&uart_port, 0, sizeof(uart_port));
 
-	uart_port[0].type = PORT_AR7;
-	uart_port[0].line = 0;
-	uart_port[0].irq = AR7_IRQ_UART0;
-	uart_port[0].uartclk = ar7_bus_freq() / 2;
-	uart_port[0].iotype = UPIO_MEM;
-	uart_port[0].mapbase = AR7_REGS_UART0;
-	uart_port[0].membase = ioremap(uart_port[0].mapbase, 256);
-	uart_port[0].regshift = 2;
-	res = early_serial_setup(&uart_port[0]);
+	uart_port.type = PORT_AR7;
+	uart_port.line = 0;
+	uart_port.irq = AR7_IRQ_UART0;
+	uart_port.uartclk = ar7_bus_freq() / 2;
+	uart_port.iotype = UPIO_MEM32;
+	uart_port.mapbase = AR7_REGS_UART0;
+	uart_port.membase = ioremap(uart_port.mapbase, 256);
+	uart_port.regshift = 2;
+	uart_port.fifosize = 16;
+	res = early_serial_setup(&uart_port);
 	if (res)
 		return res;
 
-
 	/* Only TNETD73xx have a second serial port */
 	if (ar7_has_second_uart()) {
-		uart_port[1].type = PORT_AR7;
-		uart_port[1].line = 1;
-		uart_port[1].irq = AR7_IRQ_UART1;
-		uart_port[1].uartclk = ar7_bus_freq() / 2;
-		uart_port[1].iotype = UPIO_MEM;
-		uart_port[1].mapbase = UR8_REGS_UART1;
-		uart_port[1].membase = ioremap(uart_port[1].mapbase, 256);
-		uart_port[1].regshift = 2;
-		res = early_serial_setup(&uart_port[1]);
+		uart_port.line = 1;
+		uart_port.irq = AR7_IRQ_UART1;
+		uart_port.mapbase = UR8_REGS_UART1;
+		uart_port.membase = ioremap(uart_port.mapbase, 256);
+		res = early_serial_setup(&uart_port);
 		if (res)
 			return res;
 	}
@@ -493,17 +504,26 @@ static int __init ar7_register_devices(void)
 	if (res)
 		return res;
 
+        {
+          const char *hwrevision = prom_getenv("HWRevision");
+          if (hwrevision != 0 && *hwrevision == '1') {
+            // Sinus 154 DSL SE
+            vlynq_low_data.gpio_bit = 9;
+          }
+        }
 	ar7_device_disable(vlynq_low_data.reset_bit);
 	res = platform_device_register(&vlynq_low);
 	if (res)
 		return res;
 
+#if defined(CONFIG_VLYNQ1)
 	if (ar7_has_high_vlynq()) {
 		ar7_device_disable(vlynq_high_data.reset_bit);
 		res = platform_device_register(&vlynq_high);
 		if (res)
 			return res;
 	}
+#endif
 
 	if (ar7_has_high_cpmac()) {
 		cpmac_get_mac(1, cpmac_high_data.dev_addr);
@@ -519,15 +539,47 @@ static int __init ar7_register_devices(void)
 	if (res)
 		return res;
 
+#if defined(CONFIG_AR7_LEDS)
 	detect_leds();
 	res = platform_device_register(&ar7_gpio_leds);
 	if (res)
 		return res;
+#endif
 
+#if defined(CONFIG_USB_SUPPORT)
 	res = platform_device_register(&ar7_udc);
+#endif
 
 	return res;
 }
 
 
 arch_initcall(ar7_register_devices);
+
+
+
+#if defined(CONFIG_FIXED_PHY)
+#if LINUX_VERSION_CODE > KERNEL_VERSION(2, 6, 27)
+static int __init ar7_add_fixed_phys(void)
+{
+	int ret;
+	u32 fixed_link[] = {31, 1, 100, 0, 0};
+	struct fixed_phy_status status = {};
+
+	status.link = 1;
+	status.duplex = fixed_link[1];
+	status.speed = fixed_link[2];
+	status.pause = fixed_link[3];
+	status.asym_pause = fixed_link[4];
+
+	ret = fixed_phy_add(PHY_POLL, fixed_link[0], &status);
+	if (ret) {
+		return ret;
+	}
+
+	return 0;
+}
+
+arch_initcall(ar7_add_fixed_phys);
+#endif /* LINUX_VERSION_CODE */
+#endif /* CONFIG_FIXED_PHY */

@@ -1,0 +1,25 @@
+Index: linux/drivers/Kconfig
+===================================================================
+--- linux.orig/drivers/Kconfig	2009-02-19 18:48:12.000000000 +0100
++++ linux/drivers/Kconfig	2009-02-19 18:49:48.000000000 +0100
+@@ -104,6 +104,8 @@
+ 
+ source "drivers/uio/Kconfig"
+ 
++source "drivers/vlynq/Kconfig"
++
+ source "drivers/xen/Kconfig"
+ 
+ source "drivers/staging/Kconfig"
+Index: linux/drivers/Makefile
+===================================================================
+--- linux.orig/drivers/Makefile	2009-02-19 18:48:12.000000000 +0100
++++ linux/drivers/Makefile	2009-02-19 18:49:48.000000000 +0100
+@@ -98,6 +98,7 @@
+ obj-$(CONFIG_HID)		+= hid/
+ obj-$(CONFIG_PPC_PS3)		+= ps3/
+ obj-$(CONFIG_OF)		+= of/
++obj-$(CONFIG_VLYNQ)		+= vlynq/
+ obj-$(CONFIG_SSB)		+= ssb/
+ obj-$(CONFIG_VIRTIO)		+= virtio/
+ obj-$(CONFIG_REGULATOR)		+= regulator/

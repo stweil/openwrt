@@ -13,6 +13,14 @@ FEATURES:=squashfs jffs2 atm
 
 LINUX_VERSION:=2.6.27.22
 
+#~ LINUX_VERSION:=2.6.23.17
+#~ LINUX_VERSION:=2.6.24.7
+#~ LINUX_VERSION:=2.6.25.20
+#~ LINUX_VERSION:=2.6.26.8
+LINUX_VERSION:=2.6.27.23
+#~ LINUX_VERSION:=2.6.28.9
+#~ LINUX_VERSION:=2.6.29.1
+
 include $(INCLUDE_DIR)/target.mk
 
 DEFAULT_PACKAGES+= kmod-pppoa ppp-mod-pppoa br2684ctl kmod-acx
