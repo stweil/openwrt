@@ -15,4 +15,7 @@
 /*.log
 /dl.backup
 /old
+.gdbinit
 .svn
+linux
+vmlinux
