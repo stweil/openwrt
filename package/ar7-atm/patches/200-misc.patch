@@ -1,0 +1,139 @@
+diff -urN sangam_atm-D7.03.01.00.orig/dsl_hal_api.h sangam_atm-D7.03.01.00/dsl_hal_api.h
+--- sangam_atm-D7.03.01.00.orig/dsl_hal_api.h	2007-03-07 14:40:26.000000000 +0100
++++ sangam_atm-D7.03.01.00/dsl_hal_api.h	2008-11-15 14:14:38.000000000 +0100
+@@ -2448,7 +2448,7 @@
+ *
+ ********************************************************************************************/
+ 
+-unsigned int dslhal_api_getHighPrecision();
++unsigned int dslhal_api_getHighPrecision(void);
+ 
+ /********************************************************************************************
+ * FUNCTION NAME: void dslhal_api_setHighPrecision
+@@ -2459,7 +2459,7 @@
+ * Return: None
+ ********************************************************************************************/
+ 
+-void dslhal_api_setHighPrecision();
++void dslhal_api_setHighPrecision(void);
+ //  UR8_MERGE_END   CQ11054*
+ 
+ #ifdef INTERNAL_BUILD
+diff -urN sangam_atm-D7.03.01.00.orig/tn7api.h sangam_atm-D7.03.01.00/tn7api.h
+--- sangam_atm-D7.03.01.00.orig/tn7api.h	2008-11-21 19:00:13.000000000 +0100
++++ sangam_atm-D7.03.01.00/tn7api.h	2008-11-15 14:13:55.000000000 +0100
+@@ -173,4 +173,4 @@
+ int tn7sar_proc_oam_ping(char* buf, char **start, off_t offset, int count,int *eof, void *data);
+ int tn7sar_proc_pvc_table(char* buf, char **start, off_t offset, int count,int *eof, void *data);
+ int tn7sar_tx_flush(void *privContext, int chan, int queue, int skip);
+-#endif __SGAPI_H
++#endif /* __SGAPI_H */
+diff -urN sangam_atm-D7.03.01.00.orig/tn7atm.h sangam_atm-D7.03.01.00/tn7atm.h
+--- sangam_atm-D7.03.01.00.orig/tn7atm.h	2008-11-21 19:00:13.000000000 +0100
++++ sangam_atm-D7.03.01.00/tn7atm.h	2008-11-15 14:13:17.000000000 +0100
+@@ -63,7 +63,7 @@
+ #endif /* CONFIG_HAS_RELEASE_H_FILE */
+ 
+ /* Base PSP 7.4 support */
+-#if ((PSP_VERSION_MAJOR == 7) && (PSP_VERSION_MINOR == 4))
++#if defined(PSP_VERSION_MAJOR) && ((PSP_VERSION_MAJOR == 7) && (PSP_VERSION_MINOR == 4))
+ #define TIATM_INST_SUPP     /* Enable Instrumentation code. */
+ #define __NO__VOICE_PATCH__ /* Not required anymore. */
+ 
+@@ -276,4 +276,4 @@
+ #define PHYS_TO_K1(X)                             (PHYS_ADDR(X)|K1BASE)
+ #endif
+ 
+-#endif __TN7ATM_H
++#endif /* __TN7ATM_H */
+diff -urN sangam_atm-D7.03.01.00.orig/tn7dsl.c sangam_atm-D7.03.01.00/tn7dsl.c
+--- sangam_atm-D7.03.01.00.orig/tn7dsl.c	2008-11-21 19:00:13.000000000 +0100
++++ sangam_atm-D7.03.01.00/tn7dsl.c	2008-11-15 14:24:29.000000000 +0100
+@@ -616,8 +616,8 @@
+   return jiffies;
+ }
+ 
+-int flags;
+-spinlock_t shimLock;
++static unsigned long flags;
++static spinlock_t shimLock;
+ 
+ void shim_osCriticalEnter(void)
+ {
+@@ -1593,7 +1593,7 @@
+ 
+   if(len<=limit)
+     len +=
+-      sprintf (buf + len, "\tLast showtime init. errors: %ld\tLast showtime init. timeouts: %ld\n",
++      sprintf (buf + len, "\tLast showtime init. errors: %u\tLast showtime init. timeouts: %u\n",
+              pIhw->AppData.lastshowInitErrs, pIhw->AppData.lastshowInitTOs);
+ //  UR8_MERGE_END   CQ10979*
+ 
+@@ -2806,7 +2806,7 @@
+   int value;
+   int i, offset[2]={4,11},oamFeature=0;
+   char tmp[4];
+-  char dspVer[10];
++  //~ char dspVer[10];
+ 
+   // OAM Feature Configuration
+   dslhal_api_dspInterfaceRead (pIhw, (unsigned int) pIhw->pmainAddr, 2,
+@@ -2818,7 +2818,7 @@
+                                 (unsigned char *) &oamFeature, 4);
+ 
+   /* Do only if we are in the new Base PSP 7.4.*/
+-  #if ((PSP_VERSION_MAJOR == 7) && (PSP_VERSION_MINOR == 4))
++  #if defined(PSP_VERSION_MAJOR) && ((PSP_VERSION_MAJOR == 7) && (PSP_VERSION_MINOR == 4))
+   /* Check to see if we are operating in the new bit mode. */
+   ptr = prom_getenv("DSL_BIT_TMODE");
+   if (ptr)
+@@ -3042,6 +3042,8 @@
+ //  UR8_MERGE_END   CQ11054*
+ 
+   sema_init(&adsl_sem_overlay, 0);
++  spin_lock_init(&shimLock);
++
+   /*
+    * start dsl
+    */
+diff -urN sangam_atm-D7.03.01.00.orig/tn7sar.c sangam_atm-D7.03.01.00/tn7sar.c
+--- sangam_atm-D7.03.01.00.orig/tn7sar.c	2008-11-21 19:00:13.000000000 +0100
++++ sangam_atm-D7.03.01.00/tn7sar.c	2008-11-15 14:06:18.000000000 +0100
+@@ -178,7 +178,9 @@
+ static void tn7sar_record_pvc(int atmheader);
+ 
+ /*end of internal APIs */
+-spinlock_t sar_lock;
++
++static spinlock_t chan_close_lock;
++static spinlock_t sar_lock;
+ 
+ /* HAL OS support functions */
+ unsigned long tn7sar_strtoul(const char *str, char **endptr, int base)
+@@ -707,6 +710,9 @@
+   os_funcs->Strtoul                  = tn7sar_strtoul;
+   os_funcs->TeardownComplete         = tn7sar_teardown_complete;
+ 
++  spin_lock_init(&chan_close_lock);
++  spin_lock_init(&sar_lock);
++
+   return(0);
+ }
+ 
+@@ -1190,7 +1196,6 @@
+   return rc;
+ }
+ 
+-static spinlock_t chan_close_lock;
+ //AV:Temporary hack
+ #ifndef pRX_CPPI_COMP_PTR
+ #define pRX_CPPI_COMP_PTR(base)             ((volatile bit32u *)(base+0x8048))
+@@ -1208,7 +1213,7 @@
+   HAL_FUNCTIONS *pHalFunc;
+   HAL_DEVICE    *pHalDev;
+   int rc;
+-  int flags;
++  unsigned long flags;
+ 
+   //dgprintf(4, "tn7sar_deactivate_vc\n");
+   //printk("tn7sar_deactivate_vc entered\n");
