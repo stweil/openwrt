@@ -1,3 +1,4 @@
-config system
-	option hostname	OpenWrt
-	option timezone	UTC
+
+config 'system'
+	option 'hostname'	OpenWrt
+	option 'timezone'	UTC

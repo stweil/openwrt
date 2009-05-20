@@ -30,7 +30,7 @@ apply_uci_config() {(
 )}
 
 start() {
-	[ -f /proc/mounts ] || /sbin/mount_root
+	[ -f /proc/mounts ] || fgrep -q nfs /proc/mounts || /sbin/mount_root
 	[ -f /proc/jffs2_bbc ] && echo "S" > /proc/jffs2_bbc
 	[ -f /proc/net/vlan/config ] && vconfig set_name_type DEV_PLUS_VID_NO_PAD
 

@@ -8,6 +8,8 @@ addif() {
 		ppp*) return 0;;
 	esac
 
+	fgrep -q nfs /proc/mounts && return 0
+
 	scan_interfaces
 	local cfg="$(find_config "$INTERFACE")"
 
