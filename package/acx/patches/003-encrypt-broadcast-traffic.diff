@@ -1,6 +1,56 @@
---- acx-20080210/common.c.orig	2008-04-19 17:38:46.000000000 +0100
-+++ acx-20080210/common.c	2008-04-19 17:40:10.000000000 +0100
-@@ -4155,6 +4155,11 @@
+diff --git a/Kconfig b/Kconfig
+index 2dc1296..b87fe8a 100644
+--- a/Kconfig
++++ b/Kconfig
+@@ -1,6 +1,6 @@
+ config ACX
+ 	tristate "TI acx100/acx111 802.11b/g wireless chipsets"
+-	depends on NET_RADIO && EXPERIMENTAL && (USB || PCI)
++	depends on WLAN_PRE80211 && EXPERIMENTAL && (USB || PCI || VLYNQ)
+ 	select FW_LOADER
+ 	---help---
+ 	A driver for 802.11b/g wireless cards based on
+@@ -17,7 +17,7 @@ config ACX
+ 
+ config ACX_PCI
+ 	bool "TI acx100/acx111 802.11b/g PCI"
+-	depends on ACX && PCI
++	depends on ACX && (PCI || VLYNQ)
+ 	---help---
+ 	Include PCI and CardBus support in acx.
+ 
+diff --git a/acx_struct.h b/acx_struct.h
+index 87ce97e..f25b6c7 100644
+--- a/acx_struct.h
++++ b/acx_struct.h
+@@ -1,3 +1,4 @@
++#define CONFIG_ACX_PCI 1
+ /***********************************************************************
+ ** Copyright (C) 2003  ACX100 Open Source Project
+ **
+@@ -1479,7 +1480,7 @@ struct acx_device {
+ };
+ 
+ static inline acx_device_t*
+-ndev2adev(struct net_device *ndev)
++ndev2adev(const struct net_device *ndev)
+ {
+ 	return netdev_priv(ndev);
+ }
+diff --git a/common.c b/common.c
+index 3926ed7..fa4e786 100644
+--- a/common.c
++++ b/common.c
+@@ -1713,7 +1713,7 @@ proc_funcs[] = {
+ static int
+ manage_proc_entries(const struct net_device *ndev, int remove)
+ {
+-	acx_device_t *adev = ndev2adev((struct net_device *)ndev);
++	acx_device_t *adev = ndev2adev(ndev);
+ 	char procbuf[80];
+ 	int i;
+ 
+@@ -4155,6 +4155,11 @@ acx_l_process_data_frame_master(acx_device_t *adev, rxbuffer_t *rxbuf)
  		/* To_DS = 0, From_DS = 1 */
  		hdr->fc = WF_FC_FROMDSi + WF_FTYPE_DATAi;
  
@@ -12,3 +62,75 @@
  		txbuf = acx_l_get_txbuf(adev, tx);
  		if (txbuf) {
  			len = RXBUF_BYTES_RCVD(adev, rxbuf);
+diff --git a/pci.c b/pci.c
+index faed4bc..d11f1bf 100644
+--- a/pci.c
++++ b/pci.c
+@@ -742,6 +742,7 @@ fail:
+ ** MAC will be reset
+ ** Call context: reset_dev
+ */
++#ifdef CONFIG_PCI
+ static void acxpci_l_reset_mac(acx_device_t *adev)
+ {
+ 	u16 temp;
+@@ -769,7 +770,7 @@ static void acxpci_l_reset_mac(acx_device_t *adev)
+ 
+ 	FN_EXIT0;
+ }
+-
++#endif
+ 
+ /***********************************************************************
+ ** acxpci_s_verify_init
+@@ -4130,8 +4131,7 @@ static struct vlynq_device_id acx_vlynq_id[] = {
+        { 0, 0, 0 },
+ };
+ 
+-static __devinit int vlynq_probe(struct vlynq_device *vdev,
+-				struct vlynq_device_id *id)
++static int vlynq_probe(struct vlynq_device *vdev, struct vlynq_device_id *id)
+ {
+        int result = -EIO, i;
+        u32 addr;
+@@ -4227,7 +4227,7 @@ static __devinit int vlynq_probe(struct vlynq_device *vdev,
+        adev->chip_name = match->name;
+        adev->io = IO_ACX111;
+        ndev->irq = vlynq_virq_to_irq(vdev, match->irq);
+-       ndev->base_addr = adev->iobase;
++       ndev->base_addr = adev->iobase; // !!!
+ 
+        printk("acx: found %s-based wireless network card at %s, irq:%d, "
+ 	      "phymem:0x%x, mem:0x%p\n",
+@@ -4341,8 +4341,8 @@ static __devinit int vlynq_probe(struct vlynq_device *vdev,
+ 
+ static void vlynq_remove(struct vlynq_device *vdev)
+ {
+-	struct net_device *ndev = vlynq_get_drvdata(vdev);;
+-       acx_device_t *adev;
++	struct net_device *ndev = vlynq_get_drvdata(vdev);
++       acx_device_t *adev = ndev2adev(ndev);
+        unsigned long flags;
+        FN_ENTER;
+ 
+@@ -4352,10 +4352,6 @@ static void vlynq_remove(struct vlynq_device *vdev)
+ 	       goto end;
+        }
+ 
+-       acx_lock(adev, flags);
+-	adev = ndev2adev(ndev);
+-       acx_unlock(adev, flags);
+-
+        /* If device wasn't hot unplugged... */
+        if (adev_present(adev)) {
+ 
+@@ -4463,8 +4459,7 @@ acxpci_id_tbl[] __devinitdata = {
+ 
+ MODULE_DEVICE_TABLE(pci, acxpci_id_tbl);
+ 
+-static struct pci_driver
+-acxpci_driver = {
++static struct pci_driver acxpci_driver = {
+ 	.name        = "acx_pci",
+ 	.id_table    = acxpci_id_tbl,
+ 	.probe       = acxpci_e_probe,

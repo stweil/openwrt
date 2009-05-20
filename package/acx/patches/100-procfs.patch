@@ -1,0 +1,76 @@
+Fix device names in procfs (/proc/driver/acx_wlan0, ...).
+
+Signed-off-by: Stefan Weil <weil@mail.berlios.de>
+
+diff --git a/pci.c b/pci.c
+index faed4bc..6e3a42d 100644
+--- a/pci.c
++++ b/pci.c
+@@ -1547,6 +1547,11 @@ static int __devinit acxpci_e_probe(struct pci_dev *pdev, const struct pci_devic
+ 	}
+ 
+ 	ether_setup(ndev);
++	err = dev_alloc_name(ndev, ndev->name);
++	if (err < 0) {
++		printk("acx: could not allocate device name\n");
++		goto fail_dev_alloc_name;
++	}
+ 	ndev->open = &acxpci_e_open;
+ 	ndev->stop = &acxpci_e_close;
+ 	ndev->hard_start_xmit = &acx_i_start_xmit;
+@@ -1673,8 +1678,10 @@ fail_register_netdev:
+ fail_init_mac:
+ fail_read_eeprom_version:
+ fail_reset:
++fail_dev_alloc_name:
+ 
+ 	free_netdev(ndev);
++
+ fail_alloc_netdev:
+ fail_irq:
+ 
+@@ -4182,6 +4189,11 @@ static __devinit int vlynq_probe(struct vlynq_device *vdev,
+ 		goto fail_alloc_netdev;
+ 	}
+ 	ether_setup(ndev);
++	err = dev_alloc_name(ndev, ndev->name);
++	if (err < 0) {
++		printk("acx: could not allocate device name\n");
++		goto fail_dev_alloc_name;
++	}
+ 	ndev->open = &acxpci_e_open;
+ 	ndev->stop = &acxpci_e_close;
+ 	ndev->hard_start_xmit = &acx_i_start_xmit;
+@@ -4321,6 +4333,8 @@ static __devinit int vlynq_probe(struct vlynq_device *vdev,
+       fail_init_mac:
+       fail_read_eeprom_version:
+       fail_reset:
++      fail_dev_alloc_name:
++
+ 	free_netdev(ndev);
+ 
+       fail_alloc_netdev:
+diff --git a/usb.c b/usb.c
+index 4d2ed22..a0529ad 100644
+--- a/usb.c
++++ b/usb.c
+@@ -793,6 +793,7 @@ acxusb_e_probe(struct usb_interface *intf, const struct usb_device_id *devID)
+ 	const char* msg;
+ 	int numconfigs, numfaces, numep;
+ 	int result = OK;
++	int err;
+ 	int i;
+ 	int radio_type;
+ 	/* this one needs to be more precise in case there appears a TNETW1450 from the same vendor */
+@@ -845,6 +846,11 @@ acxusb_e_probe(struct usb_interface *intf, const struct usb_device_id *devID)
+ 	/* Register the callbacks for the network device functions */
+ 
+ 	ether_setup(ndev);
++	err = dev_alloc_name(ndev, ndev->name);
++	if (err < 0) {
++		msg = "acx: could not allocate device name\n";
++		goto end_nomem;
++	}
+ 	ndev->open = &acxusb_e_open;
+ 	ndev->stop = &acxusb_e_close;
+ 	ndev->hard_start_xmit = (void *)&acx_i_start_xmit;

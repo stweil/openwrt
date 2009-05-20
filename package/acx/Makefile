@@ -10,6 +10,7 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=acx
 PKG_VERSION:=20080210
+PKG_VERSION:=git
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
@@ -66,7 +67,7 @@ define Build/Compile
 		KERNEL_SOURCE="$(LINUX_DIR)" \
 		KDIR="$(LINUX_DIR)" \
 		CONFIG_ACX=m \
-		CONFIG_ACX_PCI=m \
+		CONFIG_ACX_PCI=y \
 		modules
 endef
 
