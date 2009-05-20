@@ -1,0 +1,15 @@
+#!/bin/sh /etc/rc.common
+
+# Set the time. Use file timestamp from NFS file.
+
+START=05
+NFSFILE=/nfsfile
+NFSDIR=`dirname $NFSFILE`
+
+start() {
+  touch $NFSFILE
+  rm $NFSFILE
+  date `date -r $NFSDIR +%m%d%H%M%Y.%S`
+}
+
+# eof
