@@ -3,6 +3,7 @@
 # Update a local git copy of the OpenWrt subversion repository.
 
 git-svn fetch -A authors
-git-svn rebase
+#~ git-svn rebase
+git merge remotes/trunk
 
 # eof
