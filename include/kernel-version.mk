@@ -1,17 +1,14 @@
 # Use the default kernel version if the Makefile doesn't override it
 
 ifeq ($(KERNEL),2.4)
-  LINUX_VERSION?=2.4.35.4
+  LINUX_VERSION?=2.4.37.1
 else
   LINUX_VERSION?=2.6.21.7
 endif
 LINUX_RELEASE?=1
 
-ifeq ($(LINUX_VERSION),2.4.34)
-  LINUX_KERNEL_MD5SUM:=f59665540a7f3351ea416a0dad104b55
-endif
-ifeq ($(LINUX_VERSION),2.4.35.4)
-  LINUX_KERNEL_MD5SUM:=34066faff3d8c042df1c7600b08b8070
+ifeq ($(LINUX_VERSION),2.4.37.1)
+  LINUX_KERNEL_MD5SUM:=28bf1bcc94c78804ad67d2f06f950958
 endif
 ifeq ($(LINUX_VERSION),2.6.21.7)
   LINUX_KERNEL_MD5SUM:=bc15fad1487336d5dcb0945cd039d8ed

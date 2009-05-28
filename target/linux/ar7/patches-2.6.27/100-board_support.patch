@@ -1,6 +1,6 @@
 --- a/arch/mips/Kconfig
 +++ b/arch/mips/Kconfig
-@@ -19,6 +19,24 @@
+@@ -19,6 +19,24 @@ choice
  	prompt "System type"
  	default SGI_IP22
  
@@ -25,8 +25,8 @@
  config MACH_ALCHEMY
  	bool "Alchemy processor based machines"
  
---- linux/arch/mips/kernel/traps.c
-+++ linux/arch/mips/kernel/traps.c
+--- a/arch/mips/kernel/traps.c
++++ b/arch/mips/kernel/traps.c
 @@ -1203,9 +1203,22 @@ void *set_except_vector(int n, void *add
  
  	exception_handlers[n] = handler;

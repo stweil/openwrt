@@ -51,7 +51,7 @@ because other drivers do it in the same way.
  	desc->dataflags = CPMAC_SOP | CPMAC_EOP | CPMAC_OWN;
  	desc->skb = skb;
  	desc->data_mapping = dma_map_single(&dev->dev, skb->data, len,
-@@ -621,13 +625,13 @@ static void cpmac_end_xmit(struct net_de
+@@ -621,13 +621,13 @@ static void cpmac_end_xmit(struct net_de
  
  		dev_kfree_skb_irq(desc->skb);
  		desc->skb = NULL;
@@ -67,7 +67,7 @@ because other drivers do it in the same way.
  			netif_wake_subqueue(dev, queue);
  	}
  }
-@@ -737,7 +741,6 @@ static void cpmac_clear_tx(struct net_de
+@@ -737,7 +737,6 @@ static void cpmac_clear_tx(struct net_de
  
  static void cpmac_hw_error(struct work_struct *work)
  {
@@ -75,7 +75,7 @@ because other drivers do it in the same way.
  	struct cpmac_priv *priv =
  		container_of(work, struct cpmac_priv, reset_work);
  
-@@ -824,7 +827,6 @@ static irqreturn_t cpmac_irq(int irq, vo
+@@ -824,7 +823,6 @@ static irqreturn_t cpmac_irq(int irq, vo
  
  static void cpmac_tx_timeout(struct net_device *dev)
  {
@@ -104,7 +104,7 @@ because other drivers do it in the same way.
  }
  
  static int cpmac_open(struct net_device *dev)
-@@ -1103,7 +1107,7 @@ static int external_switch;
+@@ -1103,7 +1101,7 @@ static int external_switch;
  
  static int __devinit cpmac_probe(struct platform_device *pdev)
  {
@@ -113,3 +113,11 @@ because other drivers do it in the same way.
  	char *mdio_bus_id = "0";
  	struct resource *mem;
  	struct cpmac_priv *priv;
+@@ -1132,6 +1130,7 @@ static int __devinit cpmac_probe(struct 
+ 	}
+ 
+ 	dev = alloc_etherdev_mq(sizeof(*priv), CPMAC_QUEUES);
++	//~ dev = alloc_etherdev(sizeof(*priv));
+ 
+ 	if (!dev) {
+ 		printk(KERN_ERR "cpmac: Unable to allocate net_device\n");
