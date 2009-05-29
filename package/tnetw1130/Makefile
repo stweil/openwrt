@@ -5,6 +5,12 @@
 # See /LICENSE for more information.
 #
 
+# TODO:
+# We use a private configuration if CONFIG_TARGET_ar7_Sinus is defined
+# (any other private trigger would have worked).
+# Normal user won't need this private configuration.
+# It is only used for tnetw1130 development.
+
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
@@ -13,11 +19,15 @@ PKG_REV:=master
 PKG_VERSION:=git
 PKG_RELEASE:=1
 
-#~ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=ssh://weil@git.berlios.de/gitroot/ar7-firmware/tnetw1130.git
-#~ PKG_SOURCE_PROTO:=git
-#~ PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-#~ PKG_SOURCE_VERSION:=$(PKG_REV)
+ifdef CONFIG_TARGET_ar7_Sinus
+PKG_GIT_URL:=ssh://weil@git.berlios.de/gitroot/ar7-firmware/tnetw1130.git
+else
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
+PKG_SOURCE_URL:=git://git.berlios.de/ar7-firmware/tnetw1130.git
+PKG_SOURCE_PROTO:=git
+PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
+PKG_SOURCE_VERSION:=$(PKG_REV)
+endif
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -33,20 +43,19 @@ define KernelPackage/tnetw1130/description
 	Driver for tnetw1330 based cards (Mac80211 version)
 endef
 
-
 C16_FW:=tiacx111c16
 C19_FW:=tiacx111c19
 
+ifdef CONFIG_TARGET_ar7_Sinus
 define Build/Prepare
 	cd $(PKG_BUILD_DIR) && \
 	git init && \
-	git remote add origin $(PKG_SOURCE_URL) && \
+	git remote add origin $(PKG_GIT_URL) && \
 	git config branch.master.remote origin && \
 	git config branch.master.merge refs/heads/master && \
 	git pull
-	#~ echo git clone src $(PKG_BUILD_DIR)
-	#~ git clone src $(PKG_BUILD_DIR)
 endef
+endif
 
 define Download/tiacx111c16
   FILE:=$(C16_FW)
