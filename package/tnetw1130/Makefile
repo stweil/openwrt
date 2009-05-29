@@ -9,12 +9,12 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=tnetw1130
-#~ PKG_REV:=11edba2
+PKG_REV:=master
 PKG_VERSION:=git
 PKG_RELEASE:=1
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-#~ PKG_SOURCE_URL:=git://gitorious.org/acx-mac80211/mainline.git
+#~ PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
+PKG_SOURCE_URL:=ssh://weil@git.berlios.de/gitroot/ar7-firmware/tnetw1130.git
 #~ PKG_SOURCE_PROTO:=git
 #~ PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 #~ PKG_SOURCE_VERSION:=$(PKG_REV)
@@ -36,6 +36,17 @@ endef
 
 C16_FW:=tiacx111c16
 C19_FW:=tiacx111c19
+
+define Build/Prepare
+	cd $(PKG_BUILD_DIR) && \
+	git init && \
+	git remote add origin $(PKG_SOURCE_URL) && \
+	git config branch.master.remote origin && \
+	git config branch.master.merge refs/heads/master && \
+	git pull
+	#~ echo git clone src $(PKG_BUILD_DIR)
+	#~ git clone src $(PKG_BUILD_DIR)
+endef
 
 define Download/tiacx111c16
   FILE:=$(C16_FW)
