@@ -78,6 +78,31 @@ define Image/Build/AP81
 	fi; fi
 endef
 
+define Image/Build/AP83
+	cp $(KDIR)/vmlinux $(KDIR)/vmlinux-$(2)
+	$(STAGING_DIR_HOST)/bin/patch-cmdline $(KDIR)/vmlinux-$(2) '$(strip $(3))'
+	gzip -9 -c $(KDIR)/vmlinux-$(2) > $(KDIR)/vmlinux-$(2).bin.gz
+	if [ `stat -c%s "$(KDIR)/vmlinux-$(2).bin.gz"` -gt 1310720 ]; then \
+		echo "Warning: $(KDIR)/vmlinux-$(2).bin.gz is too big"; \
+	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 6619136 ]; then \
+		echo "Warning: $(KDIR)/root.$(1) is too big"; \
+	else \
+		mkimage -A mips -O linux -T kernel -a 0x80060000 -C gzip -e \
+			0x80060000 \
+			-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
+			-d $(KDIR)/vmlinux-$(2).bin.gz \
+			$(KDIR)/vmlinux-$(2).uImage; \
+		dd if=$(KDIR)/vmlinux-$(2).uImage \
+			of=$(call imgname,kernel,$(2)).bin bs=64k conv=sync; \
+		dd if=$(KDIR)/root.$(1) \
+			of=$(call imgname,$(1),$(2)-rootfs).bin bs=128k conv=sync; \
+		( \
+			dd if=$(KDIR)/vmlinux-$(2).uImage bs=1280k conv=sync; \
+			dd if=$(KDIR)/root.$(1); \
+		) > $(call imgname,$(1),$(2)-firmware).bin; \
+	fi; fi
+endef
+
 define Image/Build/MyLoader
 	-$(STAGING_DIR_HOST)/bin/mkmylofw -B $(2) \
 		-p0x30000:0xc0000:ahl:0x80060000:kernel:$(KDIR)/vmlinux.bin.lzma  \
@@ -114,7 +139,9 @@ define Image/Build/Planex
 			dd if=$(KDIR)/vmlinux-$(2).uImage bs=1408k conv=sync; \
 			dd if=$(KDIR)/root.$(1) bs=6208k conv=sync; \
 		) > $(call imgname,$(1),$(2)).bin; \
-		$(STAGING_DIR_HOST)/bin/mkplanexfw -v 2.00.00 \
+		$(STAGING_DIR_HOST)/bin/mkplanexfw \
+			-B $(2) \
+			-v 2.00.00 \
 			-i $(call imgname,$(1),$(2)).bin \
 			-o $(call imgname,$(1),$(2)).webui; \
 	fi; fi
@@ -155,6 +182,14 @@ define Image/Build/Template/AP81/squashfs
 	$(call Image/Build/Template/AP81,squashfs,$(1),$(2),$(3))
 endef
 
+define Image/Build/Template/AP83
+	$(call Image/Build/AP83,$(1),$(2),$(3))
+endef
+
+define Image/Build/Template/AP83/squashfs
+	$(call Image/Build/Template/AP83,squashfs,$(1),$(2))
+endef
+
 define Image/Build/Template/TPLINK
 	$(call Image/Build/TPLINK,$(1),$(2),$(3),$(4))
 endef
@@ -177,6 +212,10 @@ endef
 
 define Image/Build/Template/Planex/squashfs
 	$(call Image/Build/Template/Planex,squashfs,$(1),$(2))
+endef
+
+define Image/Build/Profile/AP83
+	$(call Image/Build/Template/AP83/$(1),ap83,board=AP83)
 endef
 
 define Image/Build/Profile/WP543
@@ -221,6 +260,10 @@ define Image/Build/Profile/MZKW04NU
 	$(call Image/Build/Template/Planex/$(1),mzk-w04nu,board=MZK-W04NU)
 endef
 
+define Image/Build/Profile/MZKW300NH
+	$(call Image/Build/Template/Planex/$(1),mzk-w300nh,board=MZK-W300NH)
+endef
+
 define Image/Build/Profile/TLWR841NDV3
 	$(call Image/Build/Template/TPLINK/$(1),tl-wr841ndv3,board=TL-WR941ND,TL-WR841NDv3)
 endef
@@ -234,9 +277,11 @@ define Image/Build/Profile/WRT400N
 endef
 
 define Image/Build/Profile/Default
+	$(call Image/Build/Profile/AP83,$(1))
 	$(call Image/Build/Profile/A02RBW300N,$(1))
 	$(call Image/Build/Profile/DIR615C1,$(1))
 	$(call Image/Build/Profile/MZKW04NU,$(1))
+	$(call Image/Build/Profile/MZKW300NH,$(1))
 	$(call Image/Build/Profile/TEW632BRP,$(1))
 	$(call Image/Build/Profile/TEW652BRP,$(1))
 	$(call Image/Build/Profile/TLWR841NDV3,$(1))
