@@ -13,6 +13,9 @@ ar71xx_board_name() {
 	*AP81)
 		name="ap81"
 		;;
+	*AP83)
+		name="ap83"
+		;;
 	*AW-NR580)
 		name="aw-nr580"
 		;;
@@ -21,6 +24,9 @@ ar71xx_board_name() {
 		;;
 	*MZK-W04NU)
 		name="mzk-w04nu"
+		;;
+	*MZK-W300NH)
+		name="mzk-w300nh"
 		;;
 	*PB42)
 		name="pb42"

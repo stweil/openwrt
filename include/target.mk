@@ -120,8 +120,8 @@ ifeq ($(LINUX_CONFIG),$(LINUX_SUBCONFIG))
   LINUX_SUBCONFIG:=
 endif
 LINUX_CONFCMD=$(if $(LINUX_CONFIG), \
-	$(if $(GENERIC_LINUX_CONFIG),,$(error The generic kernel config for your kernel version is mising)) \
-	$(if $(LINUX_CONFIG),,$(error The target kernel config for your kernel version is mising)) \
+	$(if $(GENERIC_LINUX_CONFIG),,$(error The generic kernel config for your kernel version is missing)) \
+	$(if $(LINUX_CONFIG),,$(error The target kernel config for your kernel version is missing)) \
 	$(SCRIPT_DIR)/kconfig.pl \
 		+ $(GENERIC_LINUX_CONFIG) \
 		$(if $(LINUX_SUBCONFIG),+ $(LINUX_CONFIG) $(LINUX_SUBCONFIG),$(LINUX_CONFIG)), \
@@ -143,6 +143,9 @@ ifeq ($(DUMP),1)
     endif
     ifneq ($(CONFIG_PCI),)
       FEATURES += pci
+    endif
+    ifneq ($(CONFIG_PCIEPORTBUS),)
+      FEATURES += pcie
     endif
     ifneq ($(CONFIG_USB)$(CONFIG_USB_SUPPORT),)
       FEATURES += usb

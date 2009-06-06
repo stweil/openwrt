@@ -48,6 +48,17 @@ ifeq ($(DUMP)$(filter prereq clean refresh update,$(MAKECMDGOALS)),)
   endif
 endif
 
+ifeq ($(CONFIG_$(PKG_NAME)_USE_CUSTOM_SOURCE_DIR),y)
+# disable load stage
+PKG_SOURCE_URL:=
+# add hook to install a link to customer source path of dedicated package
+Hooks/Prepare/Pre += prepare_custom_source_directory
+# define empty default action
+define Build/Prepare/Default
+	@: 
+endef
+endif
+
 define Download/default
   FILE:=$(PKG_SOURCE)
   URL:=$(PKG_SOURCE_URL)
@@ -130,6 +141,8 @@ define Build/DefaultTargets
 
   prepare: $(STAMP_PREPARED)
   configure: $(STAMP_CONFIGURED)
+  dist: $(STAMP_CONFIGURED)
+  distcheck: $(STAMP_CONFIGURED)
 endef
 
 define BuildPackage
@@ -178,6 +191,8 @@ Build/Prepare=$(call Build/Prepare/Default,)
 Build/Configure=$(call Build/Configure/Default,)
 Build/Compile=$(call Build/Compile/Default,)
 Build/Install=$(if $(PKG_INSTALL),$(call Build/Install/Default,))
+Build/Dist=$(call Build/Dist/Default,)
+Build/DistCheck=$(call Build/DistCheck/Default,)
 
 $(PACKAGE_DIR):
 	mkdir -p $@
@@ -202,3 +217,9 @@ clean: clean-staging FORCE
 	$(Build/Clean)
 	rm -f $(STAGING_DIR)/packages/$(PKG_NAME).list $(STAGING_DIR_HOST)/packages/$(PKG_NAME).list
 	rm -rf $(PKG_BUILD_DIR)
+
+dist:
+	$(Build/Dist)
+   
+distcheck:
+	$(Build/DistCheck) 

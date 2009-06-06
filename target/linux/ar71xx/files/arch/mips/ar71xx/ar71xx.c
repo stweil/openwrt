@@ -1,7 +1,7 @@
 /*
  *  AR71xx SoC routines
  *
- *  Copyright (C) 2008 Gabor Juhos <juhosg@openwrt.org>
+ *  Copyright (C) 2008-2009 Gabor Juhos <juhosg@openwrt.org>
  *  Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -12,8 +12,11 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/types.h>
+#include <linux/mutex.h>
 
 #include <asm/mach-ar71xx/ar71xx.h>
+
+static DEFINE_MUTEX(ar71xx_flash_mutex);
 
 void __iomem *ar71xx_ddr_base;
 EXPORT_SYMBOL_GPL(ar71xx_ddr_base);
@@ -98,3 +101,14 @@ void ar71xx_ddr_flush(u32 reg)
 }
 EXPORT_SYMBOL_GPL(ar71xx_ddr_flush);
 
+void ar71xx_flash_acquire(void)
+{
+	mutex_lock(&ar71xx_flash_mutex);
+}
+EXPORT_SYMBOL_GPL(ar71xx_flash_acquire);
+
+void ar71xx_flash_release(void)
+{
+	mutex_unlock(&ar71xx_flash_mutex);
+}
+EXPORT_SYMBOL_GPL(ar71xx_flash_release);
