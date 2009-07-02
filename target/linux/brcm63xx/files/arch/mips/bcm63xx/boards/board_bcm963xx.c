@@ -24,6 +24,7 @@
 #include <bcm63xx_dev_uart.h>
 #include <bcm63xx_dev_wdt.h>
 #include <bcm63xx_dev_enet.h>
+#include <bcm63xx_dev_dsp.h>
 #include <bcm63xx_dev_pcmcia.h>
 #include <bcm63xx_dev_usb_ohci.h>
 #include <bcm63xx_dev_usb_ehci.h>
@@ -45,14 +46,35 @@ static struct board_info board;
 static struct board_info __initdata board_96338gw = {
 	.name				= "96338GW",
 	.expected_cpu_id		= 0x6338,
-
+	
 	.has_enet0			= 1,
 	.enet0 = {
-		.has_phy		= 1,
-		.use_internal_phy	= 1,
+		.force_speed_100	= 1,
+		.force_duplex_full	= 1,
 	},
 
 	.has_ohci0			= 1,
+};
+
+static struct board_info __initdata board_96338w = {
+	.name				= "96338W",
+	.expected_cpu_id		= 0x6338,
+	
+	.has_enet0			= 1,
+	.enet0 = {
+		.force_speed_100	= 1,
+		.force_duplex_full	= 1,
+	}
+};
+#endif
+
+/*
+ * known 6345 boards
+ */
+#ifdef CONFIG_BCM63XX_CPU_6345
+static struct board_info __initdata board_96345gw2 = {
+	.name				= "96345GW2",
+	.expected_cpu_id		= 0x6345,
 };
 #endif
 
@@ -93,6 +115,14 @@ static struct board_info __initdata board_96348gw_10 = {
 	.has_ohci0			= 1,
 	.has_pccard			= 1,
 	.has_ehci0			= 1,
+
+	.has_dsp			= 1,
+	.dsp = {
+		.gpio_rst		= 6,
+		.gpio_int		= 34,
+		.cs			= 2,
+		.ext_irq		= 2,
+	},
 }; 
 
 static struct board_info __initdata board_96348gw_11 = {
@@ -136,7 +166,15 @@ static struct board_info __initdata board_96348gw = {
 		.force_duplex_full	= 1,
 	},
 
-	.has_ohci0 = 1,
+	.has_ohci0			= 1,
+	.has_dsp			= 1,
+	
+	.dsp = {
+		.gpio_rst		= 6,
+		.gpio_int		= 34,
+		.ext_irq		= 2,
+		.cs			= 2,
+	},
 };
 
 static struct board_info __initdata board_FAST2404 = {
@@ -287,6 +325,10 @@ static struct board_info __initdata board_AGPFS0 = {
 static const struct board_info __initdata *bcm963xx_boards[] = {
 #ifdef CONFIG_BCM63XX_CPU_6338
 	&board_96338gw,
+	&board_96338w,
+#endif
+#ifdef CONFIG_BCM63XX_CPU_6345
+	&board_96345gw2,
 #endif
 #ifdef CONFIG_BCM63XX_CPU_6348
 	&board_96348r,
@@ -315,9 +357,15 @@ void __init board_prom_init(void)
 	char cfe_version[32];
 	u32 val;
 
-	/* read base address of boot chip select (0) */
-	val = bcm_mpi_readl(MPI_CSBASE_REG(0));
-	val &= MPI_CSBASE_BASE_MASK;
+	/* read base address of boot chip select (0) 
+	 * 6338/6345 does not have MPI but boots from standard
+	 * MIPS Flash address */
+	if (BCMCPU_IS_6345())
+		val = 0x1fc00000;
+	else {
+		val = bcm_mpi_readl(MPI_CSBASE_REG(0));
+		val &= MPI_CSBASE_BASE_MASK;
+	}
 	boot_addr = (u8 *)KSEG1ADDR(val);
 
 	/* dump cfe version */
@@ -370,13 +418,13 @@ void __init board_prom_init(void)
 	 * this has to be done this early since PCI init is done
 	 * inside arch_initcall */
 	val = 0;
-
+#ifdef CONFIG_PCI
 	if (board.has_pci) {
 		bcm63xx_pci_enabled = 1;
 		if (BCMCPU_IS_6348())
 			val |= GPIO_MODE_6348_G2_PCI;
 	}
-
+#endif
 	if (board.has_pccard) {
 		if (BCMCPU_IS_6348())
 			val |= GPIO_MODE_6348_G1_MII_PCCARD;
@@ -528,18 +576,28 @@ int __init board_register_devices(void)
 
 	if (board.has_udc0)
 		bcm63xx_udc_register();
+
+	if (board.has_dsp)
+		bcm63xx_dsp_register(&board.dsp);
+	
 	/* Generate MAC address for WLAN and
 	 * register our SPROM */
+#ifdef CONFIG_PCI
 	if (!board_get_mac_address(bcm63xx_sprom.il0mac)) {
 		memcpy(bcm63xx_sprom.et0mac, bcm63xx_sprom.il0mac, ETH_ALEN);
 		memcpy(bcm63xx_sprom.et1mac, bcm63xx_sprom.il0mac, ETH_ALEN);
 		if (ssb_arch_set_fallback_sprom(&bcm63xx_sprom) < 0)
 			printk(KERN_ERR "failed to register fallback SPROM\n");
 	}
+#endif
 
 	/* read base address of boot chip select (0) */
-	val = bcm_mpi_readl(MPI_CSBASE_REG(0));
-	val &= MPI_CSBASE_BASE_MASK;
+	if (BCMCPU_IS_6345())
+		val = 0x1fc0000;
+	else {
+		val = bcm_mpi_readl(MPI_CSBASE_REG(0));
+		val &= MPI_CSBASE_BASE_MASK;
+	}
 	mtd_resources[0].start = val;
 	mtd_resources[0].end = 0x1FFFFFFF;
 
