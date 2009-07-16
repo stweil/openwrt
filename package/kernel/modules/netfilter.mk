@@ -355,7 +355,7 @@ define KernelPackage/ip6tables
   SUBMENU:=$(NF_MENU)
   TITLE:=IPv6 modules
   DEPENDS:=+kmod-ipv6
-  KCONFIG:=CONFIG_IP6_NF_IPTABLES
+  KCONFIG:=$(KCONFIG_IPT_IPV6)
   FILES:=$(foreach mod,$(IPT_IPV6-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
   AUTOLOAD:=$(call AutoLoad,49,$(notdir $(IPT_IPV6-m)))
 endef
@@ -374,7 +374,7 @@ define KernelPackage/arptables
   KCONFIG:=CONFIG_IP_NF_ARPTABLES \
     CONFIG_IP_NF_ARPFILTER \
     CONFIG_IP_NF_ARP_MANGLE
-  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(patsubst %.ko,%,$(wildcard $(LINUX_DIR)/net/ipv4/netfilter/arp*.$(LINUX_KMOD_SUFFIX)))))
+  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(patsubst %.$(LINUX_KMOD_SUFFIX),%,$(wildcard $(LINUX_DIR)/net/ipv4/netfilter/arp*.$(LINUX_KMOD_SUFFIX)))))
 endef
 
 define KernelPackage/arptables/description
@@ -390,7 +390,7 @@ define KernelPackage/ebtables
   FILES:=$(LINUX_DIR)/net/bridge/netfilter/*.$(LINUX_KMOD_SUFFIX)
   KCONFIG:=CONFIG_BRIDGE_NETFILTER=y \
   	CONFIG_BRIDGE_NF_EBTABLES
-  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(patsubst %.ko,%,ebtables.ko $(wildcard $(LINUX_DIR)/net/bridge/netfilter/ebtable_*.$(LINUX_KMOD_SUFFIX)) $(wildcard $(LINUX_DIR)/net/bridge/netfilter/ebt_*.$(LINUX_KMOD_SUFFIX)))))
+  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(patsubst %.$(LINUX_KMOD_SUFFIX),%,ebtables.$(LINUX_KMOD_SUFFIX) $(wildcard $(LINUX_DIR)/net/bridge/netfilter/ebtable_*.$(LINUX_KMOD_SUFFIX)) $(wildcard $(LINUX_DIR)/net/bridge/netfilter/ebt_*.$(LINUX_KMOD_SUFFIX)))))
 endef
 
 define KernelPackage/ebtables/description

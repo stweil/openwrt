@@ -93,6 +93,81 @@ static void __init ar71xx_pci_irq_init(void)
 
 	setup_irq(AR71XX_CPU_IRQ_PCI, &ar71xx_pci_irqaction);
 }
+
+static void ar724x_pci_irq_dispatch(void)
+{
+	u32 pending;
+
+	pending = ar724x_pci_rr(AR724X_PCI_REG_INT_STATUS) &
+		  ar724x_pci_rr(AR724X_PCI_REG_INT_MASK);
+
+	if (pending & AR724X_PCI_INT_DEV0)
+		do_IRQ(AR71XX_PCI_IRQ_DEV0);
+
+	else
+		spurious_interrupt();
+}
+
+static void ar724x_pci_irq_unmask(unsigned int irq)
+{
+	switch (irq) {
+	case AR71XX_PCI_IRQ_DEV0:
+		irq -= AR71XX_PCI_IRQ_BASE;
+		ar724x_pci_wr(AR724X_PCI_REG_INT_MASK,
+			      ar724x_pci_rr(AR724X_PCI_REG_INT_MASK) |
+					    AR724X_PCI_INT_DEV0);
+		/* flush write */
+		ar724x_pci_rr(AR724X_PCI_REG_INT_MASK);
+	}
+}
+
+static void ar724x_pci_irq_mask(unsigned int irq)
+{
+	switch (irq) {
+	case AR71XX_PCI_IRQ_DEV0:
+		irq -= AR71XX_PCI_IRQ_BASE;
+		ar724x_pci_wr(AR724X_PCI_REG_INT_MASK,
+			      ar724x_pci_rr(AR724X_PCI_REG_INT_MASK) &
+					    ~AR724X_PCI_INT_DEV0);
+		/* flush write */
+		ar724x_pci_rr(AR724X_PCI_REG_INT_MASK);
+
+		ar724x_pci_wr(AR724X_PCI_REG_INT_STATUS,
+			      ar724x_pci_rr(AR724X_PCI_REG_INT_STATUS) |
+					    AR724X_PCI_INT_DEV0);
+		/* flush write */
+		ar724x_pci_rr(AR724X_PCI_REG_INT_STATUS);
+	}
+}
+
+static struct irq_chip ar724x_pci_irq_chip = {
+	.name		= "AR724X PCI ",
+	.mask		= ar724x_pci_irq_mask,
+	.unmask		= ar724x_pci_irq_unmask,
+	.mask_ack	= ar724x_pci_irq_mask,
+};
+
+static struct irqaction ar724x_pci_irqaction = {
+	.handler	= no_action,
+	.name		= "cascade [AR724X PCI]",
+};
+
+static void __init ar724x_pci_irq_init(void)
+{
+	int i;
+
+	ar724x_pci_wr(AR724X_PCI_REG_INT_MASK, 0);
+	ar724x_pci_wr(AR724X_PCI_REG_INT_STATUS, 0);
+
+	for (i = AR71XX_PCI_IRQ_BASE;
+	     i < AR71XX_PCI_IRQ_BASE + AR71XX_PCI_IRQ_COUNT; i++) {
+		irq_desc[i].status = IRQ_DISABLED;
+		set_irq_chip_and_handler(i, &ar724x_pci_irq_chip,
+					 handle_level_irq);
+	}
+
+	setup_irq(AR71XX_CPU_IRQ_PCI, &ar724x_pci_irqaction);
+}
 #endif /* CONFIG_PCI */
 
 static void ar71xx_gpio_irq_dispatch(void)
@@ -138,7 +213,7 @@ static int ar71xx_gpio_irq_set_type(unsigned int irq, unsigned int flow_type)
 #define ar71xx_gpio_irq_set_type	NULL
 #endif
 
-struct irq_chip ar71xx_gpio_irq_chip = {
+static struct irq_chip ar71xx_gpio_irq_chip = {
 	.name		= "AR71XX GPIO",
 	.unmask		= ar71xx_gpio_irq_unmask,
 	.mask		= ar71xx_gpio_irq_mask,
@@ -222,6 +297,22 @@ static void ar71xx_misc_irq_unmask(unsigned int irq)
 	ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_ENABLE);
 }
 
+static void ar724x_misc_irq_unmask(unsigned int irq)
+{
+	irq -= AR71XX_MISC_IRQ_BASE;
+	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_ENABLE,
+		ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_ENABLE) | (1 << irq));
+
+	/* flush write */
+	ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_ENABLE);
+
+	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_STATUS,
+		ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_STATUS) & ~(1 << irq));
+
+	/* flush write */
+	ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_STATUS);
+}
+
 static void ar71xx_misc_irq_mask(unsigned int irq)
 {
 	irq -= AR71XX_MISC_IRQ_BASE;
@@ -232,7 +323,7 @@ static void ar71xx_misc_irq_mask(unsigned int irq)
 	ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_ENABLE);
 }
 
-struct irq_chip ar71xx_misc_irq_chip = {
+static struct irq_chip ar71xx_misc_irq_chip = {
 	.name		= "AR71XX MISC",
 	.unmask		= ar71xx_misc_irq_unmask,
 	.mask		= ar71xx_misc_irq_mask,
@@ -250,6 +341,9 @@ static void __init ar71xx_misc_irq_init(void)
 
 	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_ENABLE, 0);
 	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_STATUS, 0);
+
+	if (ar71xx_soc == AR71XX_SOC_AR7240)
+		ar71xx_misc_irq_chip.unmask = ar724x_misc_irq_unmask;
 
 	for (i = AR71XX_MISC_IRQ_BASE;
 	     i < AR71XX_MISC_IRQ_BASE + AR71XX_MISC_IRQ_COUNT; i++) {
@@ -306,10 +400,15 @@ void __init arch_init_irq(void)
 	case AR71XX_SOC_AR7130:
 	case AR71XX_SOC_AR7141:
 	case AR71XX_SOC_AR7161:
-	case AR71XX_SOC_AR7240:
 #ifdef CONFIG_PCI
 		ar71xx_pci_irq_init();
 		ar71xx_ip2_irq_handler = ar71xx_pci_irq_dispatch;
+#endif
+		break;
+	case AR71XX_SOC_AR7240:
+#ifdef CONFIG_PCI
+		ar724x_pci_irq_init();
+		ar71xx_ip2_irq_handler = ar724x_pci_irq_dispatch;
 #endif
 		break;
 	case AR71XX_SOC_AR9130:

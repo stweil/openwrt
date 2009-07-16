@@ -126,7 +126,6 @@ enable_atheros() {
 	config_get distance "$device" distance
 	[ -n "$distance" ] && sysctl -w dev."$device".distance="$distance" >&-
 
-	local first=1
 	for vif in $vifs; do
 		local start_hostapd= vif_txpower= nosbeacon=
 		config_get ifname "$vif" ifname
@@ -135,10 +134,11 @@ enable_atheros() {
 		config_get mode "$vif" mode
 		
 		case "$mode" in
-			sta) config_get nosbeacon "$device" nosbeacon;;
-			adhoc) config_get nosbeacon "$vif" sw_merge;;
+			sta) config_get_bool nosbeacon "$device" nosbeacon;;
+			adhoc) config_get_bool nosbeacon "$vif" sw_merge 1;;
 		esac
 		
+		[ "$nosbeacon" = 1 ] || nosbeacon=""
 		ifname=$(wlanconfig "$ifname" create wlandev "$device" wlanmode "$mode" ${nosbeacon:+nosbeacon})
 		[ $? -ne 0 ] && {
 			echo "enable_atheros($device): Failed to set up $mode vif $ifname" >&2
@@ -146,29 +146,26 @@ enable_atheros() {
 		}
 		config_set "$vif" ifname "$ifname"
 
-		# only need to change freq band and channel on the first vif
-		[ "$first" = 1 ] && {
 		config_get hwmode "$device" hwmode
 		[ -z "$hwmode" ] && config_get hwmode "$device" mode
 
-			pureg=0
-			case "$hwmode" in
-				*b) hwmode=11b;;
-				*bg) hwmode=11g;;
-				*g) hwmode=11g; pureg=1;;
-				*gdt) hwmode=11gdt;;
-				*a) hwmode=11a;;
-				*adt) hwmode=11adt;;
-				*ast) hwmode=11ast;;
-				*fh) hwmode=fh;;
-				*) hwmode=auto;;
-			esac
-			iwpriv "$ifname" mode "$hwmode"
-			iwpriv "$ifname" pureg "$pureg"
+		pureg=0
+		case "$hwmode" in
+			*b) hwmode=11b;;
+			*bg) hwmode=11g;;
+			*g) hwmode=11g; pureg=1;;
+			*gdt) hwmode=11gdt;;
+			*a) hwmode=11a;;
+			*adt) hwmode=11adt;;
+			*ast) hwmode=11ast;;
+			*fh) hwmode=fh;;
+			*) hwmode=auto;;
+		esac
+		iwpriv "$ifname" mode "$hwmode"
+		iwpriv "$ifname" pureg "$pureg"
 
-			iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null 
-		}
-	
+		iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null 
+
 		config_get_bool hidden "$vif" hidden 0
 		iwpriv "$ifname" hide_ssid "$hidden"
 
@@ -182,7 +179,7 @@ enable_atheros() {
 			1|on|enabled) wds=1;;
 			*) wds=0;;
 		esac
-		iwpriv "$ifname" wds "$wds"
+		iwpriv "$ifname" wds "$wds" >/dev/null 2>&1
 
 		[ "$mode" = ap -a "$wds" = 1 ] && {
 			config_get_bool wdssep "$vif" wdssep 1
@@ -233,7 +230,7 @@ enable_atheros() {
 		[ -n "$rts" ] && iwconfig "$ifname" rts "${rts%%.*}"
 
 		config_get_bool comp "$vif" compression 0
-		iwpriv "$ifname" compression "$comp"
+		iwpriv "$ifname" compression "$comp" >/dev/null 2>&1
 
 		config_get_bool minrate "$vif" minrate
 		[ -n "$minrate" ] && iwpriv "$ifname" minrate "$minrate"
@@ -339,7 +336,6 @@ enable_atheros() {
 				fi
 			;;
 		esac
-		first=0
 	done
 }
 

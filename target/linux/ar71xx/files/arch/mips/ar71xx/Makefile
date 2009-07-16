@@ -10,6 +10,8 @@
 
 obj-y	:= prom.o irq.o setup.o devices.o gpio.o ar71xx.o
 
+obj-$(CONFIG_PCI)			+= pci.o
+
 obj-$(CONFIG_AR71XX_MACH_AP81)		+= mach-ap81.o
 obj-$(CONFIG_AR71XX_MACH_AP83)		+= mach-ap83.o
 obj-$(CONFIG_AR71XX_MACH_AW_NR580)	+= mach-aw-nr580.o
@@ -20,6 +22,7 @@ obj-$(CONFIG_AR71XX_MACH_PB42)		+= mach-pb42.o
 obj-$(CONFIG_AR71XX_MACH_PB44)		+= mach-pb44.o
 obj-$(CONFIG_AR71XX_MACH_RB_4XX)	+= mach-rb-4xx.o
 obj-$(CONFIG_AR71XX_MACH_TEW_632BRP)	+= mach-tew-632brp.o
+obj-$(CONFIG_AR71XX_MACH_TL_WR741ND)	+= mach-tl-wr741nd.o
 obj-$(CONFIG_AR71XX_MACH_TL_WR941ND)	+= mach-tl-wr941nd.o
 obj-$(CONFIG_AR71XX_MACH_UBNT)		+= mach-ubnt.o
 obj-$(CONFIG_AR71XX_MACH_WNR2000)	+= mach-wnr2000.o

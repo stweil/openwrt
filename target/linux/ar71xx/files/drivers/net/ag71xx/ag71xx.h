@@ -38,7 +38,7 @@
 #define ETH_FCS_LEN	4
 
 #define AG71XX_DRV_NAME		"ag71xx"
-#define AG71XX_DRV_VERSION	"0.5.21"
+#define AG71XX_DRV_VERSION	"0.5.23"
 
 #define AG71XX_NAPI_WEIGHT	64
 #define AG71XX_OOM_REFILL	(1 + HZ/10)
@@ -85,16 +85,18 @@ struct ag71xx_desc {
 #define DESC_PKTLEN_M	0xfff
 	u32	next;
 	u32	pad;
-};
+} __attribute__((aligned(4)));
 
 struct ag71xx_buf {
 	struct sk_buff	*skb;
+	struct ag71xx_desc *desc;
 };
 
 struct ag71xx_ring {
 	struct ag71xx_buf	*buf;
-	struct ag71xx_desc	*descs;
+	u8			*descs_cpu;
 	dma_addr_t		descs_dma;
+	unsigned int		desc_size;
 	unsigned int		curr;
 	unsigned int		dirty;
 	unsigned int		size;
@@ -399,12 +401,22 @@ static inline void ag71xx_int_disable(struct ag71xx *ag, u32 ints)
 
 static inline void ag71xx_mii_ctrl_wr(struct ag71xx *ag, u32 value)
 {
+	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
+
+	if (pdata->is_ar724x)
+		return;
+
 	__raw_writel(value, ag->mii_ctrl);
 	__raw_readl(ag->mii_ctrl);
 }
 
 static inline u32 ag71xx_mii_ctrl_rr(struct ag71xx *ag)
 {
+	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
+
+	if (pdata->is_ar724x)
+		return 0xffffffff;
+
 	return __raw_readl(ag->mii_ctrl);
 }
 

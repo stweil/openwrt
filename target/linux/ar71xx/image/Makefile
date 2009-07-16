@@ -36,7 +36,7 @@ define Image/BuildKernel
 		-d $(KDIR)/vmlinux.bin.lzma $(IMGNAME)-uImage-lzma.bin
 endef
 
-define Image/Build/Linksys8M
+define Image/Build/WRT400N
 	cp $(KDIR)/vmlinux $(KDIR)/vmlinux-$(2)
 	$(STAGING_DIR_HOST)/bin/patch-cmdline $(KDIR)/vmlinux-$(2) '$(strip $(3))'
 	$(STAGING_DIR_HOST)/bin/lzma e $(KDIR)/vmlinux-$(2) $(KDIR)/vmlinux-$(2).bin.lzma
@@ -54,6 +54,7 @@ define Image/Build/Linksys8M
 			dd if=$(KDIR)/root.$(1) bs=6336k conv=sync; \
 			echo -n $(4); \
 		) > $(call imgname,$(1),$(2)).bin; \
+		wrt400n $(KDIR)/vmlinux-$(2).uImage $(KDIR)/root.$(1) $(call imgname,$(1),$(2)).webui; \
 	fi; fi
 endef
 
@@ -61,9 +62,9 @@ define Image/Build/AP81
 	cp $(KDIR)/vmlinux $(KDIR)/vmlinux-$(2)
 	$(STAGING_DIR_HOST)/bin/patch-cmdline $(KDIR)/vmlinux-$(2) '$(strip $(3))'
 	$(STAGING_DIR_HOST)/bin/lzma e $(KDIR)/vmlinux-$(2) $(KDIR)/vmlinux-$(2).bin.lzma
-	if [ `stat -c%s "$(KDIR)/vmlinux-$(2).bin.lzma"` -gt 786432 ]; then \
+	if [ `stat -c%s "$(KDIR)/vmlinux-$(2).bin.lzma"` -gt 851968 ]; then \
 		echo "Warning: $(KDIR)/vmlinux-$(2).bin.lzma is too big"; \
-	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 3080192 ]; then \
+	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 3014656 ]; then \
 		echo "Warning: $(KDIR)/root.$(1) is too big"; \
 	else \
 		mkimage -A mips -O linux -T kernel -a 0x80060000 -C lzma -e \
@@ -71,8 +72,8 @@ define Image/Build/AP81
 			-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
 			-d $(KDIR)/vmlinux-$(2).bin.lzma $(KDIR)/vmlinux-$(2).uImage; \
 		( \
-			dd if=$(KDIR)/vmlinux-$(2).uImage bs=768k conv=sync; \
-			dd if=$(KDIR)/root.$(1) bs=3008k conv=sync; \
+			dd if=$(KDIR)/vmlinux-$(2).uImage bs=832k conv=sync; \
+			dd if=$(KDIR)/root.$(1) bs=2944k conv=sync; \
 			echo -n $(4); \
 		) > $(call imgname,$(1),$(2)).uni; \
 	fi; fi
@@ -166,16 +167,16 @@ define Image/Build/Template/Compex/squashfs
 	$(call Image/Build/Template/Compex,squashfs,$(1))
 endef
 
-define Image/Build/Template/Linksys8M
-	$(call Image/Build/Linksys8M,$(1),$(2),$(3),$(4))
+define Image/Build/Template/WRT400N
+	$(call Image/Build/WRT400N,$(1),$(2),$(3),$(4))
 endef
 
-define Image/Build/Template/Linksys8M/squashfs
-	$(call Image/Build/Template/Linksys8M,squashfs,$(1),$(2),$(3))
+define Image/Build/Template/WRT400N/squashfs
+	$(call Image/Build/Template/WRT400N,squashfs,$(1),$(2),$(3))
 endef
 
-define Image/Build/Template/Linksys8M/jffs2-64k
-	$(call Image/Build/Template/Linksys8M,jffs2-64k,$(1),$(2),$(3))
+define Image/Build/Template/WRT400N/jffs2-64k
+	$(call Image/Build/Template/WRT400N,jffs2-64k,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/AP81
@@ -280,6 +281,10 @@ define Image/Build/Profile/MZKW300NH
 	$(call Image/Build/Template/Planex/$(1),mzk-w300nh,board=MZK-W300NH)
 endef
 
+define Image/Build/Profile/TLWR741NDV1
+	$(call Image/Build/Template/TPLINK/$(1),tl-wr741ndv1,board=TL-WR741ND,TL-WR741NDv1)
+endef
+
 define Image/Build/Profile/TLWR841NDV3
 	$(call Image/Build/Template/TPLINK/$(1),tl-wr841ndv3,board=TL-WR941ND,TL-WR841NDv3)
 endef
@@ -289,7 +294,7 @@ define Image/Build/Profile/TLWR941NDV2
 endef
 
 define Image/Build/Profile/WRT400N
-	$(call Image/Build/Template/Linksys8M/$(1),wrt400n,board=WRT400N)
+	$(call Image/Build/Template/WRT400N/$(1),wrt400n,board=WRT400N)
 endef
 
 define Image/Build/Profile/Default
@@ -300,6 +305,7 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/MZKW300NH,$(1))
 	$(call Image/Build/Profile/TEW632BRP,$(1))
 	$(call Image/Build/Profile/TEW652BRP,$(1))
+	$(call Image/Build/Profile/TLWR741NDV1,$(1))
 	$(call Image/Build/Profile/TLWR841NDV3,$(1))
 	$(call Image/Build/Profile/TLWR941NDV2,$(1))
 	$(call Image/Build/Profile/UBNT,$(1))

@@ -56,6 +56,13 @@
 #define AR71XX_DMA_SIZE		0x10000
 #define AR71XX_STEREO_BASE	(AR71XX_APB_BASE + 0x000B0000)
 #define AR71XX_STEREO_SIZE	0x10000
+
+#define AR724X_PCI_CRP_BASE	(AR71XX_APB_BASE + 0x000C0000)
+#define AR724X_PCI_CRP_SIZE	0x100
+
+#define AR724X_PCI_CTRL_BASE	(AR71XX_APB_BASE + 0x000F0000)
+#define AR724X_PCI_CTRL_SIZE	0x100
+
 #define AR91XX_WMAC_BASE	(AR71XX_APB_BASE + 0x000C0000)
 #define AR91XX_WMAC_SIZE	0x30000
 
@@ -117,13 +124,16 @@ enum ar71xx_mach_type {
 	AR71XX_MACH_AW_NR580,	/* AzureWave AW-NR580 */
 	AR71XX_MACH_RB_411,	/* MikroTik RouterBOARD 411/411A/411AH */
 	AR71XX_MACH_RB_433,	/* MikroTik RouterBOARD 433/433AH */
+	AR71XX_MACH_RB_433U,	/* MikroTik RouterBOARD 433UAH */
 	AR71XX_MACH_RB_450,	/* MikroTik RouterBOARD 450 */
+	AR71XX_MACH_RB_450G,	/* MikroTik RouterBOARD 450G */
 	AR71XX_MACH_RB_493,	/* Mikrotik RouterBOARD 493/493AH */
 	AR71XX_MACH_PB42,	/* Atheros PB42 */
 	AR71XX_MACH_PB44,	/* Atheros PB44 */
 	AR71XX_MACH_MZK_W04NU,	/* Planex MZK-W04NU */
 	AR71XX_MACH_MZK_W300NH,	/* Planex MZK-W300NH */
 	AR71XX_MACH_TEW_632BRP,	/* TRENDnet TEW-632BRP */
+	AR71XX_MACH_TL_WR741ND,	/* TP-LINK TL-WR741ND */
 	AR71XX_MACH_TL_WR941ND,	/* TP-LINK TL-WR941ND */
 	AR71XX_MACH_UBNT_LSSR71, /* Ubiquiti LS-SR71 */
 	AR71XX_MACH_UBNT_LSX,	/* Ubiquiti LSX */
@@ -285,6 +295,9 @@ void ar71xx_gpio_function_disable(u32 mask);
 #define AR71XX_DDR_REG_FLUSH_USB	0xa4
 #define AR71XX_DDR_REG_FLUSH_PCI	0xa8
 
+#define AR724X_DDR_REG_FLUSH_GE0	0x7c
+#define AR724X_DDR_REG_FLUSH_GE1	0x80
+
 #define AR91XX_DDR_REG_FLUSH_GE0	0x7c
 #define AR91XX_DDR_REG_FLUSH_GE1	0x80
 #define AR91XX_DDR_REG_FLUSH_USB	0x84
@@ -337,6 +350,34 @@ void ar71xx_ddr_flush(u32 reg);
 #define PCI_CFG_CMD_WRITE	0x0000000b
 
 #define PCI_IDSEL_ADL_START	17
+
+#define AR724X_PCI_CFG_BASE	(AR71XX_PCI_MEM_BASE + 0x4000000)
+#define AR724X_PCI_CFG_SIZE	0x1000
+
+#define AR724X_PCI_REG_INT_STATUS	0x4c
+#define AR724X_PCI_REG_INT_MASK		0x50
+
+#define AR724X_PCI_INT_DEV0		BIT(14)
+
+static inline void ar724x_pci_wr(unsigned reg, u32 val)
+{
+	void __iomem *base;
+
+	base = ioremap_nocache(AR724X_PCI_CTRL_BASE, AR724X_PCI_CTRL_SIZE);
+	__raw_writel(val, base + reg);
+	iounmap(base);
+}
+
+static inline u32 ar724x_pci_rr(unsigned reg)
+{
+	void __iomem *base;
+	u32 ret;
+
+	base = ioremap_nocache(AR724X_PCI_CTRL_BASE, AR724X_PCI_CTRL_SIZE);
+	ret = __raw_readl(base + reg);
+	iounmap(base);
+	return ret;
+}
 
 /*
  * RESET block

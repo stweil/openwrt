@@ -1,5 +1,6 @@
 config MFD_GLAMO
 	bool "Smedia Glamo 336x/337x support"
+	select MFD_CORE
 	help
 	  This enables the core driver for the Smedia Glamo 336x/337x
 	  multi-function device.  It includes irq_chip demultiplex as
@@ -39,14 +40,6 @@ config MFD_GLAMO_SPI_GPIO
 
 	help
           Enable a bitbanging SPI adapter driver for the Smedia Glamo.
-
-config MFD_GLAMO_SPI_FB
-	tristate "Glamo LCM control channel SPI support"
-	depends on MFD_GLAMO_FB
-	help
-	  Enable a bitbanging SPI adapter driver for the Smedia Glamo LCM
-	  control channel.  This SPI interface is frequently used to
-	  interconnect the LCM control interface.
 
 config MFD_GLAMO_MCI
 	tristate "Glamo S3C SD/MMC Card Interface support"

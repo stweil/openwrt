@@ -118,7 +118,6 @@ define KernelPackage/isdn4linux
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=Old ISDN4Linux (deprecated)
   KCONFIG:= \
-    CONFIG_ISDN=y \
     CONFIG_ISDN_I4L \
     CONFIG_ISDN_PPP=y \
     CONFIG_ISDN_PPP_VJ=y \
@@ -139,10 +138,24 @@ define KernelPackage/isdn4linux
     CONFIG_ISDN_DRV_SC=n \
     CONFIG_HYSDN=n
   FILES:= \
-    $(LINUX_DIR)/drivers/isdn/i4l/isdn.$(LINUX_KMOD_SUFFIX) \
-    $(LINUX_DIR)/drivers/isdn/i4l/isdn_bsdcomp.$(LINUX_KMOD_SUFFIX) \
     $(LINUX_DIR)/drivers/isdn/divert/dss1_divert.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,40,isdn isdn_bsdcomp dss1_divert)
+endef
+
+define KernelPackage/isdn4linux/2.4
+  KCONFIG+= \
+	CONFIG_ISDN
+  FILES+= \
+	$(LINUX_DIR)/drivers/isdn/isdn.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/isdn/isdn_bsdcomp.$(LINUX_KMOD_SUFFIX)
+endef
+
+define KernelPackage/isdn4linux/2.6
+  KCONFIG+= \
+	CONFIG_ISDN=y
+  FILES+= \
+	$(LINUX_DIR)/drivers/isdn/i4l/isdn.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/isdn/i4l/isdn_bsdcomp.$(LINUX_KMOD_SUFFIX)
 endef
 
 define KernelPackage/isdn4linux/description
@@ -501,6 +514,7 @@ define KernelPackage/sched
 	CONFIG_NET_SCHED=y \
 	CONFIG_NET_SCH_DSMARK \
 	CONFIG_NET_SCH_ESFQ \
+	CONFIG_NET_SCH_ESFQ_NFCT=y \
 	CONFIG_NET_SCH_FIFO \
 	CONFIG_NET_SCH_GRED \
 	CONFIG_NET_SCH_HFSC \
@@ -509,7 +523,6 @@ define KernelPackage/sched
 	CONFIG_NET_SCH_PRIO \
 	CONFIG_NET_SCH_RED \
 	CONFIG_NET_SCH_SFQ \
-	CONFIG_NET_SCH_TBF \
 	CONFIG_NET_SCH_TEQL \
 	CONFIG_NET_CLS=y \
 	CONFIG_NET_CLS_ACT=y \
@@ -520,7 +533,14 @@ define KernelPackage/sched
 	CONFIG_NET_CLS_TCINDEX \
 	CONFIG_NET_CLS_U32 \
 	CONFIG_NET_ACT_MIRRED \
-	CONFIG_NET_ACT_IPT
+	CONFIG_NET_ACT_IPT \
+	CONFIG_NET_ACT_POLICE \
+	CONFIG_NET_EMATCH=y \
+	CONFIG_NET_EMATCH_CMP \
+	CONFIG_NET_EMATCH_NBYTE \
+	CONFIG_NET_EMATCH_U32 \
+	CONFIG_NET_EMATCH_META \
+	CONFIG_NET_EMATCH_TEXT
   FILES:=$(LINUX_DIR)/net/sched/*.$(LINUX_KMOD_SUFFIX)
 endef
 

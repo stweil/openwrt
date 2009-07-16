@@ -33,8 +33,9 @@
 #endif
 
 #define HEADER_VERSION_V1	0x01000000
-#define HWID_TL_WR941ND_V2	0x09410002
+#define HWID_TL_WR741ND_V1	0x07410001
 #define HWID_TL_WR841ND_V3	0x08410003
+#define HWID_TL_WR941ND_V2	0x09410002
 
 #define MD5SUM_LEN	16
 
@@ -89,6 +90,7 @@ static struct board_info *board;
 static struct file_info kernel_info;
 static struct file_info rootfs_info;
 static struct file_info boot_info;
+static int combined;
 
 char md5salt_normal[MD5SUM_LEN] = {
 	0xdc, 0xd7, 0x3a, 0xa5, 0xc3, 0x95, 0x98, 0xfb,
@@ -102,13 +104,21 @@ char md5salt_boot[MD5SUM_LEN] = {
 
 static struct board_info boards[] = {
 	{
+		.id		= "TL-WR741NDv1",
+		.hw_id		= HWID_TL_WR741ND_V1,
+		.hw_rev		= 1,
+		.fw_max_len	= 0x3c0000,
+		.kernel_la	= 0x80060000,
+		.kernel_ep	= 0x80060000,
+		.rootfs_ofs	= 0x140000,
+	}, {
 		.id		= "TL-WR841NDv3",
 		.hw_id		= HWID_TL_WR841ND_V3,
 		.hw_rev		= 3,
 		.fw_max_len	= 0x3c0000,
 		.kernel_la	= 0x80060000,
 		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0x120000,
+		.rootfs_ofs	= 0x140000,
 	}, {
 		.id		= "TL-WR941NDv2",
 		.hw_id		= HWID_TL_WR941ND_V2,
@@ -116,7 +126,7 @@ static struct board_info boards[] = {
 		.fw_max_len	= 0x3c0000,
 		.kernel_la	= 0x80060000,
 		.kernel_ep	= 0x80060000,
-		.rootfs_ofs	= 0x120000,
+		.rootfs_ofs	= 0x140000,
 	}, {
 		/* terminating entry */
 	}
@@ -168,6 +178,7 @@ static void usage(int status)
 "\n"
 "Options:\n"
 "  -B <board>      create image for the board specified with <board>\n"
+"  -c              use combined kernel image\n"
 "  -k <file>       read kernel image from the file <file>\n"
 "  -r <file>       read rootfs image from the file <file>\n"
 "  -o <file>       write output to the file <file>\n"
@@ -255,23 +266,32 @@ static int check_options(void)
 	if (ret)
 		return ret;
 
-	if (kernel_info.file_size > board->rootfs_ofs - sizeof(struct fw_header)) {
-		ERR("kernel image is too big");
-		return -1;
-	}
+	if (combined) {
+		if (kernel_info.file_size >
+		    board->fw_max_len - sizeof(struct fw_header)) {
+			ERR("kernel image is too big");
+			return -1;
+		}
+	} else {
+		if (kernel_info.file_size >
+		    board->rootfs_ofs - sizeof(struct fw_header)) {
+			ERR("kernel image is too big");
+			return -1;
+		}
+		if (rootfs_info.file_name == NULL) {
+			ERR("no rootfs image specified");
+			return -1;
+		}
 
-	if (rootfs_info.file_name == NULL) {
-		ERR("no rootfs image specified");
-		return -1;
-	}
+		ret = get_file_stat(&rootfs_info);
+		if (ret)
+			return ret;
 
-	ret = get_file_stat(&rootfs_info);
-	if (ret)
-		return ret;
-
-	if (rootfs_info.file_size > (board->fw_max_len - board->rootfs_ofs)) {
-		ERR("rootfs image is too big");
-		return -1;
+		if (rootfs_info.file_size >
+                    (board->fw_max_len - board->rootfs_ofs)) {
+			ERR("rootfs image is too big");
+			return -1;
+		}
 	}
 
 	if (ofname == NULL) {
@@ -304,8 +324,10 @@ static void fill_header(char *buf, int len)
 	hdr->fw_length = HOST_TO_BE32(board->fw_max_len);
 	hdr->kernel_ofs = HOST_TO_BE32(sizeof(struct fw_header));
 	hdr->kernel_len = HOST_TO_BE32(kernel_info.file_size);
-	hdr->rootfs_ofs = HOST_TO_BE32(board->rootfs_ofs);
-	hdr->rootfs_len = HOST_TO_BE32(rootfs_info.file_size);
+	if (!combined) {
+		hdr->rootfs_ofs = HOST_TO_BE32(board->rootfs_ofs);
+		hdr->rootfs_len = HOST_TO_BE32(rootfs_info.file_size);
+	}
 
 	get_md5(buf, len, hdr->md5sum1);
 }
@@ -363,10 +385,12 @@ static int build_fw(void)
 	if (ret)
 		goto out_free_buf;
 
-	p = buf + board->rootfs_ofs;
-	ret = read_to_buf(&rootfs_info, p);
-	if (ret)
-		goto out_free_buf;
+	if (!combined) {
+		p = buf + board->rootfs_ofs;
+		ret = read_to_buf(&rootfs_info, p);
+		if (ret)
+			goto out_free_buf;
+	}
 
 	fill_header(buf, buflen);
 
@@ -394,7 +418,7 @@ int main(int argc, char *argv[])
 	while ( 1 ) {
 		int c;
 
-		c = getopt(argc, argv, "B:V:N:k:r:o:v:h:");
+		c = getopt(argc, argv, "B:V:N:ck:r:o:v:h:");
 		if (c == -1)
 			break;
 
@@ -407,6 +431,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'N':
 			vendor = optarg;
+			break;
+		case 'c':
+			combined++;
 			break;
 		case 'k':
 			kernel_info.file_name = optarg;

@@ -35,7 +35,6 @@
 #include <linux/platform_device.h>
 #include <linux/serial_core.h>
 #include <linux/spi/spi.h>
-#include <linux/spi/glamo.h>
 #include <linux/spi/spi_bitbang.h>
 #include <linux/mmc/host.h>
 
@@ -97,6 +96,8 @@
 
 #include <linux/jbt6k74.h>
 #include <linux/glamofb.h>
+#include <linux/mfd/glamo.h>
+#include <linux/spi/glamo.h>
 
 #include <linux/hdq.h>
 #include <linux/bq27000_battery.h>
@@ -463,7 +464,7 @@ static void gta02_pmu_force_shutdown(struct pcf50633 *pcf)
 
 static void gta02_udc_vbus_draw(unsigned int ma)
 {
-        if (!gta02_pcf)
+	if (!gta02_pcf)
 		return;
 
 	gta02_usb_vbus_draw = ma;
@@ -535,16 +536,9 @@ static struct regulator_consumer_supply ldo5_consumers[] = {
 	},
 };
 
-/*
- * We need this dummy thing to fill the regulator consumers
- */
-static struct platform_device gta02_mmc_dev = {
-	/* details filled in by glamo core */
-};
-
 static struct regulator_consumer_supply hcldo_consumers[] = {
 	{
-		.dev = &gta02_mmc_dev.dev,
+		.dev = &gta02_glamo_dev.dev,
 		.supply = "SD_3V3",
 	},
 };
@@ -580,6 +574,7 @@ struct pcf50633_platform_data gta02_pcf_pdata = {
 				.max_uV = 3300000,
 				.valid_modes_mask = REGULATOR_MODE_NORMAL,
 				.boot_on = 1,
+				.always_on = 1,
 				.apply_uV = 1,
 				.state_mem = {
 					.enabled = 1,
@@ -594,6 +589,7 @@ struct pcf50633_platform_data gta02_pcf_pdata = {
 				.max_uV = 1600000,
 				.valid_modes_mask = REGULATOR_MODE_NORMAL,
 				.boot_on = 1,
+				.always_on = 1,
 				.apply_uV = 1,
 			},
 			.num_consumer_supplies = 0,
@@ -606,6 +602,7 @@ struct pcf50633_platform_data gta02_pcf_pdata = {
 				.valid_modes_mask = REGULATOR_MODE_NORMAL,
 				.apply_uV = 1,
 				.boot_on = 1,
+				.always_on = 1,
 				.state_mem = {
 					.enabled = 1,
 				},
@@ -627,8 +624,8 @@ struct pcf50633_platform_data gta02_pcf_pdata = {
 		[PCF50633_REGULATOR_LDO1] = {
 			.constraints = {
 				.name = "GSENSOR_3V3",
-				.min_uV = 1300000,
-				.max_uV = 1300000,
+				.min_uV = 3300000,
+				.max_uV = 3300000,
 				.valid_modes_mask = REGULATOR_MODE_NORMAL,
 				.apply_uV = 1,
 			},
@@ -667,8 +664,8 @@ struct pcf50633_platform_data gta02_pcf_pdata = {
 		[PCF50633_REGULATOR_LDO5] = {
 			.constraints = {
 				.name = "RF_3V",
-				.min_uV = 1500000,
-				.max_uV = 1500000,
+				.min_uV = 3000000,
+				.max_uV = 3000000,
 				.valid_modes_mask = REGULATOR_MODE_NORMAL,
 				.apply_uV = 1,
 				.state_mem = {
@@ -681,9 +678,11 @@ struct pcf50633_platform_data gta02_pcf_pdata = {
 		[PCF50633_REGULATOR_LDO6] = {
 			.constraints = {
 				.name = "LCM_3V",
-				.min_uV = 0,
-				.max_uV = 3300000,
+				.min_uV = 3000000,
+				.max_uV = 3000000,
+				.always_on = 1,
 				.valid_modes_mask = REGULATOR_MODE_NORMAL,
+				.apply_uV = 1,
 			},
 			.num_consumer_supplies = 0,
 		},
@@ -717,28 +716,21 @@ static void mangle_pmu_pdata_by_system_rev(void)
 		/* FIXME: this is only in v1 due to wrong PMU variant */
 		reg_init_data[PCF50633_REGULATOR_DOWN2]
 					.constraints.state_mem.enabled = 1;
-		break;
-	case GTA02v2_SYSTEM_REV:
-	case GTA02v3_SYSTEM_REV:
-	case GTA02v4_SYSTEM_REV:
-	case GTA02v5_SYSTEM_REV:
-	case GTA02v6_SYSTEM_REV:
+
 		reg_init_data[PCF50633_REGULATOR_LDO1]
-					.constraints.min_uV = 3300000;
+					.constraints.min_uV = 1300000;
 		reg_init_data[PCF50633_REGULATOR_LDO1]
-					.constraints.min_uV = 3300000;
-		reg_init_data[PCF50633_REGULATOR_LDO1]
-					.constraints.state_mem.enabled = 0;
+					.constraints.max_uV = 1300000;
 
 		reg_init_data[PCF50633_REGULATOR_LDO5]
-					.constraints.min_uV = 3000000;
+					.constraints.min_uV = 1500000;
 		reg_init_data[PCF50633_REGULATOR_LDO5]
-					.constraints.max_uV = 3000000;
+					.constraints.max_uV = 1500000;
 
 		reg_init_data[PCF50633_REGULATOR_LDO6]
-					.constraints.min_uV = 3000000;
+					.constraints.min_uV = 0;
 		reg_init_data[PCF50633_REGULATOR_LDO6]
-					.constraints.max_uV = 3000000;
+					.constraints.max_uV = 3300000;
 		reg_init_data[PCF50633_REGULATOR_LDO6]
 					.constraints.apply_uV = 1;
 		break;
@@ -1089,8 +1081,8 @@ static struct platform_device gta02_bl_dev = {
 
 static void gta02_jbt6k74_reset(int devidx, int level)
 {
-	glamo_lcm_reset(level);
-}	
+	glamo_lcm_reset(&gta02_glamo_dev, level);
+}
 
 static void gta02_jbt6k74_probe_completed(struct device *dev)
 {
@@ -1109,21 +1101,6 @@ static void gta02_jbt6k74_probe_completed(struct device *dev)
 const struct jbt6k74_platform_data jbt6k74_pdata = {
 	.reset		= gta02_jbt6k74_reset,
 	.probe_completed = gta02_jbt6k74_probe_completed,
-};
-
-#if 0 /* currently this is not used and we use gpio spi */
-static struct glamo_spi_info glamo_spi_cfg = {
-	.board_size	= ARRAY_SIZE(gta02_spi_board_info),
-	.board_info	= gta02_spi_board_info,
-};
-#endif /* 0 */
-
-static struct glamo_spigpio_info glamo_spigpio_cfg = {
-	.pin_clk	= GLAMO_GPIO10_OUTPUT,
-	.pin_mosi	= GLAMO_GPIO11_OUTPUT,
-	.pin_cs		= GLAMO_GPIO12_OUTPUT,
-	.pin_miso	= 0,
-	.bus_num	= 2,
 };
 
 /*----------- SPI: Accelerometers attached to SPI of s3c244x ----------------- */
@@ -1369,19 +1346,6 @@ static int glamo_irq_is_wired(void)
 	return -ENODEV;
 }
 
-static int gta02_glamo_can_set_mmc_power(void)
-{
-	switch (S3C_SYSTEM_REV_ATAG) {
-		case GTA02v3_SYSTEM_REV:
-		case GTA02v4_SYSTEM_REV:
-		case GTA02v5_SYSTEM_REV:
-		case GTA02v6_SYSTEM_REV:
-			return 1;
-	}
-
-	return 0;
-}
-
 /* Smedia Glamo 3362 */
 
 /*
@@ -1427,24 +1391,35 @@ static struct fb_videomode gta02_glamo_modes[] = {
 	}
 };
 
-
-static struct glamofb_platform_data gta02_glamo_pdata = {
-	.width		= 43,
-	.height		= 58,
-	.fb_mem_size	= 0x400000, /* glamo has 8 megs of SRAM. we use 4 */
+static struct glamo_fb_platform_data gta02_glamo_fb_pdata = {
+	.width  = 43,
+	.height = 58,
 
 	.num_modes = ARRAY_SIZE(gta02_glamo_modes),
 	.modes = gta02_glamo_modes,
+};
 
-	//.spi_info	= &glamo_spi_cfg,
-	.spigpio_info	= &glamo_spigpio_cfg,
+static struct glamo_spigpio_platform_data gta02_glamo_spigpio_pdata = {
+	.pin_clk  = GLAMO_GPIO10_OUTPUT,
+	.pin_mosi = GLAMO_GPIO11_OUTPUT,
+	.pin_cs	  = GLAMO_GPIO12_OUTPUT,
+	.pin_miso = 0,
+	.bus_num  = 2,
+};
 
-	/* glamo MMC function platform data */
-	.mmc_dev = &gta02_mmc_dev,
-	.glamo_can_set_mci_power = gta02_glamo_can_set_mmc_power,
-	.glamo_mci_use_slow = gta02_glamo_mci_use_slow,
+static struct glamo_mmc_platform_data gta02_glamo_mmc_pdata = {
+	.glamo_mmc_use_slow = gta02_glamo_mci_use_slow,
+};
+
+static struct glamo_platform_data gta02_glamo_pdata = {
+	.fb_data      = &gta02_glamo_fb_pdata,
+	.spigpio_data = &gta02_glamo_spigpio_pdata,
+	.mmc_data     = &gta02_glamo_mmc_pdata,
+
+    .osci_clock_rate = 32768,
+
 	.glamo_irq_is_wired = glamo_irq_is_wired,
-	.glamo_external_reset = gta02_glamo_external_reset
+	.glamo_external_reset = gta02_glamo_external_reset,
 };
 
 static struct resource gta02_glamo_resources[] = {
@@ -1579,7 +1554,7 @@ static void gta02_pmu_regulator_registered(struct pcf50633 *pcf, int id)
 			pdev = &gta02_glamo_dev;
 			break;
 		default:
-            return;
+			return;
 	}
 
 	pdev->dev.parent = &regulator->dev;
@@ -1604,7 +1579,7 @@ static void gta02_pmu_attach_child_devices(struct pcf50633 *pcf)
 	platform_add_devices(gta02_devices_pmu_children,
 					ARRAY_SIZE(gta02_devices_pmu_children));
 
-/*    regulator_has_full_constraints();*/
+    regulator_has_full_constraints();
 }
 
 static void gta02_poweroff(void)
