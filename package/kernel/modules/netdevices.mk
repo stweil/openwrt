@@ -113,7 +113,7 @@ $(eval $(call KernelPackage,via-rhine))
 define KernelPackage/via-velocity
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=VIA Velocity Gigabit Ethernet Adapter kernel support
-  DEPENDS:=@TARGET_ixp4xx
+  DEPENDS:=@TARGET_ixp4xx||TARGET_x86
   KCONFIG:=CONFIG_VIA_VELOCITY
   FILES:=$(LINUX_DIR)/drivers/net/via-velocity.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,via-velocity)
@@ -289,7 +289,7 @@ define KernelPackage/tg3
   TITLE:=Broadcom Tigon3 Gigabit Ethernet
   FILES:=$(LINUX_DIR)/drivers/net/tg3.$(LINUX_KMOD_SUFFIX)
   KCONFIG:=CONFIG_TIGON3
-  DEPENDS:=@LINUX_2_6 +LINUX_2_6_27||LINUX_2_6_28||LINUX_2_6_29||LINUX_2_6_30:kmod-libphy
+  DEPENDS:=@LINUX_2_6 +LINUX_2_6_27||LINUX_2_6_28||LINUX_2_6_30:kmod-libphy
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   AUTOLOAD:=$(call AutoLoad,50,tg3)
 endef

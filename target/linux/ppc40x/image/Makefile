@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
-JFFS2_BLOCKSIZE=128k
+JFFS2_BLOCKSIZE=128k 64k
 
 define Image/Prepare
 	cp $(LINUX_DIR)/arch/powerpc/boot/uImage $(KDIR)/uImage
@@ -28,14 +28,21 @@ define Image/Build/jffs2-128k
 		dd if=$(KDIR)/openwrt-kilauea.dtb bs=128k conv=sync; \
 		dd if=$(KDIR)/root.$(1) bs=128k conv=sync; \
 	) > $(BIN_DIR)/openwrt-$(BOARD)-kilauea-jffs2.img
+endef
+
+define Image/Build/jffs2-64k
 	( \
-		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv1 bs=1024k conv=sync; \
-		dd if=$(KDIR)/root.$(1) bs=128k conv=sync; \
+		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv1 bs=1152k conv=sync; \
+		dd if=$(KDIR)/root.$(1) bs=64k conv=sync; \
 	) > $(BIN_DIR)/openwrt-$(BOARD)-magicboxv1-jffs2.img
 	( \
-		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv2 bs=1024k conv=sync; \
-		dd if=$(KDIR)/root.$(1) bs=128k conv=sync; \
+		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv2 bs=1152k conv=sync; \
+		dd if=$(KDIR)/root.$(1) bs=64k conv=sync; \
 	) > $(BIN_DIR)/openwrt-$(BOARD)-magicboxv2-jffs2.img
+	( \
+		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.openrb-light bs=1152k conv=sync; \
+		dd if=$(KDIR)/root.$(1) bs=64k conv=sync; \
+	) > $(BIN_DIR)/openwrt-$(BOARD)-openrb-light-jffs2.img
 endef
 
 define Image/Build/squashfs
@@ -46,13 +53,17 @@ define Image/Build/squashfs
 		dd if=$(KDIR)/root.$(1) bs=128k conv=sync; \
 	) > $(BIN_DIR)/openwrt-$(BOARD)-kilauea-$(1).img
 	( \
-		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv1 bs=1024k conv=sync; \
+		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv1 bs=1152k conv=sync; \
 		dd if=$(KDIR)/root.$(1) bs=64k conv=sync; \
 	) > $(BIN_DIR)/openwrt-$(BOARD)-magicboxv1-$(1).img
 	( \
-		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv2 bs=1024k conv=sync; \
+		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.magicboxv2 bs=1152k conv=sync; \
 		dd if=$(KDIR)/root.$(1) bs=64k conv=sync; \
 	) > $(BIN_DIR)/openwrt-$(BOARD)-magicboxv2-$(1).img
+	( \
+		dd if=$(LINUX_DIR)/arch/powerpc/boot/cuImage.openrb-light bs=1152k conv=sync; \
+		dd if=$(KDIR)/root.$(1) bs=64k conv=sync; \
+	) > $(BIN_DIR)/openwrt-$(BOARD)-openrb-light-$(1).img
 endef
 
 $(eval $(call BuildImage))
