@@ -1,57 +1,56 @@
 --- a/arch/powerpc/boot/Makefile
 +++ b/arch/powerpc/boot/Makefile
-@@ -70,7 +70,8 @@ src-plat := of.c cuboot-52xx.c cuboot-82
- 		cuboot-katmai.c cuboot-rainier.c redboot-8xx.c ep8248e.c \
+@@ -76,7 +76,7 @@ src-plat := of.c cuboot-52xx.c cuboot-82
  		cuboot-warp.c cuboot-85xx-cpm2.c cuboot-yosemite.c simpleboot.c \
  		virtex405-head.S virtex.c redboot-83xx.c cuboot-sam440ep.c \
--		cuboot-acadia.c cuboot-magicboxv1.c cuboot-magicboxv2.c
-+		cuboot-acadia.c cuboot-magicboxv1.c cuboot-magicboxv2.c \
-+		cuboot-openrb-light.c
+ 		cuboot-acadia.c cuboot-amigaone.c cuboot-magicboxv1.c \
+-		cuboot-magicboxv2.c cuboot-openrb-light.c
++		cuboot-magicboxv2.c cuboot-openrb-light.c cuboot-openrb-medium.c
  src-boot := $(src-wlib) $(src-plat) empty.c
  
  src-boot := $(addprefix $(obj)/, $(src-boot))
-@@ -216,6 +217,7 @@ image-$(CONFIG_WALNUT)			+= treeImage.wa
- image-$(CONFIG_ACADIA)			+= cuImage.acadia
+@@ -196,6 +196,7 @@ image-$(CONFIG_ACADIA)			+= cuImage.acad
  image-$(CONFIG_MAGICBOXV1)		+= cuImage.magicboxv1
  image-$(CONFIG_MAGICBOXV2)		+= cuImage.magicboxv2
-+image-$(CONFIG_OPENRB_LIGHT)		+= cuImage.openrb-light
+ image-$(CONFIG_OPENRB_LIGHT)		+= cuImage.openrb-light
++image-$(CONFIG_OPENRB_MEDIUM)		+= cuImage.openrb-medium
  
  # Board ports in arch/powerpc/platform/44x/Kconfig
  image-$(CONFIG_EBONY)			+= treeImage.ebony cuImage.ebony
 --- a/arch/powerpc/platforms/40x/Kconfig
 +++ b/arch/powerpc/platforms/40x/Kconfig
-@@ -79,6 +79,16 @@ config MAKALU
+@@ -89,6 +89,16 @@ config OPENRB_LIGHT
  	help
- 	  This option enables support for the AMCC PPC405EX board.
+ 	  This option enables support for the OpenRB Light board.
  
-+config OPENRB_LIGHT
-+	bool "OpenRB Light"
++config OPENRB_MEDIUM
++	bool "OpenRB Medium"
 +	depends on 40x
 +	default n
 +	select PPC40x_SIMPLE
 +	select 405EP
 +	select PCI
 +	help
-+	  This option enables support for the OpenRB Light board.
++	  This option enables support for the OpenRB Medium board.
 +
  #config REDWOOD_5
  #	bool "Redwood-5"
  #	depends on 40x
 --- a/arch/powerpc/platforms/40x/ppc40x_simple.c
 +++ b/arch/powerpc/platforms/40x/ppc40x_simple.c
-@@ -54,6 +54,7 @@ static char *board[] __initdata = {
- 	"amcc,acadia",
+@@ -55,6 +55,7 @@ static char *board[] __initdata = {
  	"magicboxv1",
  	"magicboxv2",
-+	"openrb,light",
+ 	"openrb,light",
++	"openrb,medium",
  };
  
  static int __init ppc40x_probe(void)
 --- /dev/null
-+++ b/arch/powerpc/boot/cuboot-openrb-light.c
++++ b/arch/powerpc/boot/cuboot-openrb-medium.c
 @@ -0,0 +1,69 @@
 +/*
-+ * Old U-boot compatibility for OpenRB Light board
++ * Old U-boot compatibility for OpenRB Medium
 + *
 + * Author: Gabor Juhos <juhosg@openwrt.org>
 + *
@@ -120,14 +119,15 @@
 +}
 +
 --- /dev/null
-+++ b/arch/powerpc/boot/dts/openrb-light.dts
-@@ -0,0 +1,252 @@
++++ b/arch/powerpc/boot/dts/openrb-medium.dts
+@@ -0,0 +1,281 @@
 +/*
-+ * Device Tree Source for OpenRB Light board
++ * Device Tree Source for OpenRB Medium board
 + *
++ * Copyright 2008 Imre Kaloz <kaloz@openwrt.org>
 + * Copyright 2009 Gabor Juhos <juhosg@openwrt.org>
 + *
-+ * Based on magicboxv2.dts
++ * Based on walnut.dts
 + *
 + * This file is licensed under the terms of the GNU General Public
 + * License version 2.  This program is licensed "as is" without
@@ -139,12 +139,13 @@
 +/ {
 +	#address-cells = <1>;
 +	#size-cells = <1>;
-+	model = "openrb,light";
-+	compatible = "openrb,light";
++	model = "openrb,medium";
++	compatible = "openrb,medium";
 +	dcr-parent = <&{/cpus/cpu@0}>;
 +
 +	aliases {
 +		ethernet0 = &EMAC0;
++		ethernet1 = &EMAC1;
 +		serial0 = &UART0;
 +		serial1 = &UART1;
 +	};
@@ -209,7 +210,7 @@
 +				0xe 0x4 /* RXDE */>;
 +		};
 +
-+		OPB0: opb {
++		POB0: opb {
 +			compatible = "ibm,opb-405ep", "ibm,opb";
 +			#address-cells = <1>;
 +			#size-cells = <1>;
@@ -240,12 +241,17 @@
 +			};
 +
 +			IIC: i2c@ef600500 {
++				compatible = "ibm,iic-405ep", "ibm,iic";
 +				#address-cells = <1>;
 +				#size-cells = <0>;
-+				compatible = "ibm,iic-405ep", "ibm,iic";
 +				reg = <0xef600500 0x00000011>;
 +				interrupt-parent = <&UIC0>;
 +				interrupts = <0x2 0x4>;
++
++				dtt@48 {
++					compatible = "national,lm75";
++					reg = <0x48>;
++				};
 +
 +				eeprom@50 {
 +					compatible = "at24,24c16";
@@ -281,10 +287,32 @@
 +				phy-map = <0x00000000>;
 +			};
 +
++			EMAC1: ethernet@ef600900 {
++				linux,network-index = <0x1>;
++				device_type = "network";
++				compatible = "ibm,emac-405ep", "ibm,emac";
++				interrupt-parent = <&UIC0>;
++				interrupts = <
++					0x11 0x4 /* Ethernet */
++					0x09 0x4 /* Ethernet Wake Up */>;
++				local-mac-address = [000000000000]; /* Filled in by zImage */
++				reg = <0xef600900 0x00000070>;
++				mal-device = <&MAL>;
++				mal-tx-channel = <2>;
++				mal-rx-channel = <1>;
++				cell-index = <1>;
++				max-frame-size = <0x5dc>;
++				rx-fifo-size = <0x1000>;
++				tx-fifo-size = <0x800>;
++				mdio-device = <&EMAC0>;
++				phy-mode = "mii";
++				phy-map = <0x00000001>;
++			};
++
 +			leds {
 +				compatible = "gpio-leds";
 +				user {
-+					label = "openrb:green:user";
++					label = "magicbox:red:user";
 +					gpios = <&GPIO0 2 1>;
 +				};
 +			};
@@ -309,10 +337,10 @@
 +				interrupts = <0x19 0x1 /* IRQ_TYPE_EDGE_RISING */ >;
 +			};
 +
-+			nor_flash@ff800000 {
++			nor_flash@ffc00000 {
 +				compatible = "cfi-flash";
 +				bank-width = <2>;
-+				reg = <0x00000000 0xff800000 0x00800000>;
++				reg = <0x00000000 0xffc00000 0x00400000>;
 +				#address-cells = <1>;
 +				#size-cells = <1>;
 +				partition@0 {
@@ -321,11 +349,11 @@
 +				};
 +				partition@120000 {
 +					label = "rootfs";
-+					reg = <0x120000 0x6a0000>;
++					reg = <0x120000 0x2a0000>;
 +				};
-+				partition@7c0000 {
++				partition@3c0000 {
 +					label = "u-boot";
-+					reg = <0x7c0000 0x30000>;
++					reg = <0x3c0000 0x30000>;
 +					read-only;
 +				};
 +			};
@@ -338,10 +366,10 @@
 +			#address-cells = <3>;
 +			compatible = "ibm,plb405ep-pci", "ibm,plb-pci";
 +			primary;
-+			reg = <0xeec00000 0x00000008    /* Config space access */
-+			       0xeed80000 0x00000004    /* IACK */
-+			       0xeed80000 0x00000004    /* Special cycle */
-+			       0xef480000 0x00000040>;  /* Internal registers */
++			reg = <0xeec00000 0x00000008	/* Config space access */
++			       0xeed80000 0x00000004	/* IACK */
++			       0xeed80000 0x00000004	/* Special cycle */
++			       0xef480000 0x00000040>;	/* Internal registers */
 +
 +			/* Outbound ranges, one memory and one IO,
 +			 * later cannot be changed. Chip supports a second
