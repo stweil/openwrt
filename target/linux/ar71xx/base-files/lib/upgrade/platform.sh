@@ -5,6 +5,7 @@
 . /lib/ar71xx.sh
 
 PART_NAME=firmware
+RAMFS_COPY_DATA=/lib/ar71xx.sh
 
 platform_check_image() {
 	local board=$(ar71xx_board_name)
@@ -20,7 +21,7 @@ platform_check_image() {
 		}
 		return 0
 		;;
-	tl-wr941nd)
+	 tl-wr741nd | tl-wr941nd)
 		[ "$magic" != "0100" ] && {
 			echo "Invalid image type."
 			return 1
@@ -42,4 +43,5 @@ disable_watchdog() {
 		return 1
 	}
 }
+
 append sysupgrade_pre_upgrade disable_watchdog

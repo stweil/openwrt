@@ -253,6 +253,7 @@ CONFIGURE_ARGS += \
 	--enable-shared \
 	--enable-static \
 	--enable-devel \
+	--enable-ipv6 \
 	--with-kernel="$(LINUX_DIR)" \
 	--with-xtlibdir=/usr/lib/iptables
 
@@ -281,6 +282,8 @@ define Build/InstallDev
 	$(CP) $(PKG_BUILD_DIR)/include/iptables/*.h $(1)/usr/include/iptables/
 	$(CP) $(PKG_BUILD_DIR)/include/iptables.h $(1)/usr/include/
 	$(CP) $(PKG_BUILD_DIR)/include/libipq/libipq.h $(1)/usr/include/
+	$(CP) $(PKG_BUILD_DIR)/include/libipulog $(1)/usr/include/
+	$(CP) $(PKG_BUILD_DIR)/include/libiptc $(1)/usr/include/
 
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/* $(1)/usr/include/
 	mkdir -p $(1)/usr/lib

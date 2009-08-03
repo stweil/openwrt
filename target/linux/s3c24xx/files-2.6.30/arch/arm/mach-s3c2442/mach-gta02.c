@@ -35,8 +35,11 @@
 #include <linux/platform_device.h>
 #include <linux/serial_core.h>
 #include <linux/spi/spi.h>
+#include <linux/spi/spi_gpio.h>
 #include <linux/spi/spi_bitbang.h>
 #include <linux/mmc/host.h>
+#include <linux/leds.h>
+#include <linux/gpio_keys.h>
 
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/nand.h>
@@ -74,7 +77,6 @@
 #include <mach/spi.h>
 #include <mach/spi-gpio.h>
 #include <mach/regs-mem.h>
-#include <mach/spi-gpio.h>
 #include <plat/pwm.h>
 #include <mach/cpu.h>
 
@@ -97,7 +99,6 @@
 #include <linux/jbt6k74.h>
 #include <linux/glamofb.h>
 #include <linux/mfd/glamo.h>
-#include <linux/spi/glamo.h>
 
 #include <linux/hdq.h>
 #include <linux/bq27000_battery.h>
@@ -113,7 +114,6 @@
 #include <asm/fiq.h>
 
 #include <linux/gta02-vibrator.h>
-#include <linux/gta02-shadow.h>
 
 /* arbitrates which sensor IRQ owns the shared SPI bus */
 static spinlock_t motion_irq_lock;
@@ -276,7 +276,7 @@ static long gta02_panic_blink(long count)
 
 	led ^= 1;
 	s3c2410_gpio_cfgpin(GTA02_GPIO_AUX_LED, S3C2410_GPIO_OUTPUT);
-	gta02_gpb_setpin(GTA02_GPIO_AUX_LED, led);
+	s3c2410_gpio_setpin(GTA02_GPIO_AUX_LED, led);
 
 	last_blink = count;
 	return delay;
@@ -939,11 +939,11 @@ static void gta02_udc_command(enum s3c2410_udc_cmd_e cmd)
 	switch (cmd) {
 	case S3C2410_UDC_P_ENABLE:
 		printk(KERN_DEBUG "%s S3C2410_UDC_P_ENABLE\n", __func__);
-	    gta02_gpb_setpin(GTA02_GPIO_USB_PULLUP, 1);
+	    s3c2410_gpio_setpin(GTA02_GPIO_USB_PULLUP, 1);
 		break;
 	case S3C2410_UDC_P_DISABLE:
 		printk(KERN_DEBUG "%s S3C2410_UDC_P_DISABLE\n", __func__);
-		gta02_gpb_setpin(GTA02_GPIO_USB_PULLUP, 0);
+		s3c2410_gpio_setpin(GTA02_GPIO_USB_PULLUP, 0);
 		break;
 	case S3C2410_UDC_P_RESET:
 		printk(KERN_DEBUG "%s S3C2410_UDC_P_RESET\n", __func__);
@@ -1081,7 +1081,7 @@ static struct platform_device gta02_bl_dev = {
 
 static void gta02_jbt6k74_reset(int devidx, int level)
 {
-	glamo_lcm_reset(&gta02_glamo_dev, level);
+	gpio_set_value(GTA02_GPIO_GLAMO(4), level);
 }
 
 static void gta02_jbt6k74_probe_completed(struct device *dev)
@@ -1160,13 +1160,12 @@ struct lis302dl_platform_data lis302_pdata_bottom = {
 static struct spi_board_info gta02_spi_board_info[] = {
 	{
 		.modalias	= "jbt6k74",
-		/* platform_data */
 		.platform_data	= &jbt6k74_pdata,
-		/* controller_data */
+		.controller_data = (void*)GTA02_GPIO_GLAMO(12),
 		/* irq */
 		.max_speed_hz	= 100 * 1000,
 		.bus_num	= 2,
-		/* chip_select */
+		.chip_select = 0
 	},
 	{
 		.modalias	= "lis302dl",
@@ -1249,61 +1248,63 @@ static struct platform_device gta02_spi_gpio_dev = {
 
 /*----------- / SPI: Accelerometers attached to SPI of s3c244x ----------------- */
 
-static struct resource gta02_led_resources[] = {
+static struct gpio_led gta02_gpio_leds[] = {
 	{
 		.name	= "gta02-power:orange",
-		.start	= GTA02_GPIO_PWR_LED1,
-		.end	= GTA02_GPIO_PWR_LED1,
+		.gpio	= GTA02_GPIO_PWR_LED1,
 	}, {
 		.name	= "gta02-power:blue",
-		.start	= GTA02_GPIO_PWR_LED2,
-		.end	= GTA02_GPIO_PWR_LED2,
+		.gpio	= GTA02_GPIO_PWR_LED2,
 	}, {
 		.name	= "gta02-aux:red",
-		.start	= GTA02_GPIO_AUX_LED,
-		.end	= GTA02_GPIO_AUX_LED,
+		.gpio	= GTA02_GPIO_AUX_LED,
 	},
+};
+
+static struct gpio_led_platform_data gta02_gpio_leds_pdata = {
+	.leds = gta02_gpio_leds,
+	.num_leds = ARRAY_SIZE(gta02_gpio_leds),
 };
 
 struct platform_device gta02_led_dev = {
-	.name		= "gta02-led",
-	.num_resources	= ARRAY_SIZE(gta02_led_resources),
-	.resource	= gta02_led_resources,
+	.name = "leds-gpio",
+	.id   = -1,
+	.dev = {
+		.platform_data = &gta02_gpio_leds_pdata,
+	},
 };
 
-static struct resource gta02_button_resources[] = {
-	[0] = {
-		.start = GTA02_GPIO_AUX_KEY,
-		.end   = GTA02_GPIO_AUX_KEY,
+static struct gpio_keys_button gta02_buttons[] = {
+	{
+		.gpio = GTA02_GPIO_AUX_KEY,
+		.code = KEY_PHONE,
+		.desc = "Aux",
+		.type = EV_KEY,
 	},
-	[1] = {
-		.start = GTA02_GPIO_HOLD_KEY,
-		.end   = GTA02_GPIO_HOLD_KEY,
+	{
+		.gpio = GTA02_GPIO_HOLD_KEY,
+		.code = KEY_PAUSE,
+		.desc = "Hold",
+		.type = EV_KEY,
 	},
-	[2] = {
-		.start = GTA02_GPIO_JACK_INSERT,
-		.end   = GTA02_GPIO_JACK_INSERT,
-	},
-	[3] = {
-		.start = 0,
-		.end   = 0,
-	},
-	[4] = {
-		.start = 0,
-		.end   = 0,
-	},
+};
+
+static struct gpio_keys_platform_data gta02_buttons_pdata = {
+	.buttons = gta02_buttons,
+	.nbuttons = ARRAY_SIZE(gta02_buttons),
 };
 
 static struct platform_device gta02_button_dev = {
-	.name		= "gta02-button",
-	.num_resources	= ARRAY_SIZE(gta02_button_resources),
-	.resource	= gta02_button_resources,
+	.name = "gpio-keys",
+	.id = -1,
+	.dev = {
+		.platform_data = &gta02_buttons_pdata,
+	},
 };
 
 static struct platform_device gta02_pm_usbhost_dev = {
 	.name		= "gta02-pm-host",
 };
-
 
 /* USB */
 static struct s3c2410_hcd_info gta02_usb_info = {
@@ -1363,6 +1364,35 @@ static void gta02_glamo_external_reset(int level)
 	s3c2410_gpio_cfgpin(GTA02_GPIO_3D_RESET, S3C2410_GPIO_OUTPUT);
 }
 
+/*
+static struct fb_videomode gta02_glamo_modes[] = {
+	{
+		.name = "480x640",
+		.xres = 480,
+		.yres = 640,
+		.pixclock	= 40816,
+		.left_margin	= 8,
+		.right_margin	= 63,
+		.upper_margin	= 2,
+		.lower_margin	= 4,
+		.hsync_len	= 8,
+		.vsync_len	= 2,
+		.vmode = FB_VMODE_NONINTERLACED,
+	}, {
+		.name = "240x320",
+		.xres = 240,
+		.yres = 320,
+		.pixclock	= 40816,
+		.left_margin	= 8,
+		.right_margin	= 88,
+		.upper_margin	= 2,
+		.lower_margin	= 2,
+		.hsync_len	= 8,
+		.vsync_len	= 2,
+		.vmode = FB_VMODE_NONINTERLACED,
+	}
+};*/
+
 static struct fb_videomode gta02_glamo_modes[] = {
 	{
 		.name = "480x640",
@@ -1391,6 +1421,7 @@ static struct fb_videomode gta02_glamo_modes[] = {
 	}
 };
 
+
 static struct glamo_fb_platform_data gta02_glamo_fb_pdata = {
 	.width  = 43,
 	.height = 58,
@@ -1399,24 +1430,16 @@ static struct glamo_fb_platform_data gta02_glamo_fb_pdata = {
 	.modes = gta02_glamo_modes,
 };
 
-static struct glamo_spigpio_platform_data gta02_glamo_spigpio_pdata = {
-	.pin_clk  = GLAMO_GPIO10_OUTPUT,
-	.pin_mosi = GLAMO_GPIO11_OUTPUT,
-	.pin_cs	  = GLAMO_GPIO12_OUTPUT,
-	.pin_miso = 0,
-	.bus_num  = 2,
-};
-
 static struct glamo_mmc_platform_data gta02_glamo_mmc_pdata = {
 	.glamo_mmc_use_slow = gta02_glamo_mci_use_slow,
 };
 
 static struct glamo_platform_data gta02_glamo_pdata = {
-	.fb_data      = &gta02_glamo_fb_pdata,
-	.spigpio_data = &gta02_glamo_spigpio_pdata,
-	.mmc_data     = &gta02_glamo_mmc_pdata,
+	.fb_data   = &gta02_glamo_fb_pdata,
+	.mmc_data  = &gta02_glamo_mmc_pdata,
+	.gpio_base = GTA02_GPIO_GLAMO_BASE,
 
-    .osci_clock_rate = 32768,
+	.osci_clock_rate = 32768,
 
 	.glamo_irq_is_wired = glamo_irq_is_wired,
 	.glamo_external_reset = gta02_glamo_external_reset,
@@ -1472,6 +1495,22 @@ static void mangle_glamo_res_by_system_rev(void)
 	}
 }
 
+struct spi_gpio_platform_data spigpio_platform_data = {
+	.sck = GTA02_GPIO_GLAMO(10),
+	.mosi = GTA02_GPIO_GLAMO(11),
+	.miso = GTA02_GPIO_GLAMO(5),
+	.num_chipselect = 1,
+};
+
+static struct platform_device spigpio_device = {
+	.name = "spi_gpio",
+	.id   = 2,
+	.dev = {
+		.platform_data = &spigpio_platform_data,
+		.parent        = &gta02_glamo_dev.dev,
+	},
+};
+
 static void __init gta02_map_io(void)
 {
 	s3c24xx_init_io(gta02_iodesc, ARRAY_SIZE(gta02_iodesc));
@@ -1519,7 +1558,6 @@ static struct platform_device *gta02_devices[] __initdata = {
 	&s3c24xx_pwm_device,
 	&gta02_led_dev,
 	&gta02_pm_wlan_dev, /* not dependent on PMU */
-
 	&s3c_device_iis,
 	&s3c_device_i2c0,
 };
@@ -1534,6 +1572,16 @@ static struct platform_device *gta02_devices_pmu_children[] = {
 	&gta02_button_dev, /* input 4 */
 	&gta02_resume_reason_device,
 };
+
+static void gta02_register_glamo(void)
+{
+	platform_device_register(&gta02_glamo_dev);
+	if (gpio_request(GTA02_GPIO_GLAMO(4), "jbt6k74 reset"))
+		printk("gta02: Failed to request jbt6k74 reset pin\n");
+	if (gpio_direction_output(GTA02_GPIO_GLAMO(4), 1))
+		printk("gta02: Failed to configure jbt6k74 reset pin\n");
+	platform_device_register(&spigpio_device);
+}
 
 static void gta02_pmu_regulator_registered(struct pcf50633 *pcf, int id)
 {
@@ -1551,8 +1599,8 @@ static void gta02_pmu_regulator_registered(struct pcf50633 *pcf, int id)
 			pdev = &gta02_pm_gps_dev;
 			break;
 		case PCF50633_REGULATOR_HCLDO:
-			pdev = &gta02_glamo_dev;
-			break;
+			gta02_register_glamo();
+			return;
 		default:
 			return;
 	}
@@ -1579,7 +1627,7 @@ static void gta02_pmu_attach_child_devices(struct pcf50633 *pcf)
 	platform_add_devices(gta02_devices_pmu_children,
 					ARRAY_SIZE(gta02_devices_pmu_children));
 
-    regulator_has_full_constraints();
+	regulator_has_full_constraints();
 }
 
 static void gta02_poweroff(void)
@@ -1628,10 +1676,11 @@ static void __init gta02_machine_init(void)
 	s3c2410_gpio_setpin(S3C2410_GPD13, 1);
 	s3c2410_gpio_cfgpin(S3C2410_GPD13, S3C2410_GPIO_OUTPUT);
 
+
 	s3c24xx_udc_set_platdata(&gta02_udc_cfg);
 	s3c_i2c0_set_platdata(NULL);
 	set_s3c2410ts_info(&gta02_ts_cfg);
-	
+
 	mangle_glamo_res_by_system_rev();
 
 	i2c_register_board_info(0, gta02_i2c_devs, ARRAY_SIZE(gta02_i2c_devs));
@@ -1680,13 +1729,13 @@ void DEBUG_LED(int n)
 {
 	switch (n) {
 	case 0:
-		gta02_gpb_setpin(GTA02_GPIO_PWR_LED1, 1);
+		s3c2410_gpio_setpin(GTA02_GPIO_PWR_LED1, 1);
 		break;
 	case 1:
-		gta02_gpb_setpin(GTA02_GPIO_PWR_LED2, 1);
+		s3c2410_gpio_setpin(GTA02_GPIO_PWR_LED2, 1);
 		break;
 	default:
-		gta02_gpb_setpin(GTA02_GPIO_AUX_LED, 1);
+		s3c2410_gpio_setpin(GTA02_GPIO_AUX_LED, 1);
 		break;
 	}
 }
