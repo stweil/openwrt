@@ -30,7 +30,16 @@
  
 --- a/include/linux/phy.h
 +++ b/include/linux/phy.h
-@@ -325,6 +325,20 @@ struct phy_device {
+@@ -229,6 +229,8 @@ enum phy_state {
+ 	PHY_RESUMING
+ };
+ 
++struct sk_buff;
++
+ /* phy_device: An instance of a PHY
+  *
+  * drv: Pointer to the driver for this PHY instance
+@@ -325,6 +327,20 @@ struct phy_device {
  	void (*adjust_link)(struct net_device *dev);
  
  	void (*adjust_state)(struct net_device *dev);
