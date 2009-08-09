@@ -391,6 +391,22 @@ endef
 $(eval $(call KernelPackage,usb-serial-sierrawireless))
 
 
+define KernelPackage/usb-serial-motorola-phone
+  $(call usbdep,kmod-usb-serial)
+  TITLE:=Support for Motorola usb phone
+  KCONFIG:=CONFIG_USB_SERIAL_MOTOROLA
+  FILES:=$(LINUX_DIR)/drivers/usb/serial/moto_modem.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,65,moto_modem)
+endef
+
+define KernelPackage/usb-serial-motorola-phone/description
+ Kernel support for Motorola usb phone
+endef
+
+$(eval $(call KernelPackage,usb-serial-motorola-phone))
+
+
+
 define KernelPackage/usb-serial-visor
   $(call usbdep,kmod-usb-serial)
   TITLE:=Support for Handspring Visor devices
@@ -635,6 +651,19 @@ endef
 
 $(eval $(call KernelPackage,usb-net-mcs7830))
 
+define KernelPackage/usb-net-dm9601-ether
+  $(call usbdep,kmod-usb-net @LINUX_2_6)
+  TITLE:=Support for DM9601 ethernet connections
+  KCONFIG:=CONFIG_USB_NET_DM9601
+  FILES:=$(LINUX_DIR)/drivers/$(USBNET_DIR)/dm9601.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,61,dm9601)
+endef
+
+define KernelPackage/usb-net-dm9601-ether/description
+  Kernel support for USB DM9601 devices
+endef
+
+$(eval $(call KernelPackage,usb-net-dm9601-ether))
 
 define KernelPackage/usb-net-cdc-ether
   $(call usbdep,kmod-usb-net @LINUX_2_6)

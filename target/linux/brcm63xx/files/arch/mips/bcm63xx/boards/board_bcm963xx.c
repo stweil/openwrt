@@ -543,6 +543,27 @@ static struct board_info __initdata board_AGPFS0 = {
 	.has_ohci0 = 1,
 	.has_ehci0 = 1,
 };
+
+static struct board_info __initdata board_DWVS0 = {
+	.name                           = "DWV-S0",
+	.expected_cpu_id                = 0x6358,
+
+	.has_enet0                      = 1,
+	.has_enet1                      = 1,
+	.has_pci                        = 1,
+
+	.enet0 = {
+		.has_phy                = 1,
+		.use_internal_phy       = 1,
+	},
+
+	.enet1 = {
+		.force_speed_100        = 1,
+		.force_duplex_full      = 1,
+	},
+
+	.has_ohci0 = 1,
+};
 #endif
 
 /*
@@ -570,6 +591,7 @@ static const struct board_info __initdata *bcm963xx_boards[] = {
 	&board_96358vw,
 	&board_96358vw2,
 	&board_AGPFS0,
+	&board_DWVS0,
 #endif
 };
 
@@ -789,7 +811,9 @@ int __init board_register_devices(void)
 
 	bcm63xx_uart_register();
 	bcm63xx_wdt_register();
-	bcm63xx_spi_register();
+
+	if (!BCMCPU_IS_6345())
+		bcm63xx_spi_register();
 
 	if (board.has_pccard)
 		bcm63xx_pcmcia_register();
