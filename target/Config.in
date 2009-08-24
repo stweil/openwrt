@@ -53,6 +53,9 @@ config USES_CPIOGZ
 config PROFILE_KCONFIG 
 	bool
 
+config NOMMU
+	bool
+
 # Architecture selection
 
 config i386
@@ -100,6 +103,9 @@ config powerpc
 	select BIG_ENDIAN
 	bool
 
+config powerpc64
+	bool
+
 config sh3
 	bool
 
@@ -119,6 +125,10 @@ config sparc
 	bool
 
 config x86_64
+	bool
+
+config ubicom32
+	select BIG_ENDIAN
 	bool
 
 config ARCH
@@ -141,4 +151,5 @@ config ARCH
 	default "sh4eb"   if sh4eb
 	default "sparc"   if sparc
 	default "x86_64"  if x86_64
+	default "ubicom32"  if ubicom32
 

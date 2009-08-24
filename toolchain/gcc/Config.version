@@ -52,8 +52,10 @@ if !TOOLCHAINOPTS
 		default y if TARGET_ppc44x
 
 	config GCC_VERSION_4_3_3
-		default y if TARGET_ps3_petitboot
-		default y if TARGET_pxcab
+		default y if powerpc64
 		default y if TARGET_etrax
 		default y if TARGET_coldfire
+
+	config GCC_VERSION_4_4_0
+		default y if ubicom32
 endif

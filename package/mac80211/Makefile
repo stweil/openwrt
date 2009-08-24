@@ -10,20 +10,12 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-ifneq ($(CONFIG_LINUX_2_6_21)$(CONFIG_LINUX_2_6_25),)
-  PKG_VERSION:=2008-08-06
-  PKG_RELEASE:=2
-  PKG_SOURCE_URL:=http://www.orbit-lab.org/kernel/compat-wireless-2.6/2008/08
-  PKG_MD5SUM:=9563ceeed86bca0859ad5f010623277c
-  PATCH_DIR:=./patches-old
-else
-  PKG_VERSION:=2009-06-25
-  PKG_RELEASE:=3
-  PKG_SOURCE_URL:= \
-	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/06 \
+PKG_VERSION:=2009-08-20
+PKG_RELEASE:=1
+PKG_SOURCE_URL:= \
+	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/08 \
 	http://wireless.kernel.org/download/compat-wireless-2.6
-  PKG_MD5SUM:=e76d2580436069e2b44f0f57db790bfe
-endif
+PKG_MD5SUM:=0b3919adf847a59478cc4fb58e1cb6ec
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
@@ -44,7 +36,7 @@ endef
 define KernelPackage/mac80211
   $(call KernelPackage/mac80211/Default)
   TITLE:=Linux 802.11 Wireless Networking Stack
-  DEPENDS+= +kmod-crypto-arc4 +kmod-crypto-aes +wireless-tools
+  DEPENDS+= +kmod-crypto-arc4 +kmod-crypto-aes +wireless-tools @!LINUX_2_6_21 @!LINUX_2_6_25
   FILES:= \
 	$(PKG_BUILD_DIR)/net/mac80211/mac80211.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/net/wireless/cfg80211.$(LINUX_KMOD_SUFFIX)
@@ -211,7 +203,7 @@ endef
 
 define KernelPackage/rt2800-pci
 $(call KernelPackage/rt2x00/Default)
-  DEPENDS+= +kmod-rt2x00-pci +kmod-crc-ccitt @!LINUX_2_6_21||!LINUX_2_6_25
+  DEPENDS+= +kmod-rt2x00-pci +kmod-crc-ccitt
   TITLE+= (RT2860 PCI)
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rt2x00/rt2800pci.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,27,rt2800pci)
@@ -219,7 +211,7 @@ endef
 
 define KernelPackage/rt2800-usb
 $(call KernelPackage/rt2x00/Default)
-  DEPENDS+= +kmod-rt2x00-usb +kmod-crc-ccitt @!LINUX_2_6_21||!LINUX_2_6_25
+  DEPENDS+= +kmod-rt2x00-usb +kmod-crc-ccitt
   TITLE+= (RT2870 USB)
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rt2x00/rt2800usb.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,27,rt2800usb)
@@ -229,7 +221,7 @@ define KernelPackage/rtl818x/Default
   $(call KernelPackage/mac80211/Default)
   TITLE:=Realtek Drivers for RTL818x devices
   URL:=http://wireless.kernel.org/en/users/Drivers/rtl8187
-  DEPENDS+= +kmod-eeprom-93cx6 +kmod-mac80211 @!LINUX_2_6_21||!LINUX_2_6_25
+  DEPENDS+= +kmod-eeprom-93cx6 +kmod-mac80211
 endef
 
 define KernelPackage/rtl8180
@@ -296,7 +288,7 @@ define KernelPackage/ath9k
   $(call KernelPackage/mac80211/Default)
   TITLE:=Atheros 802.11n wireless cards support
   URL:=http://linuxwireless.org/en/users/Drivers/ath9k
-  DEPENDS+= +kmod-ath @!LINUX_2_6_21||!LINUX_2_6_25
+  DEPENDS+= +kmod-ath
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,27,ath9k)
 endef
@@ -332,11 +324,11 @@ else
 endif
 ifneq ($(CONFIG_B43_OPENFIRMWARE),)
   PKG_B43_FWV4_NAME:=broadcom-wl
-  PKG_B43_FWV4_VERSION:=5.1
+  PKG_B43_FWV4_VERSION:=5.2
   PKG_B43_FWV4_OBJECT:=openfwwf-$(PKG_B43_FWV4_VERSION)
   PKG_B43_FWV4_SOURCE:=openfwwf-$(PKG_B43_FWV4_VERSION).tar.gz
   PKG_B43_FWV4_SOURCE_URL:=http://www.ing.unibs.it/openfwwf/firmware/
-  PKG_B43_FWV4_MD5SUM:=3510c133393bb4911c4aa35742cefcfd
+  PKG_B43_FWV4_MD5SUM:=e045a135453274e439ae183f8498b0fa
 endif
 
 
@@ -346,7 +338,7 @@ PKG_B43_FWV3_SOURCE:=$(PKG_B43_FWV3_NAME)-$(PKG_B43_FWV3_VERSION).o
 PKG_B43_FWV3_SOURCE_URL:=http://downloads.openwrt.org/sources/
 PKG_B43_FWV3_MD5SUM:=e08665c5c5b66beb9c3b2dd54aa80cb3
 
-ifneq ($(CONFIG_B43_EXPERIMENTAL)$(CONFIG_B43_OPENFIRMWARE),)
+ifneq ($(CONFIG_B43_OPENFIRMWARE),)
   PKG_B43_FWCUTTER_NAME:=b43-fwcutter
   PKG_B43_FWCUTTER_VERSION:=3e69531aa65b8f664a0ab00dfc3e2eefeb0cb417
   PKG_B43_FWCUTTER_SOURCE:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION).tar.bz2
@@ -356,11 +348,11 @@ ifneq ($(CONFIG_B43_EXPERIMENTAL)$(CONFIG_B43_OPENFIRMWARE),)
   PKG_B43_FWCUTTER_OBJECT:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION)/fwcutter/
 else
   PKG_B43_FWCUTTER_NAME:=b43-fwcutter
-  PKG_B43_FWCUTTER_VERSION:=011
+  PKG_B43_FWCUTTER_VERSION:=012
   PKG_B43_FWCUTTER_SOURCE:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION).tar.bz2
   PKG_B43_FWCUTTER_PROTO:=default
   PKG_B43_FWCUTTER_SOURCE_URL:=http://bu3sch.de/b43/fwcutter/
-  PKG_B43_FWCUTTER_MD5SUM:=3db2f4de85a459451f5b391cf67a8d44
+  PKG_B43_FWCUTTER_MD5SUM:=69eadf67b459f313a8d6b37aaabef96c
   PKG_B43_FWCUTTER_SUBDIR:=b43-fwcutter-$(PKG_B43_FWCUTTER_VERSION)
   PKG_B43_FWCUTTER_OBJECT:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION)/
 endif
@@ -393,7 +385,7 @@ define KernelPackage/b43-common
   $(call KernelPackage/mac80211/Default)
   TITLE:=Generic stuff for Broadcom wireless devices
   URL:=http://linuxwireless.org/en/users/Drivers/b43
-  DEPENDS+= +kmod-mac80211 +!(TARGET_brcm47xx||TARGET_brcm63xx):kmod-ssb @!LINUX_2_6_21
+  DEPENDS+= +kmod-mac80211 +!(TARGET_brcm47xx||TARGET_brcm63xx):kmod-ssb
 endef
 
 define KernelPackage/b43
@@ -429,38 +421,84 @@ BUILDFLAGS:= \
 	$(if $(CONFIG_PCI),-DCONFIG_SSB_PCIHOST_POSSIBLE -DCONFIG_SSB_PCIHOST) \
 	$(if $(CONFIG_PCI),-DCONFIG_SSB_SPROM) \
 	$(if $(CONFIG_LEDS_TRIGGERS), -DCONFIG_MAC80211_LEDS -DCONFIG_LEDS_TRIGGERS -DCONFIG_B43_LEDS -DCONFIG_B43LEGACY_LEDS) \
-	$(if $(CONFIG_RFKILL_INPUT),-DCONFIG_B43_RFKILL -DCONFIG_B43LEGACY_RFKILL) \
 	$(if $(CONFIG_HW_RANDOM),-DCONFIG_B43_HWRNG -DCONFIG_B43LEGACY_HWRNG) \
 	$(if $(CONFIG_DEBUG_FS), -DCONFIG_MAC80211_DEBUGFS) \
 	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
 
 MAKE_OPTS:= \
-	CROSS_COMPILE="$(TARGET_CROSS)" \
+	CROSS_COMPILE="$(KERNEL_CROSS)" \
 	ARCH="$(LINUX_KARCH)" \
 	EXTRA_CFLAGS="$(BUILDFLAGS)" \
 	$(foreach opt,$(CONFOPTS),CONFIG_$(opt)=m) \
-	CONFIG_NL80211=y \
 	CONFIG_MAC80211_RC_PID=y \
 	CONFIG_MAC80211_RC_MINSTREL=y \
 	CONFIG_MAC80211_LEDS=$(CONFIG_LEDS_TRIGGERS) \
 	CONFIG_MAC80211_DEBUGFS=$(CONFIG_DEBUG_FS) \
 	CONFIG_B43_PCMCIA=n CONFIG_B43_PIO=n \
-	$(if $(CONFIG_PCI),CONFIG_B43_PCI_AUTOSELECT=y,CONFIG_B43_PCI_AUTOSELECT=n) \
-	$(if $(CONFIG_PCI),CONFIG_B43_PCICORE_AUTOSELECT=y,CONFIG_B43_PCICORE_AUTOSELECT=n) \
-	$(if $(CONFIG_PCI),CONFIG_SSB_DRIVER_PCICORE_POSSIBLE=y,CONFIG_SSB_DRIVER_PCICORE_POSSIBLE=n) \
-	$(if $(CONFIG_PCI),CONFIG_SSB_DRIVER_PCICORE=y,CONFIG_SSB_DRIVER_PCICORE=n) \
-	$(if $(CONFIG_PCI),CONFIG_SSB_PCIHOST_POSSIBLE=y,CONFIG_SSB_PCIHOST_POSSIBLE=n) \
-	$(if $(CONFIG_PCI),CONFIG_SSB_PCIHOST=y,CONFIG_SSB_PCIHOST=n) \
-	$(if $(CONFIG_RFKILL_INPUT),CONFIG_B43_RFKILL=y,CONFIG_B43_RFKILL=n) \
-	$(if $(CONFIG_RFKILL_INPUT),CONFIG_B43LEGACY_RFKILL=y,CONFIG_B43LEGACY_RFKILL=n) \
+	CONFIG_B43_PCI_AUTOSELECT=$(if $(CONFIG_PCI),y) \
+	CONFIG_B43_PCICORE_AUTOSELECT=$(if $(CONFIG_PCI),y) \
+	CONFIG_SSB_DRIVER_PCICORE_POSSIBLE=$(if $(CONFIG_PCI),y) \
+	CONFIG_SSB_DRIVER_PCICORE=$(if $(CONFIG_PCI),y) \
+	CONFIG_SSB_PCIHOST_POSSIBLE=$(if $(CONFIG_PCI),y) \
+	CONFIG_SSB_PCIHOST=$(if $(CONFIG_PCI),y) \
 	CONFIG_B43LEGACY_LEDS=$(CONFIG_LEDS_TRIGGERS) \
 	CONFIG_B43_LEDS=$(CONFIG_LEDS_TRIGGERS) \
-	$(if $(CONFIG_HW_RANDOM),CONFIG_B43_HWRNG=y,CONFIG_B43_HWRNG=n) \
-	$(if $(CONFIG_HW_RANDOM),CONFIG_B43LEGACY_HWRNG=y,CONFIG_B43LEGACY_HWRNG=n) \
-	$(if $(CONFIG_PACKAGE_kmod-b43),CONFIG_B43=m) \
-	$(if $(CONFIG_PACKAGE_kmod-b43legacy),CONFIG_B43LEGACY=m) \
+	CONFIG_B43_HWRNG=$(if $(CONFIG_HW_RANDOM),y) \
+	CONFIG_B43LEGACY_HWRNG=$(if $(CONFIG_HW_RANDOM),y) \
+	CONFIG_B43=$(if $(CONFIG_PACKAGE_kmod-b43),m) \
+	CONFIG_B43LEGACY=$(if $(CONFIG_PACKAGE_kmod-b43legacy),m) \
+	CONFIG_ATH_COMMON=$(if $(CONFIG_PACKAGE_kmod-ath),m) \
+	CONFIG_ATH5K=$(if $(CONFIG_PACKAGE_kmod-ath5k),m) \
+	CONFIG_ATH9K=$(if $(CONFIG_PACKAGE_kmod-ath9k),m) \
+	CONFIG_ZD1211RW=$(if $(CONFIG_PACKAGE_kmod-zd1211rw),m) \
+	CONFIG_P54_COMMON=$(if $(CONFIG_PACKAGE_kmod-p54-common),m) \
+	CONFIG_P54_PCI=$(if $(CONFIG_PACKAGE_kmod-p54-pci),m) \
+	CONFIG_P54_USB=$(if $(CONFIG_PACKAGE_kmod-p54-usb),m) \
+	CONFIG_RT2X00=$(if $(CONFIG_PACKAGE_kmod-rt2x00-lib),m) \
+	CONFIG_RT2X00_LIB_PCI=$(if $(CONFIG_PACKAGE_kmod-rt2x00-pci),m) \
+	CONFIG_RT2X00_LIB_USB=$(if $(CONFIG_PACKAGE_kmod-rt2x00-usb),m) \
+	CONFIG_RT2400PCI=$(if $(CONFIG_PACKAGE_kmod-rt2400-pci),m) \
+	CONFIG_RT2500PCI=$(if $(CONFIG_PACKAGE_kmod-rt2500-pci),m) \
+	CONFIG_RT2500USB=$(if $(CONFIG_PACKAGE_kmod-rt2500-usb),m) \
+	CONFIG_RT61PCI=$(if $(CONFIG_PACKAGE_kmod-rt61-pci),m) \
+	CONFIG_RT73USB=$(if $(CONFIG_PACKAGE_kmod-rt73-usb),m) \
+	CONFIG_RT2800PCI=$(if $(CONFIG_PACKAGE_kmod-rt2800-pci),m) \
+	CONFIG_RT2800USB=$(if $(CONFIG_PACKAGE_kmod-rt2800-usb),m) \
+	CONFIG_RTL8180=$(if $(CONFIG_PACKAGE_kmod-rtl8180),m) \
+	CONFIG_RTL8187=$(if $(CONFIG_PACKAGE_kmod-rtl8187),m) \
+	CONFIG_MAC80211_HWSIM=$(if $(CONFIG_PACKAGE_kmod-mac80211-hwsim),m) \
+	CONFIG_PCMCIA= \
+	CONFIG_LIBIPW= \
+	CONFIG_LIBERTAS= \
+	CONFIG_LIBERTAS_CS= \
+	CONFIG_LIBERTAS_SDIO= \
+	CONFIG_LIBERTAS_THINFIRM= \
+	CONFIG_IPW2100= \
+	CONFIG_IPW2200= \
+	CONFIG_NL80211=y \
+	CONFIG_LIB80211= \
+	CONFIG_LIB80211_CRYPT_WEP= \
+	CONFIG_LIB80211_CRYPT_CCMP= \
+	CONFIG_LIB80211_CRYPT_TKIP= \
+	CONFIG_IWLWIFI= \
+	CONFIG_IWLAGN= \
+	CONFIG_MWL8K= \
+	CONFIG_ATMEL= \
+	CONFIG_PCMCIA_ATMEL= \
+	CONFIG_ADM8211= \
+	CONFIG_USB_NET_RNDIS_HOST= \
+	CONFIG_USB_NET_RNDIS_WLAN= \
+	CONFIG_USB_NET_CDCETHER= \
+	CONFIG_AT76C50X_USB= \
+	CONFIG_WL12XX= \
+	CONFIG_EEPROM_93CX6= \
+	CONFIG_AR9170_USB= \
+	MADWIFI= \
+	OLD_IWL= \
 	KLIB_BUILD="$(LINUX_DIR)" \
-	MODPROBE=:
+	MODPROBE=: \
+	KLIB=$(TARGET_MODULES_DIR) \
+	KERNEL_SUBLEVEL=$(lastword $(subst ., ,$(KERNEL_PATCHVER)))
 
 define Build/Prepare
 	rm -rf $(PKG_BUILD_DIR)

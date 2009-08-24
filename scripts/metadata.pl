@@ -165,6 +165,8 @@ sub target_config_features(@) {
 		/cpiogz/ and $ret .= "\tselect USES_CPIOGZ\n";
 		/fpu/ and $ret .= "\tselect HAS_FPU\n";
 		/ramdisk/ and $ret .= "\tselect USES_INITRAMFS\n";
+		/powerpc64/ and $ret .= "\tselect powerpc64\n";
+		/nommu/ and $ret .= "\tselect NOMMU\n";
 	}
 	return $ret;
 }

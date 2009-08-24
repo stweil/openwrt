@@ -10,33 +10,17 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=madwifi
 
-ifneq ($(CONFIG_MADWIFI_UPSTREAM),)
-  PKG_VERSION:=0.9.4
-  PKG_RELEASE:=2
+PKG_REV:=3314
+PKG_VERSION:=r$(PKG_REV)
+PKG_RELEASE:=2
 
-  PKG_SOURCE:=madwifi-$(PKG_VERSION).tar.gz
-  PKG_SOURCE_URL:=@SF/madwifi
-  PKG_MD5SUM:=399d20de8d855a59f20058857c2178ad
+PKG_SOURCE_PROTO:=svn
+PKG_SOURCE_VERSION:=$(PKG_REV)
+PKG_SOURCE_SUBDIR:=$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
+PKG_SOURCE_URL:=http://madwifi-project.org/svn/madwifi/$(if $(PKG_BRANCH),branches/$(PKG_BRANCH),trunk)
+PKG_SOURCE:=$(PKG_SOURCE_SUBDIR).tar.gz
 
-  PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/madwifi-$(PKG_VERSION)
-
-  PATCH_DIR=./patches-upstream
-else
-# PKG_BRANCH:=madwifi-dfs
-  PKG_REV:=3314
-  PKG_VERSION:=r$(PKG_REV)
-  PKG_RELEASE:=2
-
-  PKG_SOURCE_PROTO:=svn
-  PKG_SOURCE_VERSION:=$(PKG_REV)
-  PKG_SOURCE_SUBDIR:=$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
-  PKG_SOURCE_URL:=http://madwifi-project.org/svn/madwifi/$(if $(PKG_BRANCH),branches/$(PKG_BRANCH),trunk)
-  PKG_SOURCE:=$(PKG_SOURCE_SUBDIR).tar.gz
-
-  PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
-
-  PATCH_DIR=./patches
-endif
+PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
 
 HAL_VERSION:=20090508
 HAL_FILE:=ath_hal-$(HAL_VERSION).tgz
@@ -77,10 +61,10 @@ ifneq ($(CONFIG_CPU_MIPS32_R2),)
   endif
 else
   ifeq ($(ARCH),mips)
-    HAL_TARGET:=$(if $(CONFIG_MADWIFI_UPSTREAM),mips-be-elf,mips32-be-elf)
+    HAL_TARGET:=mips32-be-elf
   endif
   ifeq ($(ARCH),mipsel)
-    HAL_TARGET:=$(if $(CONFIG_MADWIFI_UPSTREAM),mips-le-elf,mips32-le-elf)
+    HAL_TARGET:=mips32-le-elf
   endif
 endif
 ifeq ($(ARCH),i386)
@@ -124,6 +108,9 @@ ifdef CONFIG_MADWIFI_RCA_SAMPLERATE
   RATE_CONTROL:=sample
 endif
 
+ifneq ($(CONFIG_MADWIFI_SINGLE_MODULE),)
+MADWIFI_FILES:= $(PKG_BUILD_DIR)/ath_hal/ath_hal.$(LINUX_KMOD_SUFFIX)
+else
 MADWIFI_FILES:= \
 	$(PKG_BUILD_DIR)/net80211/wlan.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/net80211/wlan_scan_ap.$(LINUX_KMOD_SUFFIX) \
@@ -134,9 +121,13 @@ MADWIFI_FILES:= \
 	$(PKG_BUILD_DIR)/net80211/wlan_ccmp.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/net80211/wlan_tkip.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/net80211/wlan_wep.$(LINUX_KMOD_SUFFIX) \
-	$(PKG_BUILD_DIR)/net80211/wlan_xauth.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_xauth.$(LINUX_KMOD_SUFFIX)
+endif
 
-MADWIFI_AUTOLOAD:= \
+ifneq ($(CONFIG_MADWIFI_SINGLE_MODULE),)
+  MADWIFI_AUTOLOAD:= ath_hal
+else
+  MADWIFI_AUTOLOAD:= \
 	wlan \
 	wlan_scan_ap \
 	wlan_scan_sta \
@@ -146,7 +137,8 @@ MADWIFI_AUTOLOAD:= \
 	wlan_ccmp \
 	wlan_tkip \
 	wlan_wep \
-	wlan_xauth \
+	wlan_xauth
+endif
 
 ifeq ($(findstring AHB,$(BUS)),AHB)
   MADWIFI_FILES+= $(PKG_BUILD_DIR)/ath/ath_ahb.$(LINUX_KMOD_SUFFIX)
@@ -157,12 +149,9 @@ ifeq ($(findstring PCI,$(BUS)),PCI)
   MADWIFI_AUTOLOAD+= ath_pci
 endif
 
-MADWIFI_APPLETS:=80211stats athchans athkey athstats wlanconfig ath_info
+MADWIFI_APPLETS:=80211stats athchans athkey athstats wlanconfig ath_info madwifi_multi
 ifdef CONFIG_MADWIFI_DEBUG
   MADWIFI_APPLETS += athdebug 80211debug
-endif
-ifndef CONFIG_MADWIFI_UPSTREAM
-  MADWIFI_APPLETS += madwifi_multi
 endif
 
 define KernelPackage/madwifi
@@ -202,24 +191,23 @@ MAKE_ARGS:= \
 	TOOLPATH="$(KERNEL_CROSS)" \
 	KERNELPATH="$(LINUX_DIR)" \
 	LDOPTS="--no-warn-mismatch " \
-	ATH_RATE="ath_rate/$(RATE_CONTROL)" \
+	ATH_RATE="$(RATE_CONTROL)" \
 	ATH_CAP_SUPERG_COMP="$(COMPRESSION)" \
 	DO_MULTI=1 \
+	SINGLE_MODULE=$(if $(CONFIG_MADWIFI_SINGLE_MODULE),1) \
 	INCS="$(MADWIFI_INC)" \
 	$(if $(CONFIG_MADWIFI_DEBUG),,DEBUG=) WARNINGS="-Wno-unused"
 
 MAKE_VARS:= \
-	COPTS="-DCONFIG_ATHEROS_RATE_DEFAULT='\"$(RATE_CONTROL)\"' -DATH_REVERSE_ENGINEERING=1" \
+	COPTS="-DATH_REVERSE_ENGINEERING=1" \
 
-ifeq ($(CONFIG_MADWIFI_UPSTREAM),)
-  define Build/Prepare/HAL
+define Build/Prepare/HAL
 	rm -rf $(PKG_BUILD_DIR)/tmp
 	mkdir -p $(PKG_BUILD_DIR)/tmp
 	tar xvzf $(DL_DIR)/$(HAL_FILE) -C $(PKG_BUILD_DIR)/tmp
 	$(CP) $(PKG_BUILD_DIR)/tmp/ath_hal*/* $(PKG_BUILD_DIR)/hal/
 	rm -rf $(PKG_BUILD_DIR)/tmp
-  endef
-endif
+endef
 
 define Build/Prepare
 	$(call Build/Prepare/Default)

@@ -9,9 +9,9 @@ include $(TOPDIR)/rules.mk
 ARCH:=powerpc
 BOARD:=pxcab
 BOARDNAME:=PowerXCell Accelerator Board
-FEATURES:=fpu ramdisk
+FEATURES+=powerpc64 fpu ramdisk
 
-LINUX_VERSION:=2.6.30.4
+LINUX_VERSION:=2.6.30.5
 
 KERNEL_CC:=
 
