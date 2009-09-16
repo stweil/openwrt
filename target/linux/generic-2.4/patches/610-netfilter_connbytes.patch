@@ -6,12 +6,12 @@
    dep_tristate '  IRC protocol support' CONFIG_IP_NF_IRC $CONFIG_IP_NF_CONNTRACK
 +  dep_tristate '  Connection tracking flow accounting' CONFIG_IP_NF_CT_ACCT $CONFIG_IP_NF_CONNTRACK
 +  dep_tristate '  Connection byte counter support' CONFIG_IP_NF_MATCH_CONNBYTES $CONFIG_IP_NF_CT_ACCT $CONFIG_IP_NF_CONNTRACK $CONFIG_IP_NF_IPTABLES
-   dep_tristate '  GRE protocol support' CONFIG_IP_NF_CT_PROTO_GRE $CONFIG_IP_NF_CONNTRACK
-   dep_tristate '   PPTP protocol support' CONFIG_IP_NF_PPTP $CONFIG_IP_NF_CT_PROTO_GRE
  fi
+ 
+ if [ "$CONFIG_EXPERIMENTAL" = "y" ]; then
 --- a/net/ipv4/netfilter/Makefile
 +++ b/net/ipv4/netfilter/Makefile
-@@ -106,6 +106,7 @@ obj-$(CONFIG_IP_NF_MATCH_LENGTH) += ipt_
+@@ -97,6 +97,7 @@ obj-$(CONFIG_IP_NF_MATCH_LENGTH) += ipt_
  obj-$(CONFIG_IP_NF_MATCH_TTL) += ipt_ttl.o
  obj-$(CONFIG_IP_NF_MATCH_STATE) += ipt_state.o
  obj-$(CONFIG_IP_NF_MATCH_CONNMARK) += ipt_connmark.o
@@ -136,7 +136,7 @@
  	return NF_ACCEPT;
 --- a/net/ipv4/netfilter/ip_conntrack_core.c
 +++ b/net/ipv4/netfilter/ip_conntrack_core.c
-@@ -1196,22 +1196,40 @@ void ip_conntrack_helper_unregister(stru
+@@ -1193,22 +1193,40 @@ void ip_conntrack_helper_unregister(stru
  
  	MOD_DEC_USE_COUNT;
  }
@@ -182,7 +182,7 @@
  }
 --- a/include/linux/netfilter_ipv4/ip_conntrack.h
 +++ b/include/linux/netfilter_ipv4/ip_conntrack.h
-@@ -164,6 +164,12 @@ struct ip_conntrack_expect
+@@ -156,6 +156,12 @@ struct ip_conntrack_expect
  	union ip_conntrack_expect_help help;
  };
  
@@ -195,7 +195,7 @@
  struct ip_conntrack_helper;
  
  struct ip_conntrack
-@@ -181,6 +187,12 @@ struct ip_conntrack
+@@ -173,6 +179,12 @@ struct ip_conntrack
  	/* Timer function; drops refcnt when it goes off. */
  	struct timer_list timeout;
  
@@ -208,7 +208,7 @@
  	/* If we're expecting another related connection, this will be
             in expected linked list */
  	struct list_head sibling_list;
-@@ -264,8 +276,10 @@ extern int invert_tuplepr(struct ip_conn
+@@ -256,8 +268,10 @@ extern int invert_tuplepr(struct ip_conn
  			  const struct ip_conntrack_tuple *orig);
  
  /* Refresh conntrack for this many jiffies */
@@ -415,25 +415,3 @@
 +};
 +
 +#endif
---- a/net/ipv4/netfilter/ip_conntrack_proto_gre.c
-+++ b/net/ipv4/netfilter/ip_conntrack_proto_gre.c
-@@ -237,16 +237,16 @@ static unsigned int gre_print_conntrack(
- /* Returns verdict for packet, and may modify conntrack */
- static int gre_packet(struct ip_conntrack *ct,
- 		      struct iphdr *iph, size_t len,
--		      enum ip_conntrack_info conntrackinfo)
-+		      enum ip_conntrack_info ctinfo)
- {
- 	/* If we've seen traffic both ways, this is a GRE connection.
- 	 * Extend timeout. */
- 	if (ct->status & IPS_SEEN_REPLY) {
--		ip_ct_refresh_acct(ct, ct->proto.gre.stream_timeout);
-+		ip_ct_refresh_acct(ct, ctinfo, iph, ct->proto.gre.stream_timeout);
- 		/* Also, more likely to be important, and not a probe. */
- 		set_bit(IPS_ASSURED_BIT, &ct->status);
- 	} else
--		ip_ct_refresh_acct(ct, ct->proto.gre.timeout);
-+		ip_ct_refresh_acct(ct, ctinfo, iph, ct->proto.gre.timeout);
- 	
- 	return NF_ACCEPT;
- }

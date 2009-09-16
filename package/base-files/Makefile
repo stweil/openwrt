@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=base-files
-PKG_RELEASE:=26
+PKG_RELEASE:=31
 
 PKG_FILE_DEPENDS:=$(PLATFORM_DIR)/ $(GENERIC_PLATFORM_DIR)/base-files/
 
@@ -247,6 +247,8 @@ endef
 
 define Package/libc/install_lib
 	$(CP) $(filter-out %/libdl_pic.a,$(wildcard $(TOOLCHAIN_DIR)/usr/lib/lib*.a)) $(1)/lib/
+	$(if $(wildcard $(TOOLCHAIN_DIR)/usr/lib/libc_so.a),$(CP) $(TOOLCHAIN_DIR)/usr/lib/libc_so.a $(1)/lib/libc_pic.a)
+	$(CP) $(TOOLCHAIN_DIR)/usr/lib/gcc/*/*/libgcc.a $(1)/lib/libgcc_s_pic.a
 endef
 
 define Package/libpthread/install

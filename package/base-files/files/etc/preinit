@@ -8,6 +8,7 @@ failsafe_ip() {
 }
 
 failsafe() {
+	set_state failsafe
 	[ -n "$ifname" ] && grep "$ifname" /proc/net/dev >/dev/null && {
 		failsafe_ip
 		netmsg 192.168.1.255 "Entering Failsafe!"
@@ -40,15 +41,19 @@ elif [ -x /sbin/hotplug2 ]; then
 
 elif [ -x /sbin/udevd ]; then
 	mount -n -t tmpfs -o mode=0755 udev /dev
-	/sbin/udevd --daemon
-	/sbin/udevtrigger
-	/sbin/udevsettle
+	[ -d /lib/udev/devices ] && cp -af /lib/udev/devices/* /dev/
+	[ -c /dev/console ] || mknod -m 0600 /dev/console c 5 1
+	[ -c /dev/null ] || mknod -m 0666 /dev/null c 1 3
+	/sbin/udevd --daemon --resolve-names=never
+	/sbin/udevadm trigger
+	/sbin/udevadm settle
 	M0=/dev/pty/ptmx
 	M1=/dev/pty/ptmx
 	HOTPLUG=
 fi
 
-mkdir -p /dev/pts /dev/shm
+[ -d /dev/pts ] || mkdir -p /dev/pts
+[ -d /dev/shm ] || mkdir -p /dev/shm
 mount devpts /dev/pts -t devpts
 
 # the shell really doesn't like having stdin/out closed
@@ -62,11 +67,15 @@ dd if=/dev/console of=/dev/null bs=1 count=0 >/dev/null 2>/dev/null && {
 exec <$M0 >$M1 2>&0
 
 echo "- preinit -"
+set_state preinit
 echo "Press CTRL-C for failsafe"
 trap 'FAILSAFE=true' INT
 trap 'FAILSAFE=true' USR1
-[ -e /etc/preinit.arch ] && . /etc/preinit.arch
-set_state preinit
+if [ -e /etc/preinit.arch ]; then
+	. /etc/preinit.arch
+else
+	sleep 2
+fi
 echo "$HOTPLUG" > /proc/sys/kernel/hotplug
 export FAILSAFE
 eval ${FAILSAFE:+failsafe}
@@ -84,6 +93,6 @@ if [ -z "$INITRAMFS" ]; then
 	}
 
 	echo "- init -"
-	
+
 	exec /sbin/init
 fi

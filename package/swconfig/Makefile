@@ -1,5 +1,5 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
+#
+# Copyright (C) 2008-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=swconfig
-PKG_RELEASE:=1
+PKG_RELEASE:=3
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -39,8 +39,8 @@ define Build/Compile
 endef
 
 define Package/swconfig/install
-	$(INSTALL_DIR) $(1)/bin $(1)/lib/network
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig $(1)/bin/swconfig
+	$(INSTALL_DIR) $(1)/sbin $(1)/lib/network
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/swconfig $(1)/sbin/swconfig
 	$(INSTALL_DATA) ./files/switch.sh $(1)/lib/network/
 endef
 

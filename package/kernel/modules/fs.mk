@@ -8,9 +8,7 @@
 FS_MENU:=Filesystems
 
 define KernelPackage/nls/Depends
-  ifneq ($(KERNEL),2.4)
-    DEPENDS:= +kmod-nls-base
-  endif
+  DEPENDS:= +!LINUX_2_4:kmod-nls-base
 endef
 
 define KernelPackage/fs-cifs
@@ -51,6 +49,7 @@ define KernelPackage/fs-ntfs
   KCONFIG:=CONFIG_NTFS_FS
   FILES:=$(LINUX_DIR)/fs/ntfs/ntfs.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,ntfs)
+$(call KernelPackage/nls/Depends)
 endef
 
 define KernelPackage/fs-ntfs/description

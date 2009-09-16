@@ -21,7 +21,7 @@ define Host/Configure
 endef
 
 define Host/Compile
-	$(MAKE) -C $(HOST_BUILD_DIR) SHELL="$(BASH)"
+	$(MAKE) -C $(HOST_BUILD_DIR) SHELL="$(BASH)" all lib/backup-files
 endef
 
 define Host/Install

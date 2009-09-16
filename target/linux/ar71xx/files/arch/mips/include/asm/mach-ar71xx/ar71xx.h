@@ -123,6 +123,7 @@ enum ar71xx_mach_type {
 	AR71XX_MACH_AP83,	/* Atheros AP83 */
 	AR71XX_MACH_AW_NR580,	/* AzureWave AW-NR580 */
 	AR71XX_MACH_RB_411,	/* MikroTik RouterBOARD 411/411A/411AH */
+	AR71XX_MACH_RB_411U,	/* MikroTik RouterBOARD 411U */
 	AR71XX_MACH_RB_433,	/* MikroTik RouterBOARD 433/433AH */
 	AR71XX_MACH_RB_433U,	/* MikroTik RouterBOARD 433UAH */
 	AR71XX_MACH_RB_450,	/* MikroTik RouterBOARD 450 */
@@ -139,6 +140,7 @@ enum ar71xx_mach_type {
 	AR71XX_MACH_UBNT_LSX,	/* Ubiquiti LSX */
 	AR71XX_MACH_UBNT_RS,	/* Ubiquiti RouterStation */
 	AR71XX_MACH_UBNT_RSPRO,	/* Ubiquiti RouterStation Pro */
+	AR71XX_MACH_UBNT_BULLET_M, /* Ubiquiti Bullet M */
 	AR71XX_MACH_WNR2000,	/* NETGEAR WNR2000 */
 	AR71XX_MACH_WP543,	/* Compex WP543 */
 	AR71XX_MACH_WRT160NL,	/* Linksys WRT160NL */

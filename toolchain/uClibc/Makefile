@@ -74,7 +74,7 @@ define Host/Prepare
 		-e 's,^.*UCLIBC_HAS_SHADOW.*,UCLIBC_HAS_SHADOW=$(if $(CONFIG_SHADOW_PASSWORDS),y,n),g' \
 		$(HOST_BUILD_DIR)/.config
 	$(MAKE) -C $(HOST_BUILD_DIR)/extra/config conf KBUILD_HAVE_NLS= HOSTCFLAGS="-DKBUILD_NO_NLS"
-	PATH=$(TARGET_PATH) $(MAKE) -C $(HOST_BUILD_DIR) \
+	PATH='$(TARGET_PATH)' $(MAKE) -C $(HOST_BUILD_DIR) \
 		PREFIX="$(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/" \
 		DEVEL_PREFIX=/usr/ \
 		RUNTIME_PREFIX="$(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/" \
@@ -88,7 +88,7 @@ endef
 define Host/Configure
 endef
 
-UCLIBC_MAKE = PATH=$(TARGET_PATH) $(MAKE) -C $(HOST_BUILD_DIR) \
+UCLIBC_MAKE = PATH='$(TARGET_PATH)' $(MAKE) -C $(HOST_BUILD_DIR) \
 	$(TARGET_CONFIGURE_OPTS) \
 	DEVEL_PREFIX=/usr/ \
 	RUNTIME_PREFIX=/ \
@@ -102,6 +102,7 @@ define Host/Compile
 	$(UCLIBC_MAKE) PREFIX= all
 	$(UCLIBC_MAKE) PREFIX="$(TOOLCHAIN_DIR)/" install_runtime install_dev
 	ln -sf ../../lib/libc.so.0 $(TOOLCHAIN_DIR)/usr/lib/libc.so
+	$(CP) $(HOST_BUILD_DIR)/libc/libc_so.a $(TOOLCHAIN_DIR)/usr/lib/
 #	( cd $(TOOLCHAIN_DIR) ; \
 #		for d in lib usr/lib ; do \
 #		  for f in libc.so libpthread.so libgcc_s.so ; do \
