@@ -38,7 +38,7 @@
 #define ETH_FCS_LEN	4
 
 #define AG71XX_DRV_NAME		"ag71xx"
-#define AG71XX_DRV_VERSION	"0.5.23"
+#define AG71XX_DRV_VERSION	"0.5.25"
 
 #define AG71XX_NAPI_WEIGHT	64
 #define AG71XX_OOM_REFILL	(1 + HZ/10)
@@ -110,7 +110,6 @@ struct ag71xx_mdio {
 
 struct ag71xx {
 	void __iomem		*mac_base;
-	void __iomem		*mac_base2;
 	void __iomem		*mii_ctrl;
 
 	spinlock_t		lock;
@@ -136,13 +135,13 @@ struct ag71xx {
 extern struct ethtool_ops ag71xx_ethtool_ops;
 
 extern struct ag71xx_mdio *ag71xx_mdio_bus;
-extern int ag71xx_mdio_driver_init(void) __init;
-extern void ag71xx_mdio_driver_exit(void);
+int ag71xx_mdio_driver_init(void) __init;
+void ag71xx_mdio_driver_exit(void);
 
-extern int ag71xx_phy_connect(struct ag71xx *ag);
-extern void ag71xx_phy_disconnect(struct ag71xx *ag);
-extern void ag71xx_phy_start(struct ag71xx *ag);
-extern void ag71xx_phy_stop(struct ag71xx *ag);
+int ag71xx_phy_connect(struct ag71xx *ag);
+void ag71xx_phy_disconnect(struct ag71xx *ag);
+void ag71xx_phy_start(struct ag71xx *ag);
+void ag71xx_phy_stop(struct ag71xx *ag);
 
 static inline struct ag71xx_platform_data *ag71xx_get_pdata(struct ag71xx *ag)
 {
@@ -314,14 +313,12 @@ static inline void ag71xx_wr(struct ag71xx *ag, unsigned reg, u32 value)
 
 	switch (reg) {
 	case AG71XX_REG_MAC_CFG1 ... AG71XX_REG_MAC_MFL:
+	case AG71XX_REG_MAC_IFCTL ... AG71XX_REG_INT_STATUS:
 		r = ag->mac_base + reg;
 		__raw_writel(value, r);
-		__raw_readl(r);
-		break;
-	case AG71XX_REG_MAC_IFCTL ... AG71XX_REG_INT_STATUS:
-		r = ag->mac_base2 + reg - AG71XX_REG_MAC_IFCTL;
-		__raw_writel(value, r);
-		__raw_readl(r);
+
+		/* flush write */
+		(void) __raw_readl(r);
 		break;
 	default:
 		BUG();
@@ -335,11 +332,8 @@ static inline u32 ag71xx_rr(struct ag71xx *ag, unsigned reg)
 
 	switch (reg) {
 	case AG71XX_REG_MAC_CFG1 ... AG71XX_REG_MAC_MFL:
-		r = ag->mac_base + reg;
-		ret = __raw_readl(r);
-		break;
 	case AG71XX_REG_MAC_IFCTL ... AG71XX_REG_INT_STATUS:
-		r = ag->mac_base2 + reg - AG71XX_REG_MAC_IFCTL;
+		r = ag->mac_base + reg;
 		ret = __raw_readl(r);
 		break;
 	default:
@@ -355,14 +349,12 @@ static inline void ag71xx_sb(struct ag71xx *ag, unsigned reg, u32 mask)
 
 	switch (reg) {
 	case AG71XX_REG_MAC_CFG1 ... AG71XX_REG_MAC_MFL:
+	case AG71XX_REG_MAC_IFCTL ... AG71XX_REG_INT_STATUS:
 		r = ag->mac_base + reg;
 		__raw_writel(__raw_readl(r) | mask, r);
-		__raw_readl(r);
-		break;
-	case AG71XX_REG_MAC_IFCTL ... AG71XX_REG_INT_STATUS:
-		r = ag->mac_base2 + reg - AG71XX_REG_MAC_IFCTL;
-		__raw_writel(__raw_readl(r) | mask, r);
-		__raw_readl(r);
+
+		/* flush write */
+		(void)__raw_readl(r);
 		break;
 	default:
 		BUG();
@@ -375,14 +367,12 @@ static inline void ag71xx_cb(struct ag71xx *ag, unsigned reg, u32 mask)
 
 	switch (reg) {
 	case AG71XX_REG_MAC_CFG1 ... AG71XX_REG_MAC_MFL:
+	case AG71XX_REG_MAC_IFCTL ... AG71XX_REG_INT_STATUS:
 		r = ag->mac_base + reg;
 		__raw_writel(__raw_readl(r) & ~mask, r);
-		__raw_readl(r);
-		break;
-	case AG71XX_REG_MAC_IFCTL ... AG71XX_REG_INT_STATUS:
-		r = ag->mac_base2 + reg - AG71XX_REG_MAC_IFCTL;
-		__raw_writel(__raw_readl(r) & ~mask, r);
-		__raw_readl(r);
+
+		/* flush write */
+		(void) __raw_readl(r);
 		break;
 	default:
 		BUG();
@@ -407,6 +397,8 @@ static inline void ag71xx_mii_ctrl_wr(struct ag71xx *ag, u32 value)
 		return;
 
 	__raw_writel(value, ag->mii_ctrl);
+
+	/* flush write */
 	__raw_readl(ag->mii_ctrl);
 }
 
