@@ -10,6 +10,7 @@ choice
 	default GCC_VERSION_4_3_3 if TARGET_etrax
 	default GCC_VERSION_4_3_3 if TARGET_coldfire
 	default GCC_VERSION_4_4_0 if ubicom32
+	default GCC_VERSION_4_4_1 if TARGET_octeon
 	default GCC_VERSION_4_1_2
 	help
 	  Select the version of gcc you wish to use.
@@ -38,15 +39,6 @@ if !LINUX_2_4
 endif
 
 endchoice
-
-config EABI_SUPPORT
-	bool
-	depends arm||armeb
-	prompt "Enable EABI support" if TOOLCHAINOPTS
-	default n if TARGET_gemini
-	default y
-	help
-	  Enable ARM EABI support
 
 config EXTRA_GCC_CONFIG_OPTIONS
 	string
