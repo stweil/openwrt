@@ -36,6 +36,7 @@
 #define UBNT_BULLET_M_GPIO_LED_L2	1
 #define UBNT_BULLET_M_GPIO_LED_L3	11
 #define UBNT_BULLET_M_GPIO_LED_L4	7
+#define UBNT_BULLET_M_GPIO_BTN_RESET	12
 
 #define UBNT_BUTTONS_POLL_INTERVAL	20
 
@@ -131,6 +132,17 @@ static struct gpio_button ubnt_gpio_buttons[] __initdata = {
 		.code		= BTN_0,
 		.threshold	= 5,
 		.gpio		= UBNT_RS_GPIO_SW4,
+		.active_low	= 1,
+	}
+};
+
+static struct gpio_button ubnt_bullet_m_gpio_buttons[] __initdata = {
+	{
+		.desc		= "reset",
+		.type		= EV_KEY,
+		.code		= BTN_0,
+		.threshold	= 5,
+		.gpio		= UBNT_BULLET_M_GPIO_BTN_RESET,
 		.active_low	= 1,
 	}
 };
@@ -232,8 +244,19 @@ static void __init ubnt_lssr71_setup(void)
 
 MIPS_MACHINE(AR71XX_MACH_UBNT_LSSR71, "Ubiquiti LS-SR71", ubnt_lssr71_setup);
 
+static struct ar71xx_pci_irq ubnt_bullet_m_pci_irqs[] __initdata = {
+	{
+		.slot	= 0,
+		.pin	= 1,
+		.irq	= AR71XX_PCI_IRQ_DEV0,
+	}
+};
+
 static void __init ubnt_bullet_m_setup(void)
 {
+	u8 *mac = (u8 *) KSEG1ADDR(0x1fff0000);
+
+	ar71xx_set_mac_base(mac);
 	ar71xx_add_device_spi(NULL, ubnt_spi_info,
 				    ARRAY_SIZE(ubnt_spi_info));
 
@@ -249,6 +272,13 @@ static void __init ubnt_bullet_m_setup(void)
 
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(ubnt_bullet_m_leds_gpio),
 					ubnt_bullet_m_leds_gpio);
+
+	ar71xx_add_device_gpio_buttons(-1, UBNT_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(ubnt_bullet_m_gpio_buttons),
+					ubnt_bullet_m_gpio_buttons);
+
+	ar71xx_pci_init(ARRAY_SIZE(ubnt_bullet_m_pci_irqs),
+			ubnt_bullet_m_pci_irqs);
 }
 
 MIPS_MACHINE(AR71XX_MACH_UBNT_BULLET_M, "Ubiquiti Bullet M", ubnt_bullet_m_setup);

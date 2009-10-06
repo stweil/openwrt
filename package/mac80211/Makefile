@@ -36,7 +36,7 @@ endef
 define KernelPackage/mac80211
   $(call KernelPackage/mac80211/Default)
   TITLE:=Linux 802.11 Wireless Networking Stack
-  DEPENDS+= +kmod-crypto-arc4 +kmod-crypto-aes +wireless-tools @!LINUX_2_6_21 @!LINUX_2_6_25
+  DEPENDS+= +kmod-crypto-arc4 +kmod-crypto-aes +wireless-tools +@PACKAGE_iw @!LINUX_2_6_21 @!LINUX_2_6_25
   FILES:= \
 	$(PKG_BUILD_DIR)/net/mac80211/mac80211.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/net/wireless/cfg80211.$(LINUX_KMOD_SUFFIX)
@@ -270,6 +270,19 @@ define KernelPackage/zd1211rw
   AUTOLOAD:=$(call AutoLoad,60,zd1211rw)
 endef
 
+define KernelPackage/ath/config
+
+config ATH_USER_REGD
+	bool "Force Atheros drivers to respect the user's regdomain settings"
+	depends on PACKAGE_kmod-ath
+	help
+		Atheros' idea of regulatory handling is that the EEPROM of the card defines
+		the regulatory limits and the user is only allowed to restrict the settings
+		even further, even if the country allows frequencies or power levels that 
+		are forbidden by the EEPROM settings.
+		Select this option if you want the driver to respect the user's decision about
+		regulatory settings.
+endef
 
 define KernelPackage/ath
   $(call KernelPackage/mac80211/Default)
@@ -455,6 +468,7 @@ BUILDFLAGS:= \
 	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS) \
 	$(if $(CONFIG_PACKAGE_ATH9K_DEBUG),-DCONFIG_ATH9K_DEBUG) \
 	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
+	$(if $(CONFIG_ATH_USER_REGD),-DATH_USER_REGD=1)
 
 MAKE_OPTS:= \
 	CROSS_COMPILE="$(KERNEL_CROSS)" \
