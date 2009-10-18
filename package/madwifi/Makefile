@@ -79,6 +79,9 @@ endif
 ifeq ($(BOARD),iop32x)
   HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
+ifeq ($(BOARD),kirkwood)
+  HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
+endif
 ifeq ($(BOARD),orion)
   HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
@@ -158,7 +161,7 @@ define KernelPackage/madwifi
   SUBMENU:=Wireless Drivers
   TITLE:=Driver for Atheros wireless chipsets
   URL:=http://madwifi-project.org/
-  DEPENDS:=+wireless-tools @PCI_SUPPORT||TARGET_atheros @!TARGET_avr32 @!TARGET_etrax @LINUX_2_6
+  DEPENDS:=+wireless-tools @PCI_SUPPORT||TARGET_atheros @!TARGET_avr32 @!TARGET_etrax @!TARGET_cobalt @!TARGET_octeon @LINUX_2_6
   FILES:=$(MADWIFI_FILES)
   AUTOLOAD:=$(call AutoLoad,50,$(MADWIFI_AUTOLOAD))
 endef

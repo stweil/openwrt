@@ -34,10 +34,12 @@
 #include <linux/ethtool.h>
 #include <linux/init.h>
 #include <linux/delay.h>
+
 #include <asm/checksum.h>
-#include <asm/ifxmips/ifxmips.h>
-#include <asm/ifxmips/ifxmips_dma.h>
-#include <asm/ifxmips/ifxmips_pmu.h>
+
+#include <ifxmips.h>
+#include <ifxmips_dma.h>
+#include <ifxmips_pmu.h>
 
 struct ifxmips_mii_priv {
 	struct net_device_stats stats;
@@ -383,5 +385,5 @@ module_exit(ifxmips_mii_cleanup);
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("John Crispin <blogic@openwrt.org>");
-MODULE_DESCRIPTION("ethernet map driver for IFXMIPS boards");
+MODULE_DESCRIPTION("ethernet driver for IFXMIPS boards");
 

@@ -14,12 +14,16 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
  *
  *   Copyright (C) 2007 John Crispin <blogic@openwrt.org>
+ *
+ *	 code used for handling the power management unit of the danube. using
+ *	 the pmu we can turn the power of the seperate ip cores on/off.
  */
 
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/version.h>
-#include <asm/ifxmips/ifxmips.h>
+
+#include <ifxmips.h>
 
 void ifxmips_pmu_enable(unsigned int module)
 {

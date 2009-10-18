@@ -66,7 +66,11 @@ disable_mac80211() (
 
 	return 0
 )
-
+get_freq() {
+	local phy="$1"
+	local chan="$2"
+	iw "$phy" info | grep -E -m1 "(\* ${chan:-....} MHz${chan:+|\\[$chan\\]})" | grep MHz | awk '{print $2}'
+}
 enable_mac80211() {
 	local device="$1"
 	config_get channel "$device" channel
@@ -75,6 +79,15 @@ enable_mac80211() {
 	find_mac80211_phy "$device" || return 0
 	config_get phy "$device" phy
 	local i=0
+	fixed=""
+
+	[ "$channel" = "auto" -o "$channel" = "0" ] || {
+		fixed=1
+	}
+
+	export channel fixed
+	# convert channel to frequency
+	local freq="$(get_freq "$phy" "${fixed:+$channel}")"
 
 	wifi_fixup_hwmode "$device" "g"
 	for vif in $vifs; do
@@ -134,7 +147,7 @@ enable_mac80211() {
 
 		# We attempt to set teh channel for all interfaces, although
 		# mac80211 may not support it or the driver might not yet
-		iw dev "$ifname" set channel "$channel" 
+		[ -n "$fixed" -a -n "$channel" ] && iw dev "$ifname" set channel "$channel"
 
 		local key keystring
 
@@ -213,14 +226,17 @@ enable_mac80211() {
 					}
 				fi
 			;;
-			sta|mesh|adhoc)
-				# Fixup... sometimes you have to scan to get beaconing going
-				iw dev "$ifname" scan &> /dev/null
+			adhoc)
+				config_get bssid "$vif" bssid
+				iw dev "$ifname" ibss join "$ssid" $freq ${fixed:+fixed-freq} $bssid
+			;;
+			sta|mesh)
+				config_get bssid "$vif" bssid
 				case "$enc" in												 
 					wep)
 						if [ -e "$keymgmt" ]; then
 							[ -n "$keystring" ] &&
-								iw dev "$ifname" connect "$ssid" key "$keystring"
+								iw dev "$ifname" connect "$ssid" ${fixed:+$freq} $bssid key "$keystring"
 						else
 							if eval "type wpa_supplicant_setup_vif" 2>/dev/null >/dev/null; then
 								wpa_supplicant_setup_vif "$vif" wext || {
@@ -241,6 +257,9 @@ enable_mac80211() {
 								continue
 							}
 						fi
+					;;
+					*)
+						iw dev "$ifname" connect "$ssid" ${fixed:+$freq} $bssid
 					;;
 				esac
 

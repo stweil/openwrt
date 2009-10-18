@@ -10,12 +10,12 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-PKG_VERSION:=2009-08-20
-PKG_RELEASE:=2
+PKG_VERSION:=2009-10-09
+PKG_RELEASE:=1
 PKG_SOURCE_URL:= \
-	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/08 \
+	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/10 \
 	http://wireless.kernel.org/download/compat-wireless-2.6
-PKG_MD5SUM:=0b3919adf847a59478cc4fb58e1cb6ec
+PKG_MD5SUM:=15c310560765cbc35ed930fb0e815284
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
@@ -315,8 +315,10 @@ define KernelPackage/ath9k
   TITLE:=Atheros 802.11n wireless cards support
   URL:=http://linuxwireless.org/en/users/Drivers/ath9k
   DEPENDS+= +kmod-ath
-  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,27,ath9k)
+  FILES:= \
+	$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k_hw.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,27,ath9k_hw ath9k)
 endef
 
 define KernelPackage/ath9k/description
@@ -327,6 +329,28 @@ endef
 define KernelPackage/ath9k/config
 	source "$(SOURCE)/Config.in.ath9k"
 endef
+
+
+USB8388FW_NAME:=usb8388
+USB8388FW_VERSION:=5.110.22.p23
+
+define Download/usb8388
+  URL:=http://dev.laptop.org/pub/firmware/libertas/
+  FILE:=$(USB8388FW_NAME)-$(USB8388FW_VERSION).bin
+  MD5SUM=5e38f55719df3d0c58dd3bd02575a09c
+endef
+$(eval $(call Download,usb8388))
+
+define KernelPackage/libertas
+  $(call KernelPackage/mac80211/Default)
+  DEPENDS+= @USB_SUPPORT +kmod-mac80211 +kmod-usb-core
+  TITLE:=Marvell 88W8015 Wireless Driver
+  FILES:= \
+	$(PKG_BUILD_DIR)/drivers/net/wireless/libertas/libertas.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/drivers/net/wireless/libertas/usb8xxx.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,27,libertas usb8xxx)
+endef
+
 
 define KernelPackage/ar9170
   $(call KernelPackage/mac80211/Default)
@@ -428,6 +452,8 @@ define KernelPackage/b43-common
   $(call KernelPackage/mac80211/Default)
   TITLE:=Generic stuff for Broadcom wireless devices
   URL:=http://linuxwireless.org/en/users/Drivers/b43
+  KCONFIG:= \
+  	CONFIG_HW_RANDOM=y
   DEPENDS+= +kmod-mac80211 +!(TARGET_brcm47xx||TARGET_brcm63xx):kmod-ssb
 endef
 
@@ -464,7 +490,7 @@ BUILDFLAGS:= \
 	$(if $(CONFIG_PCI),-DCONFIG_SSB_PCIHOST_POSSIBLE -DCONFIG_SSB_PCIHOST) \
 	$(if $(CONFIG_PCI),-DCONFIG_SSB_SPROM) \
 	$(if $(CONFIG_LEDS_TRIGGERS), -DCONFIG_MAC80211_LEDS -DCONFIG_LEDS_TRIGGERS -DCONFIG_B43_LEDS -DCONFIG_B43LEGACY_LEDS -DCONFIG_AR9170_LEDS) \
-	$(if $(CONFIG_HW_RANDOM),-DCONFIG_B43_HWRNG -DCONFIG_B43LEGACY_HWRNG) \
+	-DCONFIG_B43_HWRNG -DCONFIG_B43LEGACY_HWRNG \
 	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS) \
 	$(if $(CONFIG_PACKAGE_ATH9K_DEBUG),-DCONFIG_ATH9K_DEBUG) \
 	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
@@ -516,10 +542,11 @@ MAKE_OPTS:= \
 	CONFIG_MAC80211_HWSIM=$(if $(CONFIG_PACKAGE_kmod-mac80211-hwsim),m) \
 	CONFIG_PCMCIA= \
 	CONFIG_LIBIPW= \
-	CONFIG_LIBERTAS= \
+	CONFIG_LIBERTAS=$(if $(CONFIG_PACKAGE_kmod-libertas),m) \
 	CONFIG_LIBERTAS_CS= \
 	CONFIG_LIBERTAS_SDIO= \
 	CONFIG_LIBERTAS_THINFIRM= \
+	CONFIG_LIBERTAS_USB=$(if $(CONFIG_PACKAGE_kmod-libertas),m) \
 	CONFIG_IPW2100= \
 	CONFIG_IPW2200= \
 	CONFIG_NL80211=y \
@@ -580,6 +607,11 @@ define Build/InstallDev
 	mkdir -p $(1)/usr/include/mac80211 $(1)/usr/include/net/mac80211
 	$(CP) $(PKG_BUILD_DIR)/net/mac80211/*.h $(PKG_BUILD_DIR)/include/* $(1)/usr/include/mac80211/
 	$(CP) $(PKG_BUILD_DIR)/net/mac80211/rate.h $(1)/usr/include/net/mac80211/
+endef
+
+define KernelPackage/libertas/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(DL_DIR)/$(USB8388FW_NAME)-$(USB8388FW_VERSION).bin $(1)/lib/firmware/$(USB8388FW_NAME).bin
 endef
 
 define KernelPackage/mac80211/install
@@ -672,6 +704,7 @@ define KernelPackage/b43legacy/install
 endef
 
 $(eval $(call KernelPackage,ath5k))
+$(eval $(call KernelPackage,libertas))
 $(eval $(call KernelPackage,mac80211))
 $(eval $(call KernelPackage,p54-common))
 $(eval $(call KernelPackage,p54-pci))

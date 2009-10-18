@@ -31,12 +31,13 @@
 #include <linux/leds.h>
 #include <linux/delay.h>
 
-#include <asm/ifxmips/ifxmips.h>
-#include <asm/ifxmips/ifxmips_gpio.h>
-#include <asm/ifxmips/ifxmips_pmu.h>
+#include <ifxmips.h>
+#include <ifxmips_gpio.h>
+#include <ifxmips_pmu.h>
 
 #define DRVNAME					"ifxmips_led"
 
+/* might need to be changed depending on shift register used on the pcb */
 #if 1
 #define IFXMIPS_LED_CLK_EDGE			IFXMIPS_LED_FALLING
 #else
@@ -98,7 +99,8 @@ void ifxmips_led_setup_gpio(void)
 {
 	int i = 0;
 
-	/* we need to setup pins SH,D,ST (4,5,6) */
+	/* leds are controlled via a shift register
+	   we need to setup pins SH,D,ST (4,5,6) to make it work */
 	for (i = 4; i < 7; i++) {
 		ifxmips_port_set_altsel0(IFXMIPS_LED_GPIO_PORT, i);
 		ifxmips_port_clear_altsel1(IFXMIPS_LED_GPIO_PORT, i);
