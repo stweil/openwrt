@@ -21,15 +21,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gcc
-PKG_VERSION:=$(call qstrip,$(CONFIG_GCC_VERSION))
-GCC_VERSION:=$(PKG_VERSION)
+GCC_VERSION:=$(call qstrip,$(CONFIG_GCC_VERSION))
+PKG_VERSION:=$(firstword $(subst +, ,$(GCC_VERSION)))
 GCC_DIR:=$(PKG_NAME)-$(PKG_VERSION)
 
 ifdef CONFIG_GCC_VERSION_LLVM
   PKG_SOURCE_VERSION:=c98c494b72ff875884c0c7286be67f16f9f6d7ab
   PKG_REV:=83504
   GCC_DIR:=llvm-gcc-4.2-r$(PKG_REV)
-  GCC_VERSION:=4.2.1
+  PKG_VERSION:=4.2.1
   PKG_SOURCE:=$(GCC_DIR).tar.gz
   PKG_SOURCE_PROTO:=git
   PKG_SOURCE_URL:=git://repo.or.cz/llvm-gcc-4.2.git
@@ -54,9 +54,15 @@ else
   ifeq ($(PKG_VERSION),4.4.0)
     PKG_MD5SUM:=cf5d787bee57f38168b74d65a7c0e6fd
   endif
+  ifeq ($(PKG_VERSION),4,4,1)
+    PKG_MD5SUM:=927eaac3d44b22f31f9c83df82f26436
+  endif
+  ifeq ($(PKG_VERSION),4.4.2)
+    PKG_MD5SUM:=70f5ac588a79e3c9901d5b34f58d896d
+  endif
 endif
 
-PATCH_DIR=./patches/$(PKG_VERSION)
+PATCH_DIR=./patches/$(GCC_VERSION)
 
 include $(INCLUDE_DIR)/toolchain-build.mk
 
@@ -68,6 +74,8 @@ HOST_BUILD_DIR2:=$(HOST_BUILD_DIR)-final
 
 SEP:=,
 TARGET_LANGUAGES:="c$(if $(CONFIG_INSTALL_LIBSTDCPP),$(SEP)c++)$(if $(CONFIG_INSTALL_LIBGCJ),$(SEP)java)"
+
+export libgcc_cv_fixed_point=no
 
 GCC_CONFIGURE:= \
 	SHELL="$(BASH)" \
@@ -85,7 +93,8 @@ GCC_CONFIGURE:= \
 		$(SOFT_FLOAT_CONFIG_OPTION) \
 		$(call qstrip,$(CONFIG_EXTRA_GCC_CONFIG_OPTIONS)) \
 		$(if $(CONFIG_mips64)$(CONFIG_mips64el),--with-arch=mips64 --with-abi=64) \
-		$(if $(CONFIG_GCC_VERSION_LLVM),--enable-llvm=$(BUILD_DIR_BASE)/host/llvm)
+		$(if $(CONFIG_GCC_VERSION_LLVM),--enable-llvm=$(BUILD_DIR_BASE)/host/llvm) \
+		$(if $(CONFIG_GCC_VERSION_4_3_3_CS),--enable-poison-system-directories)
 
 ifneq ($(CONFIG_GCC_VERSION_4_3)$(CONFIG_GCC_VERSION_4_4),)
   GCC_BUILD_TARGET_LIBGCC:=y
@@ -191,7 +200,7 @@ define Stage1/Install
 		$(if $(GCC_BUILD_TARGET_LIBGCC),install-target-libgcc)
 	
 	# XXX: glibc insists on linking against libgcc_eh
-	( cd $(TOOLCHAIN_DIR)/usr/lib/gcc/$(REAL_GNU_TARGET_NAME)/$(GCC_VERSION) ; \
+	( cd $(TOOLCHAIN_DIR)/usr/lib/gcc/$(REAL_GNU_TARGET_NAME)/$(PKG_VERSION) ; \
 		[ -e libgcc_eh.a ] || ln -sf libgcc.a libgcc_eh.a ; \
 		cp libgcc.a libgcc_initial.a; \
 	)
@@ -244,13 +253,17 @@ define Stage2/Install
 endef
 
 
+BUGURL=https://dev.openwrt.org/
+
 define Host/Prepare
 	$(call Host/SetToolchainInfo)
 	$(call Host/Prepare/Default)
 	ln -snf $(GCC_DIR) $(BUILD_DIR_TOOLCHAIN)/$(PKG_NAME)
 	$(CP) $(SCRIPT_DIR)/config.{guess,sub} $(HOST_BUILD_DIR)/
+	$(SED) 's,^MULTILIB_OSDIRNAMES,# MULTILIB_OSDIRNAMES,' $(HOST_BUILD_DIR)/gcc/config/*/t-*
 	$(SED) 's,\(version_string.. = "[0-9\.]*\).*\(";\),\1 (OpenWrt-2.0)\2,' $(HOST_BUILD_DIR)/gcc/version.c
-	$(SED) 's,\(bug_report_url.. = "\).*\(";\),\1<URL:https://dev.openwrt.org/>\2,' $(HOST_BUILD_DIR)/gcc/version.c
+	$(SED) 's,\(bug_report_url.. = "\).*\(";\),\1<URL:$(BUGURL)>\2,' $(HOST_BUILD_DIR)/gcc/version.c
+	$(SED) 's,http://gcc.gnu.org/bugs.html,$(BUGURL),' $(HOST_BUILD_DIR)/gcc/configure
 	#(cd $(HOST_BUILD_DIR)/libstdc++-v3; autoconf;);
 	$(SED) 's,gcc_no_link=yes,gcc_no_link=no,' $(HOST_BUILD_DIR)/libstdc++-v3/configure
 	$(call Stage0/Configure)

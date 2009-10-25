@@ -24,7 +24,6 @@ endif
 PATCH_DIR:=./patches-$(PKG_VERSION)
 CONFIG_DIR:=./config-$(PKG_VERSION)
 
-PKG_MD5SUM_0.9.29 = 61dc55f43b17a38a074f347e74095b20
 PKG_MD5SUM_0.9.30.1 = 1a4b84e5536ad8170563ffa88c34679c
 PKG_MD5SUM=$(PKG_MD5SUM_$(PKG_VERSION))
 
@@ -103,6 +102,7 @@ define Host/Compile
 	$(UCLIBC_MAKE) PREFIX="$(TOOLCHAIN_DIR)/" install_runtime install_dev
 	ln -sf ../../lib/libc.so.0 $(TOOLCHAIN_DIR)/usr/lib/libc.so
 	$(CP) $(HOST_BUILD_DIR)/libc/libc_so.a $(TOOLCHAIN_DIR)/usr/lib/
+	$(CP) $(HOST_BUILD_DIR)/libpthread/*/libpthread_so.a $(TOOLCHAIN_DIR)/usr/lib/
 	( cd $(TOOLCHAIN_DIR) ; \
 		for d in lib usr/lib ; do \
 		  for f in libc.so libpthread.so libgcc_s.so ; do \

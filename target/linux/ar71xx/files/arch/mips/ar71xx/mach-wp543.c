@@ -1,5 +1,5 @@
 /*
- *  Compex WP543 board support
+ *  Compex WP543/WPJ543 board support
  *
  *  Copyright (C) 2008-2009 Gabor Juhos <juhosg@openwrt.org>
  *  Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
@@ -43,13 +43,17 @@ static struct spi_board_info wp543_spi_info[] = {
 
 static struct ar71xx_pci_irq wp543_pci_irqs[] __initdata = {
 	{
-		.slot	= 1,
+		.slot	= 0,
 		.pin	= 1,
 		.irq	= AR71XX_PCI_IRQ_DEV0,
 	}, {
 		.slot	= 1,
-		.pin	= 2,
+		.pin	= 1,
 		.irq	= AR71XX_PCI_IRQ_DEV1,
+	}, {
+		.slot	= 2,
+		.pin	= 1,
+		.irq	= AR71XX_PCI_IRQ_DEV2,
 	}
 };
 
@@ -101,6 +105,8 @@ static void __init wp543_setup(void)
 
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.phy_mask = 0x00000008;
+	ar71xx_eth0_data.reset_bit = RESET_MODULE_GE0_MAC |
+				     RESET_MODULE_GE0_PHY;
 	ar71xx_add_device_eth(0);
 
 	ar71xx_add_device_usb();
