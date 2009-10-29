@@ -1,22 +1,22 @@
 --- a/drivers/ata/Kconfig
 +++ b/drivers/ata/Kconfig
-@@ -697,6 +697,16 @@ config PATA_IXP4XX_CF
+@@ -698,6 +698,16 @@ config PATA_IXP4XX_CF
  
  	  If unsure, say N.
  
 +config PATA_MAGICBOX_CF
-+	tristate "Magicbox/OpenRB Compact lash support"
-+	depends on MAGICBOXV2 || OPENRB_LIGHT
++	tristate "Magicbox/OpenRB Compact Flash support"
++	depends on MAGICBOX || OPENRB
 +	help
-+	  This option enables supoort for a Compatc Flash connected on
++	  This option enables support for a Compact Flash conected on
 +	  the ppc405ep expansion bus. This driver had been written for
 +	  the Magicbox v2 and OpenRB boards.
 +
 +	  If unsure, say N.
 +
- config PATA_SCC
- 	tristate "Toshiba's Cell Reference Set IDE support"
- 	depends on PCI && PPC_CELLEB
+ config PATA_OCTEON_CF
+ 	tristate "OCTEON Boot Bus Compact Flash support"
+ 	depends on CPU_CAVIUM_OCTEON
 --- a/drivers/ata/Makefile
 +++ b/drivers/ata/Makefile
 @@ -48,6 +48,7 @@ obj-$(CONFIG_PATA_OPTI)		+= pata_opti.o
@@ -29,7 +29,7 @@
  obj-$(CONFIG_PATA_PCMCIA)	+= pata_pcmcia.o
 --- /dev/null
 +++ b/drivers/ata/pata_magicbox_cf.c
-@@ -0,0 +1,406 @@
+@@ -0,0 +1,404 @@
 +/*
 + *  PATA/CompactFlash driver for the MagicBox v2/OpenRB boards.
 + *
@@ -92,14 +92,12 @@
 +{
 +	struct ata_device *dev;
 +
-+	ata_link_for_each_dev(dev, link) {
-+		if (ata_dev_enabled(dev)) {
-+			ata_dev_printk(dev, KERN_INFO, "configured for PIO0\n");
-+			dev->pio_mode = XFER_PIO_0;
-+			dev->xfer_mode = XFER_PIO_0;
-+			dev->xfer_shift = ATA_SHIFT_PIO;
-+			dev->flags |= ATA_DFLAG_PIO;
-+		}
++	ata_for_each_dev(dev, link, ENABLED) {
++		ata_dev_printk(dev, KERN_INFO, "configured for PIO0\n");
++		dev->pio_mode = XFER_PIO_0;
++		dev->xfer_mode = XFER_PIO_0;
++		dev->xfer_shift = ATA_SHIFT_PIO;
++		dev->flags |= ATA_DFLAG_PIO;
 +	}
 +
 +	return 0;

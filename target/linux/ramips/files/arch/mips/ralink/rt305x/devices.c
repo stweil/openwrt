@@ -19,7 +19,7 @@
 #include <asm/mach-ralink/rt305x_regs.h>
 #include "devices.h"
 
-#include <eth.h>
+#include <ramips_eth_platform.h>
 
 static struct resource rt305x_flash0_resources[] = {
 	{
@@ -99,22 +99,34 @@ void __init rt305x_register_flash(unsigned int id,
 
 static void rt305x_fe_reset(void)
 {
-	rt305x_sysc_wr(RAMIPS_FE_RESET_BIT, RAMIPS_FE_RESET);
-	rt305x_sysc_wr(0, RAMIPS_FE_RESET);
+	rt305x_sysc_wr(RT305X_RESET_FE, SYSC_REG_RESET_CTRL);
+	rt305x_sysc_wr(0, SYSC_REG_RESET_CTRL);
 }
+
+static struct resource rt305x_eth_resources[] = {
+	{
+		.start	= RT305X_FE_BASE,
+		.end	= RT305X_FE_BASE + PAGE_SIZE - 1,
+		.flags	= IORESOURCE_MEM,
+	}, {
+		.start	= RT305X_CPU_IRQ_FE,
+		.end	= RT305X_CPU_IRQ_FE,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
 
 static struct ramips_eth_platform_data ramips_eth_data = {
 	.mac = { 0x00, 0x11, 0x22, 0x33, 0x44, 0x55 },
-	.base_addr = RT305X_FE_BASE,
-	.irq = RT305X_CPU_IRQ_FE,
 	.reset_fe = rt305x_fe_reset,
 	.min_pkt_len = 64
 };
 
 static struct platform_device rt305x_eth_device = {
-	.name = "ramips_eth",
+	.name		= "ramips_eth",
+	.resource	= rt305x_eth_resources,
+	.num_resources	= ARRAY_SIZE(rt305x_eth_resources),
 	.dev = {
-		.platform_data = (void *) &ramips_eth_data,
+		.platform_data = &ramips_eth_data,
 	}
 };
 
