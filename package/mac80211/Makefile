@@ -10,12 +10,12 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-PKG_VERSION:=2009-10-09
+PKG_VERSION:=2009-11-03
 PKG_RELEASE:=1
 PKG_SOURCE_URL:= \
-	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/10 \
+	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/11 \
 	http://wireless.kernel.org/download/compat-wireless-2.6
-PKG_MD5SUM:=15c310560765cbc35ed930fb0e815284
+PKG_MD5SUM:=f8434790c9552abb9c98926d7ae616fe
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
@@ -330,7 +330,6 @@ define KernelPackage/ath9k/config
 	source "$(SOURCE)/Config.in.ath9k"
 endef
 
-
 USB8388FW_NAME:=usb8388
 USB8388FW_VERSION:=5.110.22.p23
 
@@ -343,7 +342,7 @@ $(eval $(call Download,usb8388))
 
 define KernelPackage/libertas
   $(call KernelPackage/mac80211/Default)
-  DEPENDS+= @USB_SUPPORT +kmod-mac80211 +kmod-usb-core
+  DEPENDS+= @USB_SUPPORT +kmod-mac80211 +kmod-usb-core +kmod-lib80211
   TITLE:=Marvell 88W8015 Wireless Driver
   FILES:= \
 	$(PKG_BUILD_DIR)/drivers/net/wireless/libertas/libertas.$(LINUX_KMOD_SUFFIX) \

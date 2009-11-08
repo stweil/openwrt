@@ -37,8 +37,6 @@ case "$(cat /proc/diag/model)" in
 	"Sitecom WL-105b") ifname=eth1;;
 esac
 
-failsafe_ip
-
 check_module () {
   module="$1"; shift; params="$*"
 
@@ -47,6 +45,9 @@ check_module () {
   grep "^$module" /proc/modules
   return $?
 }
+
+check_module tg3
+failsafe_ip
 
 insmod switch-core
 check_module switch-robo || check_module switch-adm  || { 

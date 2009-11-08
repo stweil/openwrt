@@ -26,6 +26,9 @@ ifeq ($(PKG_VERSION),2.19.1+cs)
   PKG_MD5SUM:=040740e8c864dd1a15886753f9c0bc0b
   HOST_BUILD_DIR:=$(BUILD_DIR_TOOLCHAIN)/binutils-$(BIN_VERSION)
 endif
+ifeq ($(PKG_VERSION),2.20)
+  PKG_MD5SUM:=ee2d3e996e9a2d669808713360fa96f8
+endif
 
 PATCH_DIR:=./patches/$(PKG_VERSION)
 
@@ -43,6 +46,10 @@ BINUTILS_CONFIGURE:= \
 		--disable-multilib \
 		--disable-werror \
 		--disable-nls \
+		$(if $(CONFIG_GCC_VERSION_4_4), \
+		  --with-ppl=$(REAL_STAGING_DIR_HOST) \
+		  --with-cloog=$(REAL_STAGING_DIR_HOST) \
+		) \
 		$(SOFT_FLOAT_CONFIG_OPTION) \
 		$(call qstrip,$(CONFIG_EXTRA_BINUTILS_CONFIG_OPTIONS)) \
 

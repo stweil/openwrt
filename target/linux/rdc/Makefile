@@ -12,11 +12,11 @@ BOARDNAME:=RDC 321x
 FEATURES:=squashfs jffs2 pci usb
 CFLAGS:=-Os -pipe -march=i486 -funit-at-a-time
 
-LINUX_VERSION:=2.6.28.10
+LINUX_VERSION:=2.6.30.9
 
 include $(INCLUDE_DIR)/target.mk
 
-DEFAULT_PACKAGES += hostapd-mini
+DEFAULT_PACKAGES += hostapd-mini kmod-rdc321x-wdt
 
 define Target/Description
         Build firmware images for RDC321x based routers
@@ -24,3 +24,7 @@ define Target/Description
 endef
 
 $(eval $(call BuildTarget))
+
+$(eval $(call RequireCommand,lzma, \
+        Please install lzma-4.4x. \
+))

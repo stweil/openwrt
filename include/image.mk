@@ -23,7 +23,7 @@ JFFS2OPTS     :=  --pad --big-endian --squash
 SQUASHFS_OPTS :=  -be
 endif
 
-ifneq ($(CONFIG_LINUX_2_6_21)$(CONFIG_LINUX_2_6_25)$(CONFIG_LINUX_2_6_28),)
+ifneq ($(CONFIG_LINUX_2_4)$(CONFIG_LINUX_2_6_21)$(CONFIG_LINUX_2_6_25)$(CONFIG_LINUX_2_6_28),)
 USE_SQUASHFS3 := y
 endif
 
@@ -31,7 +31,7 @@ ifneq ($(USE_SQUASHFS3),)
 MKSQUASHFS_CMD := $(STAGING_DIR_HOST)/bin/mksquashfs-lzma
 else
 MKSQUASHFS_CMD := $(STAGING_DIR_HOST)/bin/mksquashfs4
-SQUASHFS_OPTS  := -lzma -processors 1
+SQUASHFS_OPTS  := -comp lzma -processors 1
 endif
 
 JFFS2_BLOCKSIZE ?= 64k 128k

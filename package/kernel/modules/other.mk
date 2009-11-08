@@ -255,7 +255,7 @@ $(eval $(call KernelPackage,ssb))
 define KernelPackage/bluetooth
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Bluetooth support
-  DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-input-core
+  DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-hid
   KCONFIG:= \
 	CONFIG_BLUEZ \
 	CONFIG_BLUEZ_L2CAP \
@@ -419,6 +419,21 @@ endef
 
 $(eval $(call KernelPackage,softdog))
 
+define KernelPackage/rdc321x-wdt
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=RDC321x watchdog
+  DEPENDS:=@TARGET_rdc
+  KCONFIG:=CONFIG_RDC321X_WDT
+  FILES:=$(LINUX_DIR)/drivers/$(WATCHDOG_DIR)/rdc321x_wdt.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,50,rdc321_wdt)
+endef
+
+define KernelPackage/rdc321x-wdt/description
+  RDC-321x watchdog driver
+endef
+
+$(eval $(call KernelPackage,rdc321x-wdt))
+
 
 define KernelPackage/leds-gpio
   SUBMENU:=$(OTHER_MENU)
@@ -489,9 +504,9 @@ define KernelPackage/leds-alix
   SUBMENU:=$(OTHER_MENU)
   TITLE:=PCengines ALIX LED support
   DEPENDS:=@TARGET_x86
-  KCONFIG:=CONFIG_LEDS_ALIX
-  FILES:=$(LINUX_DIR)/drivers/leds/leds-alix.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,leds-alix)
+  KCONFIG:=CONFIG_LEDS_ALIX2
+  FILES:=$(LINUX_DIR)/drivers/leds/leds-alix2.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,50,leds-alix2)
 endef
 
 define KernelPackage/leds-alix/description
