@@ -113,7 +113,7 @@ $(eval $(call KernelPackage,via-rhine))
 define KernelPackage/via-velocity
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=VIA Velocity Gigabit Ethernet Adapter kernel support
-  DEPENDS:=@TARGET_ixp4xx||TARGET_x86
+  DEPENDS:=@TARGET_ixp4xx||TARGET_mpc83xx||TARGET_x86
   KCONFIG:=CONFIG_VIA_VELOCITY
   FILES:=$(LINUX_DIR)/drivers/net/via-velocity.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,via-velocity)
@@ -201,7 +201,7 @@ $(eval $(call KernelPackage,e100))
 define KernelPackage/e1000
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=Intel(R) PRO/1000 PCI cards kernel support
-  DEPENDS:=@TARGET_x86
+  DEPENDS:=@PCI_SUPPORT
   KCONFIG:=CONFIG_E1000 \
     CONFIG_E1000_DISABLE_PACKET_SPLIT=n
   FILES:=$(LINUX_DIR)/drivers/net/e1000/e1000.$(LINUX_KMOD_SUFFIX)

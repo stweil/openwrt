@@ -549,9 +549,10 @@ EOF
 			print <<EOF;
 	config FEATURE_$feature->{name}
 		bool "$feature->{title}"
-		help
-$feature->{description}
 EOF
+			$feature->{description} =~ /\w/ and do {
+				print "\t\thelp\n".$feature->{description}."\n";
+			};
 		}
 		print "endchoice\n"
 	}
@@ -620,6 +621,9 @@ sub gen_package_mk() {
 		if ($config) {
 			$pkg->{buildonly} and $config = "";
 			print "package-$config += $pkg->{subdir}$pkg->{src}\n";
+			if ($pkg->{variant}) {
+				print "\$(curdir)/$pkg->{subdir}$pkg->{src}/variants += \$(if $config,$pkg->{variant})\n"
+			}
 			$pkg->{prereq} and print "prereq-$config += $pkg->{subdir}$pkg->{src}\n";
 		}
 

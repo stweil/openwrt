@@ -104,6 +104,7 @@ enable_mac80211() {
 		config_get enc "$vif" encryption
 		config_get mode "$vif" mode
 		config_get ssid "$vif" ssid
+		config_get_bool wds "$vif" wds 0
 
 		# It is far easier to delete and create the desired interface
 		case "$mode" in
@@ -123,7 +124,12 @@ enable_mac80211() {
 				iw phy "$phy" interface add "$ifname" type monitor
 			;;
 			sta)
-				iw phy "$phy" interface add "$ifname" type managed
+				local wdsflag
+				[ "$wds" -gt 0 ] && wdsflag="wds on"
+				iw phy "$phy" interface add "$ifname" type managed $wdsflag
+				config_get_bool powersave "$vif" powersave 0
+				[ "$powersave" -gt 0 ] && powersave="on" || powersave="off"
+				iwconfig "$ifname" power "$powersave"
 			;;
 		esac
 
@@ -248,7 +254,8 @@ enable_mac80211() {
 							fi
 						fi
 					;;
-					wpa)
+					wpa*|psk*)
+						config_get key "$vif" key
 						if eval "type wpa_supplicant_setup_vif" 2>/dev/null >/dev/null; then
 							wpa_supplicant_setup_vif "$vif" wext || {
 								echo "enable_mac80211($device): Failed to set up wpa_supplicant for interface $ifname" >&2
@@ -293,9 +300,12 @@ detect_mac80211() {
 		done
 		mode_11n=""
 		mode_band="g"
-		ht_cap="$(iw phy "$dev" info | grep 'HT capabilities' | cut -d: -f2)"
+		ht_cap=0
+		for cap in $(iw phy "$dev" info | grep 'HT capabilities' | cut -d: -f2); do
+			ht_cap="$(($ht_cap | $cap))"
+		done
 		ht_capab="";
-		[ -n "$ht_cap" ] && {
+		[ "$ht_cap" -gt 0 ] && {
 			mode_11n="n"
 			list="	list ht_capab"
 			[ "$(($ht_cap & 2))" -eq 1 ] && append ht_capab "$list	LDPC" "$N"
