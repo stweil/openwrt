@@ -10,12 +10,12 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-PKG_VERSION:=2009-11-03
+PKG_VERSION:=2009-11-13
 PKG_RELEASE:=1
 PKG_SOURCE_URL:= \
 	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/11 \
 	http://wireless.kernel.org/download/compat-wireless-2.6
-PKG_MD5SUM:=f8434790c9552abb9c98926d7ae616fe
+PKG_MD5SUM:=920c3bcfd1b4cd6079a8f9db4afe4e4f
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
@@ -278,10 +278,17 @@ config ATH_USER_REGD
 	help
 		Atheros' idea of regulatory handling is that the EEPROM of the card defines
 		the regulatory limits and the user is only allowed to restrict the settings
-		even further, even if the country allows frequencies or power levels that 
+		even further, even if the country allows frequencies or power levels that
 		are forbidden by the EEPROM settings.
 		Select this option if you want the driver to respect the user's decision about
 		regulatory settings.
+
+config PACKAGE_ATH_DEBUG
+	bool "Atheros wireless debugging"
+	depends on PACKAGE_kmod-ath
+	help
+		Say Y, if you want to debug atheros wireless drivers.
+		Right now only ath9k makes use of this.
 endef
 
 define KernelPackage/ath
@@ -316,9 +323,10 @@ define KernelPackage/ath9k
   URL:=http://linuxwireless.org/en/users/Drivers/ath9k
   DEPENDS+= +kmod-ath
   FILES:= \
+	$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k_common.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k_hw.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,27,ath9k_hw ath9k)
+  AUTOLOAD:=$(call AutoLoad,27,ath9k_hw ath9k_common ath9k)
 endef
 
 define KernelPackage/ath9k/description
@@ -492,6 +500,7 @@ BUILDFLAGS:= \
 	-DCONFIG_B43_HWRNG -DCONFIG_B43LEGACY_HWRNG \
 	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS) \
 	$(if $(CONFIG_PACKAGE_ATH9K_DEBUG),-DCONFIG_ATH9K_DEBUG) \
+	$(if $(CONFIG_PACKAGE_ATH_DEBUG),-DCONFIG_ATH_DEBUG) \
 	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
 	$(if $(CONFIG_ATH_USER_REGD),-DATH_USER_REGD=1)
 
@@ -518,6 +527,7 @@ MAKE_OPTS:= \
 	CONFIG_B43=$(if $(CONFIG_PACKAGE_kmod-b43),m) \
 	CONFIG_B43LEGACY=$(if $(CONFIG_PACKAGE_kmod-b43legacy),m) \
 	CONFIG_ATH_COMMON=$(if $(CONFIG_PACKAGE_kmod-ath),m) \
+	CONFIG_ATH_DEBUG=$(if $(CONFIG_PACKAGE_ATH_DEBUG),y) \
 	CONFIG_ATH5K=$(if $(CONFIG_PACKAGE_kmod-ath5k),m) \
 	CONFIG_ATH9K=$(if $(CONFIG_PACKAGE_kmod-ath9k),m) \
 	CONFIG_ATH9K_DEBUG=$(if $(CONFIG_PACKAGE_ATH9K_DEBUG),y) \
