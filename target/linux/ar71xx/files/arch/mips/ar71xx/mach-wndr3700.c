@@ -14,12 +14,26 @@
 #include <linux/mtd/partitions.h>
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
+#include <linux/input.h>
+#include <linux/pci.h>
+#include <linux/ath9k_platform.h>
 
 #include <asm/mips_machine.h>
 #include <asm/mach-ar71xx/ar71xx.h>
 #include <asm/mach-ar71xx/pci.h>
 
 #include "devices.h"
+
+#define WNDR3700_GPIO_LED_WPS_ORANGE	0
+#define WNDR3700_GPIO_LED_POWER_ORANGE	1
+#define WNDR3700_GPIO_LED_POWER_GREEN	2
+#define WNDR3700_GPIO_LED_WPS_GREEN	4
+
+#define WNDR3700_GPIO_BTN_WPS		3
+#define WNDR3700_GPIO_BTN_RESET		8
+#define WNDR3700_GPIO_BTN_WIFI		11
+
+#define WNDR3700_BUTTONS_POLL_INTERVAL    20
 
 #ifdef CONFIG_MTD_PARTITIONS
 static struct mtd_partition wndr3700_partitions[] = {
@@ -78,6 +92,7 @@ static struct flash_platform_data wndr3700_flash_data = {
 #endif
 };
 
+#ifdef CONFIG_PCI
 static struct ar71xx_pci_irq wndr3700_pci_irqs[] __initdata = {
 	{
 		.slot	= 0,
@@ -90,6 +105,42 @@ static struct ar71xx_pci_irq wndr3700_pci_irqs[] __initdata = {
 	}
 };
 
+static struct ath9k_platform_data wndr3700_wmac0_data;
+static struct ath9k_platform_data wndr3700_wmac1_data;
+
+static int wndr3700_pci_plat_dev_init(struct pci_dev *dev)
+{
+	switch (PCI_SLOT(dev->devfn)) {
+	case 17:
+		dev->dev.platform_data = &wndr3700_wmac0_data;
+		break;
+	case 18:
+		dev->dev.platform_data = &wndr3700_wmac1_data;
+		break;
+	}
+
+	return 0;
+}
+
+static void __init wndr3700_pci_init(void)
+{
+	u8 *ee;
+
+	ee = (u8 *) KSEG1ADDR(0x1fff1000);
+	memcpy(wndr3700_wmac0_data.eeprom_data, ee,
+	       sizeof(wndr3700_wmac0_data.eeprom_data));
+
+	ee = (u8 *) KSEG1ADDR(0x1fff5000);
+	memcpy(wndr3700_wmac1_data.eeprom_data, ee,
+	       sizeof(wndr3700_wmac1_data.eeprom_data));
+
+	ar71xx_pci_plat_dev_init = wndr3700_pci_plat_dev_init;
+	ar71xx_pci_init(ARRAY_SIZE(wndr3700_pci_irqs), wndr3700_pci_irqs);
+}
+#else
+static inline void wndr3700_pci_init(void) { };
+#endif /* CONFIG_PCI */
+
 static struct spi_board_info wndr3700_spi_info[] = {
 	{
 		.bus_num	= 0,
@@ -97,6 +148,48 @@ static struct spi_board_info wndr3700_spi_info[] = {
 		.max_speed_hz	= 25000000,
 		.modalias	= "m25p80",
 		.platform_data  = &wndr3700_flash_data,
+	}
+};
+
+static struct gpio_led wndr3700_leds_gpio[] __initdata = {
+	{
+		.name		= "wndr3700:green:power",
+		.gpio		= WNDR3700_GPIO_LED_POWER_GREEN,
+		.active_low	= 1,
+	}, {
+		.name		= "wndr3700:orange:power",
+		.gpio		= WNDR3700_GPIO_LED_POWER_ORANGE,
+		.active_low	= 1,
+	}, {
+		.name		= "wndr3700:green:wps",
+		.gpio		= WNDR3700_GPIO_LED_WPS_GREEN,
+		.active_low	= 1,
+	}, {
+		.name		= "wndr3700:orange:wps",
+		.gpio		= WNDR3700_GPIO_LED_WPS_ORANGE,
+		.active_low	= 1,
+	}
+};
+
+static struct gpio_button wndr3700_gpio_buttons[] __initdata = {
+	{
+		.desc		= "reset",
+		.type		= EV_KEY,
+		.code		= BTN_0,
+		.threshold	= 5,
+		.gpio		= WNDR3700_GPIO_BTN_RESET,
+	}, {
+		.desc		= "wps",
+		.type		= EV_KEY,
+		.code		= BTN_1,
+		.threshold	= 5,
+		.gpio		= WNDR3700_GPIO_BTN_WPS,
+	} , {
+		.desc		= "wifi",
+		.type		= EV_KEY,
+		.code		= BTN_2,
+		.threshold	= 5,
+		.gpio		= WNDR3700_GPIO_BTN_WIFI,
 	}
 };
 
@@ -120,12 +213,17 @@ static void __init wndr3700_setup(void)
 
 	ar71xx_add_device_usb();
 
-	ar71xx_pci_init(ARRAY_SIZE(wndr3700_pci_irqs), wndr3700_pci_irqs);
-
 	ar71xx_add_device_spi(NULL, wndr3700_spi_info,
 			      ARRAY_SIZE(wndr3700_spi_info));
 
-	/* TODO: LEDs, buttons support */
+        ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(wndr3700_leds_gpio),
+				    wndr3700_leds_gpio);
+
+	ar71xx_add_device_gpio_buttons(-1, WNDR3700_BUTTONS_POLL_INTERVAL,
+				      ARRAY_SIZE(wndr3700_gpio_buttons),
+				      wndr3700_gpio_buttons);
+
+	wndr3700_pci_init();
 }
 
 MIPS_MACHINE(AR71XX_MACH_WNDR3700, "NETGEAR WNDR3700", wndr3700_setup);
