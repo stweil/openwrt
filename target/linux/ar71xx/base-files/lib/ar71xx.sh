@@ -19,8 +19,14 @@ ar71xx_board_name() {
 	*AW-NR580)
 		name="aw-nr580"
 		;;
+	*"DIR-825 rev. B1")
+		name="dir-825-b1"
+		;;
 	*"Bullet M")
 		name="bullet-m"
+		;;
+	*"Nanostation M")
+		name="nanostation-m"
 		;;
 	*LS-SR71)
 		name="ls-sr71"
@@ -49,6 +55,9 @@ ar71xx_board_name() {
 	*RB-493)
 		name="rb-493"
 		;;
+	*"Rocket M")
+		name="rocket-m"
+		;;
 	*RouterStation)
 		name="routerstation"
 		;;
@@ -57,6 +66,9 @@ ar71xx_board_name() {
 		;;
 	*TEW-632BRP)
 		name="tew-632brp"
+		;;
+	*TL-WR1043ND)
+		name="tl-wr1043nd"
 		;;
 	*TL-WR741ND)
 		name="tl-wr741nd"
@@ -68,7 +80,7 @@ ar71xx_board_name() {
 		name="wp543"
 		;;
 	*WNDR3700)
-		name"wndr3700"
+		name="wndr3700"
 		;;
 	*WNR2000)
 		name="wnr2000"

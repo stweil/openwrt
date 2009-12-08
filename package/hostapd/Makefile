@@ -8,9 +8,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=hostapd
-PKG_VERSION:=20091111
+PKG_VERSION:=20091129
 PKG_RELEASE:=1
-PKG_REV:=dc6d9ac250f793a62b21ca828445967fb484305f
+PKG_REV:=be8eb8ab3ee42aa66930aea827bdcb05a2172276
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=git://w1.fi/srv/git/hostap.git
@@ -80,9 +80,19 @@ define Package/hostapd-utils/description
  IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
 endef
 
-define Build/Configure
+ifneq ($(wildcard $(PKG_BUILD_DIR)/.config_*),$(subst .configured_,.config_,$(STAMP_CONFIGURED)))
+  $(warning $(wildcard $(PKG_BUILD_DIR)/.config_*) != $(subst .configured_,.config_,$(STAMP_CONFIGURED)))
+  define Build/Configure/rebuild
 	rm -f $(PKG_BUILD_DIR)/hostapd/hostapd
+	rm -f $(PKG_BUILD_DIR)/hostapd/*.o
 	rm -f $(PKG_BUILD_DIR)/src/drivers/drivers.o
+	rm -f $(PKG_BUILD_DIR)/.config_*
+	touch $(subst .configured_,.config_,$(STAMP_CONFIGURED))
+  endef
+endif
+
+define Build/Configure
+	$(Build/Configure/rebuild)
 	$(CP) ./files/$(BUILD_VARIANT).config $(PKG_BUILD_DIR)/hostapd/.config
 endef
 
@@ -108,7 +118,7 @@ define Build/Compile
 		hostapd hostapd_cli
 endef
 
-define Package/InstallTemplate
+define Package/hostapd/install
 	$(INSTALL_DIR) $(1)/etc/hotplug.d/net
 	$(INSTALL_DATA) ./files/hostapd.hotplug $(1)/etc/hotplug.d/net/
 	$(INSTALL_DIR) $(1)/lib/wifi
@@ -116,12 +126,7 @@ define Package/InstallTemplate
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/hostapd/hostapd $(1)/usr/sbin/
 endef
-
-ifeq ($(BUILD_VARIANT),full)
-  Package/hostapd/install = $(Package/InstallTemplate)
-else
-  Package/hostapd-mini/install = $(Package/InstallTemplate)
-endif
+Package/hostapd-mini/install = $(Package/hostapd/install)
 
 define Package/hostapd-utils/install
 	$(INSTALL_DIR) $(1)/usr/sbin

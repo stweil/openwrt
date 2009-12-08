@@ -77,11 +77,29 @@ define Image/Build/WRT400N
 	fi; fi
 endef
 
+dir825b1_mtdlayout=mtdparts=spi0.0:256k(uboot)ro,64k(config)ro,1024k(kernel),5184k(rootfs),64k(caldata)ro,6208k@0x50000(firmware)
+define Image/Build/DIR825B1
+	$(call PatchKernelLzma,$(2),$(3) $(dir825b1_mtdlayout))
+	$(call MkImageLzma,$(KDIR)/vmlinux-$(2).bin.lzma,$(call imgname,$(1),$(2)).bin)
+	if [ `stat -c%s "$(call imgname,$(1),$(2)).bin"` -gt 1048576 ]; then \
+	        echo "Warning: $(KDIR)/vmlinux-$(2).bin.lzma is too big"; \
+		rm -f $(call imgname,$(1),$(2)).bin; \
+	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 5308416 ]; then \
+	        echo "Warning: $(KDIR)/root.$(1) is too big"; \
+		rm -f $(call imgname,$(1),$(2)).bin; \
+	else \
+		dd if=$(KDIR)/root.$(1) of=$(call imgname,$(1),$(2)).bin bs=1k seek=1024; \
+		cp $(call imgname,$(1),$(2)).bin $(call imgname,$(1),$(2))-backup-loader.bin; \
+		echo -n "01AP94-AR7161-RT-080619-00" >> $(call imgname,$(1),$(2))-backup-loader.bin; \
+	fi; fi
+endef
+
+cameo_mtdlayout=mtdparts=spi0.0:128k(u-boot)ro,64k(config)ro,896k(kernel),2880k(rootfs),64k(art)ro,3776k@0x30000(firmware)
 define Image/Build/Cameo
-	$(call PatchKernelLzma,$(2),$(3))
-	if [ `stat -c%s "$(KDIR)/vmlinux-$(2).bin.lzma"` -gt 851968 ]; then \
+	$(call PatchKernelLzma,$(2),$(3) $(cameo_mtdlayout))
+	if [ `stat -c%s "$(KDIR)/vmlinux-$(2).bin.lzma"` -gt 917504 ]; then \
 		echo "Warning: $(KDIR)/vmlinux-$(2).bin.lzma is too big"; \
-	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 3014656 ]; then \
+	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 2949120 ]; then \
 		echo "Warning: $(KDIR)/root.$(1) is too big"; \
 	else \
 		mkimage -A mips -O linux -T kernel -a 0x80060000 -C lzma -e \
@@ -89,8 +107,8 @@ define Image/Build/Cameo
 			-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
 			-d $(KDIR)/vmlinux-$(2).bin.lzma $(KDIR)/vmlinux-$(2).uImage; \
 		( \
-			dd if=$(KDIR)/vmlinux-$(2).uImage bs=832k conv=sync; \
-			dd if=$(KDIR)/root.$(1) bs=2944k conv=sync; \
+			dd if=$(KDIR)/vmlinux-$(2).uImage bs=896k conv=sync; \
+			dd if=$(KDIR)/root.$(1) bs=2880k conv=sync; \
 			echo -n $(4); \
 		) > $(call imgname,$(1),$(2)).uni; \
 	fi; fi
@@ -138,20 +156,20 @@ define Image/Build/MyLoader
 		$(call imgname,$(1),$(2))-16M.img
 endef
 
-ubntxm_mtdlayout=mtdparts=spi0.0:256k(u-boot),64k(u-boot-env),1024k(kernel),6528k(rootfs),256k(cfg),64k(EEPROM)
+ubntxm_mtdlayout=mtdparts=spi0.0:256k(u-boot)ro,64k(u-boot-env)ro,1024k(kernel),6528k(rootfs),256k(cfg)ro,64k(EEPROM)ro,7552k@0x50000(firmware)
 define Image/Build/UBNTXM
 	$(call PatchKernelLzma,$(2),$(3) $(ubntxm_mtdlayout))
-	mkimage -A mips -O linux -T kernel -a 0x80060000 -C lzma -e \
-		0x80060000 \
-		-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
-		-d $(KDIR)/vmlinux-$(2).bin.lzma \
-		$(KDIR)/vmlinux-$(2).uImage.bin
+	$(call MkImageLzma,$(KDIR)/vmlinux-$(2).bin.lzma,$(KDIR)/vmlinux-$(2).uImage.bin)
 	dd if=$(KDIR)/vmlinux-$(2).uImage.bin of=$(KDIR)/vmlinux-$(2).uImage bs=1024k conv=sync
 	-$(STAGING_DIR_HOST)/bin/mkfwimage \
 		-B $(4) -v $(5).$(6).OpenWrt.$(REVISION) \
 		-k $(KDIR)/vmlinux-$(2).uImage \
 		-r $(BIN_DIR)/openwrt-$(BOARD)-root.$(1) \
-		-o $(call imgname,$(1),$(2)).bin
+		-o $(call imgname,$(1),$(2))-factory.bin
+	( \
+		dd if=$(KDIR)/vmlinux-$(2).uImage; \
+		dd if=$(BIN_DIR)/openwrt-$(BOARD)-root.$(1); \
+	) > $(call imgname,$(1),$(2))-sysupgrade.bin
 endef
 
 define Image/Build/UBNT
@@ -161,7 +179,11 @@ define Image/Build/UBNT
 		-B $(4) -v $(5).$(6).OpenWrt.$(REVISION) \
 		-k $(KDIR)/vmlinux-$(2).lzma \
 		-r $(BIN_DIR)/openwrt-$(BOARD)-root.$(1) \
-		-o $(call imgname,$(1),$(2)).bin
+		-o $(call imgname,$(1),$(2))-factory.bin
+	-sh $(TOPDIR)/scripts/combined-image.sh \
+		"$(KDIR)/vmlinux-$(2).lzma" \
+		"$(BIN_DIR)/openwrt-$(BOARD)-root.$(1)" \
+		$(call imgname,$(1),$(2))-sysupgrade.bin
 endef
 
 define Image/Build/Planex
@@ -193,7 +215,7 @@ define Image/Build/TPLINK
 		-B $(4) -N OpenWrt -V $(REVISION)\
 		-k $(KDIR)/vmlinux-$(2).bin.gz \
 		-r $(BIN_DIR)/openwrt-$(BOARD)-root.$(1) \
-		-o $(call imgname,$(1),$(2)).uni
+		-o $(call imgname,$(1),$(2))-universal.bin
 endef
 
 define Image/Build/CyberTAN
@@ -209,6 +231,38 @@ define Image/Build/CyberTAN
 	-$(STAGING_DIR_HOST)/bin/addpattern -B $(2) -v v$(4) -g \
 		-i $(KDIR)/vmlinux-$(2).trx \
 		-o $(call imgname,$(1),$(2)).bin
+endef
+
+wndr3700_mtdlayout=mtdparts=spi0.0:320k(u-boot)ro,128k(u-boot-env)ro,1024k(kernel),6656k(rootfs),64k(art)ro,7680k@0x70000(firmware)
+define Image/Build/WNDR3700
+	$(call PatchKernelLzma,$(2),$(3) $(wndr3700_mtdlayout))
+	$(call MkImageLzma,$(KDIR)/vmlinux-$(2).bin.lzma,$(KDIR)/vmlinux-$(2).uImage)
+	mkdir $(KDIR)/wndr3700
+	mkdir $(KDIR)/wndr3700/image
+	$(STAGING_DIR_HOST)/bin/wndr3700 \
+		$(KDIR)/vmlinux-$(2).uImage \
+		$(KDIR)/wndr3700/image/uImage
+	$(STAGING_DIR_HOST)/bin/mksquashfs-lzma \
+		$(KDIR)/wndr3700 $(KDIR)/vmlinux-$(2).uImage.squashfs.tmp \
+		-nopad -noappend -root-owned -be
+	-rm -rf $(KDIR)/wndr3700
+	mkimage -A mips -O linux -T filesystem -C none \
+		-a 0xbf070000 -e 0xbf070000 \
+		-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
+		-d $(KDIR)/vmlinux-$(2).uImage.squashfs.tmp \
+		$(KDIR)/vmlinux-$(2).uImage.squashfs.tmp2
+	$(STAGING_DIR_HOST)/bin/wndr3700 \
+		$(KDIR)/vmlinux-$(2).uImage.squashfs.tmp2 \
+		$(KDIR)/vmlinux-$(2).uImage.squashfs
+	-rm -f $(KDIR)/vmlinux-$(2).uImage.squashfs.tmp*
+	( \
+		dd if=$(KDIR)/vmlinux-$(2).uImage.squashfs bs=1M conv=sync; \
+		dd if=$(KDIR)/root.$(1) bs=64k; \
+	) > $(call imgname,$(1),$(2))-sysupgrade.bin
+	$(STAGING_DIR_HOST)/bin/mkdniimg \
+		-B WNDR3700 -v OpenWrt.$(REVISION) \
+		-i $(call imgname,$(1),$(2))-sysupgrade.bin \
+		-o $(call imgname,$(1),$(2))-factory.img
 endef
 
 define Image/Build/Template/Compex
@@ -229,6 +283,18 @@ endef
 
 define Image/Build/Template/WRT400N/jffs2-64k
 	$(call Image/Build/Template/WRT400N,jffs2-64k,$(1),$(2),$(3))
+endef
+
+define Image/Build/Template/DIR825B1
+	$(call Image/Build/DIR825B1,$(1),$(2),$(3),$(4))
+endef
+
+define Image/Build/Template/DIR825B1/squashfs
+	$(call Image/Build/Template/DIR825B1,squashfs,$(1),$(2),$(3))
+endef
+
+define Image/Build/Template/DIR825B1/jffs2-64k
+	$(call Image/Build/Template/DIR825B1,jffs2-64k,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/CyberTAN
@@ -276,7 +342,7 @@ define Image/Build/Template/TPLINK4K
 endef
 
 define Image/Build/Template/TPLINK4K/squashfs
-	$(call Image/Build/Template/TPLINK,squashfs-4k,$(1),$(2),$(3))
+	$(call Image/Build/Template/TPLINK,squashfs,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/UBNT
@@ -313,6 +379,18 @@ endef
 
 define Image/Build/Template/Planex/jffs2-64k
 	$(call Image/Build/Template/Planex,jffs2-64k,$(1),$(2))
+endef
+
+define Image/Build/Template/WNDR3700
+	$(call Image/Build/WNDR3700,$(1),$(2),$(3))
+endef
+
+define Image/Build/Template/WNDR3700/squashfs
+	$(call Image/Build/Template/WNDR3700,squashfs,$(1),$(2))
+endef
+
+define Image/Build/Template/WNDR3700/jffs2-64k
+	$(call Image/Build/Template/WNDR3700,jffs2-64k,$(1),$(2))
 endef
 
 define Image/Build/Profile/AP83
@@ -396,8 +474,20 @@ define Image/Build/Profile/TLWR941NDV2
 	$(call Image/Build/Template/TPLINK/$(1),tl-wr941ndv2,board=TL-WR941ND,TL-WR941NDv2)
 endef
 
+define Image/Build/Profile/TLWR1043NDV1
+	$(call Image/Build/Template/TPLINK/$(1),tl-wr1043ndv1,board=TL-WR1043ND,TL-WR1043NDv1)
+endef
+
+define Image/Build/Profile/WNDR3700
+	$(call Image/Build/Template/WNDR3700/$(1),wndr3700,board=WNDR3700)
+endef
+
 define Image/Build/Profile/WRT400N
 	$(call Image/Build/Template/WRT400N/$(1),wrt400n,board=WRT400N)
+endef
+
+define Image/Build/Profile/DIR825B1
+	$(call Image/Build/Template/DIR825B1/$(1),dir-825-b1,board=DIR-825-B1)
 endef
 
 define Image/Build/Profile/WRT160NL
@@ -408,6 +498,7 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/AP83,$(1))
 	$(call Image/Build/Profile/A02RBW300N,$(1))
 	$(call Image/Build/Profile/DIR615C1,$(1))
+	$(call Image/Build/Profile/DIR825B1,$(1))
 	$(call Image/Build/Profile/MZKW04NU,$(1))
 	$(call Image/Build/Profile/MZKW300NH,$(1))
 	$(call Image/Build/Profile/TEW632BRP,$(1))
@@ -416,21 +507,28 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/TLWR841NDV3,$(1))
 	$(call Image/Build/Profile/TLWR841NDV5,$(1))
 	$(call Image/Build/Profile/TLWR941NDV2,$(1))
+	$(call Image/Build/Profile/TLWR1043NDV1,$(1))
 	$(call Image/Build/Profile/UBNT,$(1))
 	$(call Image/Build/Profile/WP543,$(1))
+	$(call Image/Build/Profile/WNDR3700,$(1))
 	$(call Image/Build/Profile/WRT400N,$(1))
 	$(call Image/Build/Profile/WRT160NL,$(1))
 endef
 
 define Image/Build/Profile/Madwifi
-	$(call Image/Build/Profile/UBNT,$(1))
+	$(call Image/Build/Profile/UBNTRS,$(1))
+	$(call Image/Build/Profile/UBNTRSPRO,$(1))
+	$(call Image/Build/Profile/UBNTLSSR71,$(1))
 	$(call Image/Build/Profile/WP543,$(1))
 endef
 
 define Image/Build/squashfs
-	dd if=$(KDIR)/root.squashfs of=$(IMGNAME)-root.squashfs-4k bs=4k conv=sync
-	$(call add_jffs2_mark,$(IMGNAME)-root.squashfs-4k)
 	$(call prepare_generic_squashfs,$(KDIR)/root.squashfs)
+	dd if=$(KDIR)/root.squashfs of=$(KDIR)/root.squashfs-4k.tmp0 bs=4k conv=sync
+	$(call add_jffs2_mark,$(KDIR)/root.squashfs-4k.tmp0)
+	dd if=$(KDIR)/root.squashfs-4k.tmp0 of=$(IMGNAME)-root.squashfs-4k bs=4k conv=sync
+	$(call add_jffs2_mark,$(IMGNAME)-root.squashfs-4k)
+	rm -f $(KDIR)/root.squashfs-4k.tmp0
 endef
 
 define Image/Build

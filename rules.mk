@@ -45,7 +45,7 @@ else
 endif
 
 DL_DIR:=$(if $(call qstrip,$(CONFIG_DOWNLOAD_FOLDER)),$(call qstrip,$(CONFIG_DOWNLOAD_FOLDER)),$(TOPDIR)/dl)
-BIN_DIR:=$(TOPDIR)/bin
+BIN_DIR:=$(TOPDIR)/bin/$(BOARD)
 INCLUDE_DIR:=$(TOPDIR)/include
 SCRIPT_DIR:=$(TOPDIR)/scripts
 BUILD_DIR_BASE:=$(TOPDIR)/build_dir
@@ -61,7 +61,7 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
   STAGING_DIR:=$(TOPDIR)/staging_dir/target-$(ARCH)_$(LIBC)-$(LIBCV)
   BUILD_DIR_TOOLCHAIN:=$(BUILD_DIR_BASE)/toolchain-$(ARCH)_gcc-$(GCCV)_$(LIBC)-$(LIBCV)
   TOOLCHAIN_DIR:=$(TOPDIR)/staging_dir/toolchain-$(ARCH)_gcc-$(GCCV)_$(LIBC)-$(LIBCV)
-  PACKAGE_DIR:=$(BIN_DIR)/packages/$(BOARD)_$(LIBC)-$(LIBCV)
+  PACKAGE_DIR:=$(BIN_DIR)/packages
 else
   ifeq ($(CONFIG_NATIVE_TOOLCHAIN),)
     GNU_TARGET_NAME=$(call qstrip,$(CONFIG_TARGET_NAME))
@@ -73,7 +73,7 @@ else
   STAGING_DIR:=$(TOPDIR)/staging_dir/target-$(GNU_TARGET_NAME)
   BUILD_DIR_TOOLCHAIN:=$(BUILD_DIR_BASE)/toolchain-$(GNU_TARGET_NAME)
   TOOLCHAIN_DIR:=$(TOPDIR)/staging_dir/toolchain-$(GNU_TARGET_NAME)
-  PACKAGE_DIR:=$(BIN_DIR)/packages/$(BOARD)_$(GNU_TARGET_NAME)
+  PACKAGE_DIR:=$(BIN_DIR)/packages
 endif
 STAMP_DIR:=$(BUILD_DIR)/stamp
 STAMP_DIR_HOST=$(BUILD_DIR_HOST)/stamp

@@ -292,9 +292,11 @@ static void __init ubnt_m_setup(void)
 
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.phy_mask = 0;
-
 	ar71xx_eth0_data.speed = SPEED_100;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+	ar71xx_eth0_data.fifo_cfg1 = 0x0010ffff;
+	ar71xx_eth0_data.fifo_cfg2 = 0x015500aa;
+	ar71xx_eth0_data.fifo_cfg3 = 0x01f00140;
 
 	ar71xx_add_device_eth(0);
 
@@ -308,8 +310,14 @@ static void __init ubnt_m_setup(void)
 					ubnt_m_gpio_buttons);
 }
 
+static void __init ubnt_rocket_m_setup(void)
+{
+	ubnt_m_setup();
+	ar71xx_add_device_usb();
+}
+
 MIPS_MACHINE(AR71XX_MACH_UBNT_BULLET_M, "Ubiquiti Bullet M", ubnt_m_setup);
-MIPS_MACHINE(AR71XX_MACH_UBNT_ROCKET_M, "Ubiquiti Rocket M", ubnt_m_setup);
+MIPS_MACHINE(AR71XX_MACH_UBNT_ROCKET_M, "Ubiquiti Rocket M", ubnt_rocket_m_setup);
 
 /* TODO detect the second ethernet port and use one
    init function for all Ubiquiti MIMO series products */
@@ -319,9 +327,11 @@ static void __init ubnt_nano_m_setup(void)
 
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth1_data.phy_mask = 0;
-
 	ar71xx_eth1_data.speed = SPEED_1000;
 	ar71xx_eth1_data.duplex = DUPLEX_FULL;
+	ar71xx_eth1_data.fifo_cfg1 = 0x0010ffff;
+	ar71xx_eth1_data.fifo_cfg2 = 0x015500aa;
+	ar71xx_eth1_data.fifo_cfg3 = 0x01f00140;
 
 	ar71xx_add_device_eth(1);
 }

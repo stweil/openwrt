@@ -318,6 +318,7 @@ static void ag71xx_hw_set_macaddr(struct ag71xx *ag, unsigned char *mac)
 
 static void ag71xx_dma_reset(struct ag71xx *ag)
 {
+	u32 val;
 	int i;
 
 	ag71xx_dump_dma_regs(ag);
@@ -340,13 +341,19 @@ static void ag71xx_dma_reset(struct ag71xx *ag)
 	ag71xx_wr(ag, AG71XX_REG_RX_STATUS, RX_STATUS_BE | RX_STATUS_OF);
 	ag71xx_wr(ag, AG71XX_REG_TX_STATUS, TX_STATUS_BE | TX_STATUS_UR);
 
-	if (ag71xx_rr(ag, AG71XX_REG_RX_STATUS))
-		printk(KERN_ALERT "%s: unable to clear DMA Rx status\n",
-			ag->dev->name);
+	val = ag71xx_rr(ag, AG71XX_REG_RX_STATUS);
+	if (val)
+		printk(KERN_ALERT "%s: unable to clear DMA Rx status: %08x\n",
+			ag->dev->name, val);
 
-	if (ag71xx_rr(ag, AG71XX_REG_TX_STATUS))
-		printk(KERN_ALERT "%s: unable to clear DMA Tx status\n",
-			ag->dev->name);
+	val = ag71xx_rr(ag, AG71XX_REG_TX_STATUS);
+
+	/* mask out reserved bits */
+	val &= ~0xff000000;
+
+	if (val)
+		printk(KERN_ALERT "%s: unable to clear DMA Tx status: %08x\n",
+			ag->dev->name, val);
 
 	ag71xx_dump_dma_regs(ag);
 }
@@ -395,8 +402,13 @@ static void ag71xx_hw_init(struct ag71xx *ag)
 
 	/* setup FIFO configuration registers */
 	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG0, FIFO_CFG0_INIT);
-	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG1, 0x0fff0000);
-	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG2, 0x00001fff);
+	if (pdata->is_ar724x) {
+		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG1, pdata->fifo_cfg1);
+		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG2, pdata->fifo_cfg2);
+	} else {
+		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG1, 0x0fff0000);
+		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG2, 0x00001fff);
+	}
 	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG4, FIFO_CFG4_INIT);
 	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG5, FIFO_CFG5_INIT);
 
@@ -423,11 +435,15 @@ static void ag71xx_hw_stop(struct ag71xx *ag)
 static int ag71xx_open(struct net_device *dev)
 {
 	struct ag71xx *ag = netdev_priv(dev);
-	int ret;
+	int err;
 
-	ret = ag71xx_rings_init(ag);
-	if (ret)
+	err = ag71xx_phy_connect(ag);
+	if (err)
 		goto err;
+
+	err = ag71xx_rings_init(ag);
+	if (err)
+		goto err_ring_cleanup;
 
 	napi_enable(&ag->napi);
 
@@ -445,9 +461,10 @@ static int ag71xx_open(struct net_device *dev)
 
 	return 0;
 
- err:
+ err_ring_cleanup:
 	ag71xx_rings_cleanup(ag);
-	return ret;
+ err:
+	return err;
 }
 
 static int ag71xx_stop(struct net_device *dev)
@@ -470,6 +487,7 @@ static int ag71xx_stop(struct net_device *dev)
 	spin_unlock_irqrestore(&ag->lock, flags);
 
 	ag71xx_rings_cleanup(ag);
+	ag71xx_phy_disconnect(ag);
 
 	return 0;
 }
@@ -806,6 +824,12 @@ static int __init ag71xx_probe(struct platform_device *pdev)
 		goto err_out;
 	}
 
+	if (pdata->mii_bus_dev == NULL) {
+		dev_err(&pdev->dev, "no MII bus device specified\n");
+		err = -EINVAL;
+		goto err_out;
+	}
+
 	dev = alloc_etherdev(sizeof(*ag));
 	if (!dev) {
 		dev_err(&pdev->dev, "alloc_etherdev failed\n");
@@ -818,7 +842,6 @@ static int __init ag71xx_probe(struct platform_device *pdev)
 	ag = netdev_priv(dev);
 	ag->pdev = pdev;
 	ag->dev = dev;
-	ag->mii_bus = ag71xx_mdio_bus->mii_bus;
 	ag->msg_enable = netif_msg_init(ag71xx_msg_level,
 					AG71XX_DEFAULT_MSG_ENABLE);
 	spin_lock_init(&ag->lock);
@@ -901,16 +924,10 @@ static int __init ag71xx_probe(struct platform_device *pdev)
 		mutex_unlock(&ag->mii_bus->mdio_lock);
 	}
 
-	err = ag71xx_phy_connect(ag);
-	if (err)
-		goto err_unregister_netdev;
-
 	platform_set_drvdata(pdev, dev);
 
 	return 0;
 
- err_unregister_netdev:
-	unregister_netdev(dev);
  err_free_irq:
 	free_irq(dev->irq, dev);
  err_unmap_mii_ctrl:
@@ -931,7 +948,6 @@ static int __exit ag71xx_remove(struct platform_device *pdev)
 	if (dev) {
 		struct ag71xx *ag = netdev_priv(dev);
 
-		ag71xx_phy_disconnect(ag);
 		unregister_netdev(dev);
 		free_irq(dev->irq, dev);
 		iounmap(ag->mii_ctrl);

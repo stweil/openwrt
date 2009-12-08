@@ -24,7 +24,8 @@ define KernelPackage/sound-core
 	CONFIG_SND_SEQUENCER_OSS=y \
 	CONFIG_HOSTAUDIO \
 	CONFIG_SND_PCM_OSS \
-	CONFIG_SND_MIXER_OSS
+	CONFIG_SND_MIXER_OSS \
+	CONFIG_SOUND_OSS_CORE_PRECLAIM=y
 endef
 
 define KernelPackage/sound-core/2.4
@@ -95,7 +96,7 @@ $(eval $(call KernelPackage,sound-i8x0))
 define KernelPackage/sound-ps3
   SUBMENU:=$(SOUND_MENU)
   TITLE:=PS3 Audio
-  DEPENDS:=kmod-sound-core @TARGET_ps3
+  DEPENDS:=kmod-sound-core @TARGET_ps3||@TARGET_ps3chk
   KCONFIG:=CONFIG_SND_PS3 \
 		CONFIG_SND_PPC=y \
 		CONFIG_SND_PS3_DEFAULT_START_DELAY=2000

@@ -135,6 +135,7 @@ Signed-off-by: Florian Fainelli <florian@openwrt.org>
 +	return 0;
 +}
 +
++#ifdef CONFIG_64BIT
 +int fpu_emulator_save_context32(struct sigcontext32 __user *sc)
 +{
 +	return 0;
@@ -145,6 +146,5 @@ Signed-off-by: Florian Fainelli <florian@openwrt.org>
 +	return 0;
 +}
 +
-+#ifdef CONFIG_64BIT
 +#endif	/* CONFIG_64BIT */
 +#endif /* CONFIG_MIPS_FPU_EMU */

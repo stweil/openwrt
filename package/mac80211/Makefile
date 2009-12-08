@@ -10,18 +10,21 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-PKG_VERSION:=2009-11-13
-PKG_RELEASE:=2
+PKG_VERSION:=2009-12-05
+PKG_RELEASE:=7
 PKG_SOURCE_URL:= \
-	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/11 \
+	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/12 \
 	http://wireless.kernel.org/download/compat-wireless-2.6
-PKG_MD5SUM:=920c3bcfd1b4cd6079a8f9db4afe4e4f
+PKG_MD5SUM:=5b432e35626af4036ed55da75fff3fca
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
 
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_kmod-mac80211 \
+	CONFIG_PACKAGE_MAC80211_DEBUGFS \
+	CONFIG_PACKAGE_ATH_DEBUG \
+	CONFIG_ATH_USER_REGD \
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -53,12 +56,12 @@ endef
 
 # Prism54 drivers
 P54PCIFW:=2.13.12.0.arm
-P54USBFW:=2.13.24.0.lm86.arm
+P54USBFW:=2.13.24.0.lm87.arm
 
 define Download/p54usb
   FILE:=$(P54USBFW)
   URL:=http://daemonizer.de/prism54/prism54-fw/fw-usb
-  MD5SUM:=2efd50eab43c0d0376765576a54b7a30
+  MD5SUM:=8e8ab005a4f8f0123bcdc51bc25b47f6
 endef
 $(eval $(call Download,p54usb))
 
@@ -498,8 +501,7 @@ BUILDFLAGS:= \
 	$(if $(CONFIG_PCI),-DCONFIG_SSB_SPROM) \
 	$(if $(CONFIG_LEDS_TRIGGERS), -DCONFIG_MAC80211_LEDS -DCONFIG_LEDS_TRIGGERS -DCONFIG_B43_LEDS -DCONFIG_B43LEGACY_LEDS -DCONFIG_AR9170_LEDS) \
 	-DCONFIG_B43_HWRNG -DCONFIG_B43LEGACY_HWRNG \
-	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS) \
-	$(if $(CONFIG_PACKAGE_ATH9K_DEBUG),-DCONFIG_ATH9K_DEBUG) \
+	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS -DCONFIG_ATH9K_DEBUGFS) \
 	$(if $(CONFIG_PACKAGE_ATH_DEBUG),-DCONFIG_ATH_DEBUG) \
 	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
 	$(if $(CONFIG_ATH_USER_REGD),-DATH_USER_REGD=1)
@@ -530,7 +532,7 @@ MAKE_OPTS:= \
 	CONFIG_ATH_DEBUG=$(if $(CONFIG_PACKAGE_ATH_DEBUG),y) \
 	CONFIG_ATH5K=$(if $(CONFIG_PACKAGE_kmod-ath5k),m) \
 	CONFIG_ATH9K=$(if $(CONFIG_PACKAGE_kmod-ath9k),m) \
-	CONFIG_ATH9K_DEBUG=$(if $(CONFIG_PACKAGE_ATH9K_DEBUG),y) \
+	CONFIG_ATH9K_DEBUGFS=$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),y) \
 	CONFIG_ZD1211RW=$(if $(CONFIG_PACKAGE_kmod-zd1211rw),m) \
 	CONFIG_P54_COMMON=$(if $(CONFIG_PACKAGE_kmod-p54-common),m) \
 	CONFIG_P54_PCI=$(if $(CONFIG_PACKAGE_kmod-p54-pci),m) \
@@ -635,7 +637,7 @@ endef
 
 define KernelPackage/p54-usb/install
 	$(INSTALL_DIR) $(1)/lib/firmware
-	$(INSTALL_DATA) $(DL_DIR)/$(P54USBFW) $(1)/lib/firmware/isl3886usb
+	$(INSTALL_DATA) $(DL_DIR)/$(P54USBFW) $(1)/lib/firmware/isl3887usb
 endef
 
 define KernelPackage/rt61-pci/install

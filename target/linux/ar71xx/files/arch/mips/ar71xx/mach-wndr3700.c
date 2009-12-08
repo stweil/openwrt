@@ -17,6 +17,8 @@
 #include <linux/input.h>
 #include <linux/pci.h>
 #include <linux/ath9k_platform.h>
+#include <linux/delay.h>
+#include <linux/rtl8366_smi.h>
 
 #include <asm/mips_machine.h>
 #include <asm/mach-ar71xx/ar71xx.h>
@@ -32,6 +34,9 @@
 #define WNDR3700_GPIO_BTN_WPS		3
 #define WNDR3700_GPIO_BTN_RESET		8
 #define WNDR3700_GPIO_BTN_WIFI		11
+
+#define WNDR3700_GPIO_RTL8366_SDA	5
+#define WNDR3700_GPIO_RTL8366_SCK	7
 
 #define WNDR3700_BUTTONS_POLL_INTERVAL    20
 
@@ -106,7 +111,85 @@ static struct ar71xx_pci_irq wndr3700_pci_irqs[] __initdata = {
 };
 
 static struct ath9k_platform_data wndr3700_wmac0_data;
+static u8 wndr3700_wmac0_macaddr[6];
 static struct ath9k_platform_data wndr3700_wmac1_data;
+static u8 wndr3700_wmac1_macaddr[6];
+
+static void wndr3700_pci_fixup(struct pci_dev *dev)
+{
+	void __iomem *mem;
+	u16 *cal_data;
+	u16 cmd;
+	u32 bar0;
+	u32 val;
+
+	if (ar71xx_mach != AR71XX_MACH_WNDR3700)
+		return;
+
+	switch (PCI_SLOT(dev->devfn)) {
+	case 17:
+		cal_data = wndr3700_wmac0_data.eeprom_data;
+		break;
+	case 18:
+		cal_data = wndr3700_wmac1_data.eeprom_data;
+		break;
+	default:
+		return;
+	}
+
+	if (*cal_data != 0xa55a) {
+		printk(KERN_ERR "PCI: no calibration data found for %s\n",
+		       pci_name(dev));
+		return;
+	}
+
+	mem = ioremap(AR71XX_PCI_MEM_BASE, 0x10000);
+	if (!mem) {
+		printk(KERN_ERR "PCI: ioremap error for device %s\n",
+		       pci_name(dev));
+		return;
+	}
+
+	printk(KERN_INFO "PCI: fixup device %s\n", pci_name(dev));
+
+	pci_read_config_dword(dev, PCI_BASE_ADDRESS_0, &bar0);
+
+	/* Setup the PCI device to allow access to the internal registers */
+	pci_write_config_dword(dev, PCI_BASE_ADDRESS_0, AR71XX_PCI_MEM_BASE);
+	pci_read_config_word(dev, PCI_COMMAND, &cmd);
+	cmd |= PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY;
+	pci_write_config_word(dev, PCI_COMMAND, cmd);
+
+        /* set pointer to first reg address */
+	cal_data += 3;
+	while (*cal_data != 0xffff) {
+		u32 reg;
+		reg = *cal_data++;
+		val = *cal_data++;
+		val |= (*cal_data++) << 16;
+
+		__raw_writel(val, mem + reg);
+		udelay(100);
+	}
+
+	pci_read_config_dword(dev, PCI_VENDOR_ID, &val);
+	dev->vendor = val & 0xffff;
+	dev->device = (val >> 16) & 0xffff;
+
+	pci_read_config_dword(dev, PCI_CLASS_REVISION, &val);
+	dev->revision = val & 0xff;
+	dev->class = val >> 8; /* upper 3 bytes */
+
+	pci_read_config_word(dev, PCI_COMMAND, &cmd);
+	cmd &= ~(PCI_COMMAND_MASTER | PCI_COMMAND_MEMORY);
+	pci_write_config_word(dev, PCI_COMMAND, cmd);
+
+	pci_write_config_dword(dev, PCI_BASE_ADDRESS_0, bar0);
+
+	iounmap(mem);
+}
+DECLARE_PCI_FIXUP_EARLY(PCI_VENDOR_ID_ATHEROS, PCI_ANY_ID,
+			wndr3700_pci_fixup);
 
 static int wndr3700_pci_plat_dev_init(struct pci_dev *dev)
 {
@@ -124,15 +207,17 @@ static int wndr3700_pci_plat_dev_init(struct pci_dev *dev)
 
 static void __init wndr3700_pci_init(void)
 {
-	u8 *ee;
+	u8 *ee = (u8 *) KSEG1ADDR(0x1fff0000);
 
-	ee = (u8 *) KSEG1ADDR(0x1fff1000);
-	memcpy(wndr3700_wmac0_data.eeprom_data, ee,
+	memcpy(wndr3700_wmac0_data.eeprom_data, ee + 0x1000,
 	       sizeof(wndr3700_wmac0_data.eeprom_data));
+	memcpy(wndr3700_wmac0_macaddr, ee, sizeof(wndr3700_wmac0_macaddr));
+	wndr3700_wmac0_data.macaddr = wndr3700_wmac0_macaddr;
 
-	ee = (u8 *) KSEG1ADDR(0x1fff5000);
-	memcpy(wndr3700_wmac1_data.eeprom_data, ee,
+	memcpy(wndr3700_wmac1_data.eeprom_data, ee + 0x5000,
 	       sizeof(wndr3700_wmac1_data.eeprom_data));
+	memcpy(wndr3700_wmac1_macaddr, ee + 12, sizeof(wndr3700_wmac1_macaddr));
+	wndr3700_wmac1_data.macaddr = wndr3700_wmac1_macaddr;
 
 	ar71xx_pci_plat_dev_init = wndr3700_pci_plat_dev_init;
 	ar71xx_pci_init(ARRAY_SIZE(wndr3700_pci_irqs), wndr3700_pci_irqs);
@@ -193,18 +278,34 @@ static struct gpio_button wndr3700_gpio_buttons[] __initdata = {
 	}
 };
 
+static struct rtl8366_smi_platform_data wndr3700_rtl8366_smi_data = {
+	.gpio_sda        = WNDR3700_GPIO_RTL8366_SDA,
+	.gpio_sck        = WNDR3700_GPIO_RTL8366_SCK,
+};
+
+static struct platform_device wndr3700_rtl8366_smi_device = {
+	.name		= "rtl8366-smi",
+	.id		= -1,
+	.dev = {
+		.platform_data	= &wndr3700_rtl8366_smi_data,
+	}
+};
+
 static void __init wndr3700_setup(void)
 {
 	u8 *mac = (u8 *) KSEG1ADDR(0x1fff0000);
 
 	ar71xx_set_mac_base(mac);
-	ar71xx_add_device_mdio(0x0);
 
+	ar71xx_eth0_pll_data.pll_1000 = 0x11110000;
+	ar71xx_eth0_data.mii_bus_dev = &wndr3700_rtl8366_smi_device.dev;
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth0_data.phy_mask = 0xf;
 	ar71xx_eth0_data.speed = SPEED_1000;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 
+	ar71xx_eth1_pll_data.pll_1000 = 0x11110000;
+	ar71xx_eth1_data.mii_bus_dev = &wndr3700_rtl8366_smi_device.dev;
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth1_data.phy_mask = 0x10;
 
@@ -223,6 +324,7 @@ static void __init wndr3700_setup(void)
 				      ARRAY_SIZE(wndr3700_gpio_buttons),
 				      wndr3700_gpio_buttons);
 
+	platform_device_register(&wndr3700_rtl8366_smi_device);
 	wndr3700_pci_init();
 }
 

@@ -39,8 +39,11 @@ get_status_led() {
 	aw-nr580)
 		status_led="aw-nr580:green:ready"
 		;;
-	bullet-m)
+	bullet-m | rocket-m | nano-m)
 		status_led="ubnt:green:link4"
+		;;
+	dir-825-b1)
+		status_led="dir825b1:orange:power"
 		;;
 	ls-sr71)
 		status_led="ubnt:green:d22"
@@ -59,6 +62,9 @@ get_status_led() {
 		;;
 	tew-632brp)
 		status_led="tew-632brp:green:status"
+		;;
+	tl-wr1043nd)
+		status_led="tl-wr1043nd:green:system"
 		;;
 	tl-wr741nd)
 		status_led="tl-wr741nd:green:system"

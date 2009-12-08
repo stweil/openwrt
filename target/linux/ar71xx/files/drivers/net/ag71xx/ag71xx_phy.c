@@ -72,8 +72,12 @@ static void ag71xx_phy_link_update(struct ag71xx *ag)
 		return;
 	}
 
-	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG3,
-			pdata->is_ar91xx ? 0x780fff : 0x008001ff);
+	if (pdata->is_ar91xx)
+		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG3, 0x00780fff);
+	else if (pdata->is_ar724x)
+		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG3, pdata->fifo_cfg3);
+	else
+		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG3, 0x008001ff);
 
 	if (pdata->set_pll)
 		pdata->set_pll(ag->speed);
@@ -258,9 +262,51 @@ static int ag71xx_phy_connect_multi(struct ag71xx *ag)
 	return ret;
 }
 
+static int dev_is_class(struct device *dev, void *class)
+{
+	if (dev->class != NULL && !strcmp(dev->class->name, class))
+		return 1;
+
+	return 0;
+}
+
+static struct device *dev_find_class(struct device *parent, char *class)
+{
+	if (dev_is_class(parent, class)) {
+		get_device(parent);
+		return parent;
+	}
+
+	return device_find_child(parent, class, dev_is_class);
+}
+
+static struct mii_bus *dev_to_mii_bus(struct device *dev)
+{
+	struct device *d;
+
+	d = dev_find_class(dev, "mdio_bus");
+	if (d != NULL) {
+		struct mii_bus *bus;
+
+		bus = to_mii_bus(d);
+		put_device(d);
+
+		return bus;
+	}
+
+	return NULL;
+}
+
 int ag71xx_phy_connect(struct ag71xx *ag)
 {
 	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
+
+	ag->mii_bus = dev_to_mii_bus(pdata->mii_bus_dev);
+	if (ag->mii_bus == NULL) {
+		printk(KERN_ERR "%s: unable to find MII bus on device '%s'\n",
+			ag->dev->name, dev_name(pdata->mii_bus_dev));
+		return -ENODEV;
+	}
 
 	if (pdata->phy_mask)
 		return ag71xx_phy_connect_multi(ag);

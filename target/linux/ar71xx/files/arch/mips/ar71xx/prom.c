@@ -59,6 +59,9 @@ static struct board_rec boards[] __initdata = {
 		.name		= "AW-NR580",
 		.mach_type	= AR71XX_MACH_AW_NR580,
 	}, {
+		.name		= "DIR-825-B1",
+		.mach_type	= AR71XX_MACH_DIR_825_B1,
+	}, {
 		.name		= "TEW-632BRP",
 		.mach_type	= AR71XX_MACH_TEW_632BRP,
 	}, {
@@ -67,6 +70,9 @@ static struct board_rec boards[] __initdata = {
 	}, {
 		.name		= "TL-WR941ND",
 		.mach_type	= AR71XX_MACH_TL_WR941ND,
+	}, {
+		.name		= "TL-WR1043ND",
+		.mach_type	= AR71XX_MACH_TL_WR1043ND,
 	}, {
 		.name		= "UBNT-RS",
 		.mach_type	= AR71XX_MACH_UBNT_RS,
