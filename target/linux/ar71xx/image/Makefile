@@ -237,8 +237,7 @@ wndr3700_mtdlayout=mtdparts=spi0.0:320k(u-boot)ro,128k(u-boot-env)ro,1024k(kerne
 define Image/Build/WNDR3700
 	$(call PatchKernelLzma,$(2),$(3) $(wndr3700_mtdlayout))
 	$(call MkImageLzma,$(KDIR)/vmlinux-$(2).bin.lzma,$(KDIR)/vmlinux-$(2).uImage)
-	mkdir $(KDIR)/wndr3700
-	mkdir $(KDIR)/wndr3700/image
+	mkdir -p $(KDIR)/wndr3700/image
 	$(STAGING_DIR_HOST)/bin/wndr3700 \
 		$(KDIR)/vmlinux-$(2).uImage \
 		$(KDIR)/wndr3700/image/uImage
@@ -402,7 +401,7 @@ define Image/Build/Profile/WP543
 endef
 
 define Image/Build/Profile/DIR615C1
-	$(call Image/Build/Template/Cameo/$(1),dir-615c1,board=TEW-632BRP,"AP81-AR9130-RT-070614-02")
+	$(call Image/Build/Template/Cameo/$(1),dir-615-c1,board=DIR-615-C1,"AP81-AR9130-RT-070614-02")
 endef
 
 define Image/Build/Profile/TEW632BRP

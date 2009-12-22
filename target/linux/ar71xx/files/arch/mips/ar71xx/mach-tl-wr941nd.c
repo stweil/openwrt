@@ -11,8 +11,6 @@
 #include <linux/platform_device.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
-#include <linux/spi/spi.h>
-#include <linux/spi/flash.h>
 #include <linux/input.h>
 
 #include <asm/mips_machine.h>
@@ -20,6 +18,8 @@
 #include <asm/mach-ar71xx/ar71xx.h>
 
 #include "devices.h"
+#include "dev-m25p80.h"
+#include "dev-ar913x-wmac.h"
 
 #define TL_WR941ND_GPIO_LED_SYSTEM	2
 #define TL_WR941ND_GPIO_LED_QSS		5
@@ -64,16 +64,6 @@ static struct flash_platform_data tl_wr941nd_flash_data = {
 #endif
 };
 
-static struct spi_board_info tl_wr941nd_spi_info[] = {
-	{
-		.bus_num	= 0,
-		.chip_select	= 0,
-		.max_speed_hz	= 25000000,
-		.modalias	= "m25p80",
-		.platform_data  = &tl_wr941nd_flash_data,
-	}
-};
-
 static struct gpio_led tl_wr941nd_leds_gpio[] __initdata = {
 	{
 		.name		= "tl-wr941nd:green:system",
@@ -104,13 +94,18 @@ static struct gpio_button tl_wr941nd_gpio_buttons[] __initdata = {
 	}
 };
 
-static struct dsa_platform_data tl_wr941nd_dsa_data = {
+static struct dsa_chip_data tl_wr941nd_dsa_chip = {
 	.port_names[0]  = "wan",
 	.port_names[1]  = "lan1",
 	.port_names[2]  = "lan2",
 	.port_names[3]  = "lan3",
 	.port_names[4]  = "lan4",
 	.port_names[5]  = "cpu",
+};
+
+static struct dsa_platform_data tl_wr941nd_dsa_data = {
+	.nr_chips	= 1,
+	.chip		= &tl_wr941nd_dsa_chip,
 };
 
 static void __init tl_wr941nd_setup(void)
@@ -129,8 +124,7 @@ static void __init tl_wr941nd_setup(void)
 	ar71xx_add_device_eth(0);
 	ar71xx_add_device_dsa(0, &tl_wr941nd_dsa_data);
 
-	ar71xx_add_device_spi(NULL, tl_wr941nd_spi_info,
-					ARRAY_SIZE(tl_wr941nd_spi_info));
+	ar71xx_add_device_m25p80(&tl_wr941nd_flash_data);
 
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(tl_wr941nd_leds_gpio),
 					tl_wr941nd_leds_gpio);
@@ -138,7 +132,7 @@ static void __init tl_wr941nd_setup(void)
 	ar71xx_add_device_gpio_buttons(-1, TL_WR941ND_BUTTONS_POLL_INTERVAL,
 					ARRAY_SIZE(tl_wr941nd_gpio_buttons),
 					tl_wr941nd_gpio_buttons);
-	ar91xx_add_device_wmac();
+	ar913x_add_device_wmac();
 }
 
 MIPS_MACHINE(AR71XX_MACH_TL_WR941ND, "TP-LINK TL-WR941ND", tl_wr941nd_setup);

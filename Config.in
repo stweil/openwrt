@@ -160,6 +160,7 @@ choice
 
 	config USE_SSTRIP
 		bool "sstrip"
+		depends !DEBUG
 		depends !USE_GLIBC
 		depends !USE_EGLIBC
 		help
@@ -190,7 +191,7 @@ config DEBUG
 	prompt "Compile packages with debugging info"
 	default n
 	help
-		Disables stripping and adds -g3 to the CFLAGS
+		Adds -g3 to the CFLAGS
 
 config DEBUG_DIR
 	bool "Install debugging binaries into a staging directory"

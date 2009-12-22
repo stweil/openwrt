@@ -13,9 +13,15 @@ obj-y	:= prom.o irq.o setup.o devices.o gpio.o ar71xx.o
 obj-$(CONFIG_EARLY_PRINTK)		+= early_printk.o
 obj-$(CONFIG_PCI)			+= pci.o
 
+obj-$(CONFIG_AR71XX_DEV_AP91_PCI)	+= dev-ap91-pci.o
+obj-$(CONFIG_AR71XX_DEV_AP94_PCI)	+= dev-ap94-pci.o
+obj-$(CONFIG_AR71XX_DEV_AR913X_WMAC)	+= dev-ar913x-wmac.o
+obj-$(CONFIG_AR71XX_DEV_M25P80)		+= dev-m25p80.o
+
 obj-$(CONFIG_AR71XX_MACH_AP81)		+= mach-ap81.o
 obj-$(CONFIG_AR71XX_MACH_AP83)		+= mach-ap83.o
 obj-$(CONFIG_AR71XX_MACH_AW_NR580)	+= mach-aw-nr580.o
+obj-$(CONFIG_AR71XX_MACH_DIR_615_C1)	+= mach-dir-615-c1.o
 obj-$(CONFIG_AR71XX_MACH_DIR_825_B1)	+= mach-dir-825-b1.o
 obj-$(CONFIG_AR71XX_MACH_GENERIC)	+= mach-generic.o
 obj-$(CONFIG_AR71XX_MACH_MZK_W04NU)	+= mach-mzk-w04nu.o

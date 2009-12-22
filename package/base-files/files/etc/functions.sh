@@ -2,8 +2,13 @@
 # Copyright (C) 2006 OpenWrt.org
 # Copyright (C) 2006 Fokus Fraunhofer <carsten.tittel@fokus.fraunhofer.de>
 
-alias debug=${DEBUG:-:}
-alias mount='busybox mount'
+
+debug () {
+	${DEBUG:-:} "$@"
+}
+mount() {
+	busybox mount "$@"
+}
 
 # newline
 N="
@@ -258,7 +263,7 @@ jffs2_mark_erase() {
 	echo -e "\xde\xad\xc0\xde" | mtd -qq write - "$1"
 }
 
-uci_apply_defaults() {(
+uci_apply_defaults() {
 	cd /etc/uci-defaults || return 0
 	files="$(ls)"
 	[ -z "$files" ] && return 0
@@ -267,6 +272,6 @@ uci_apply_defaults() {(
 		( . "./$(basename $file)" ) && rm -f "$file"
 	done
 	uci commit
-)}
+}
 
 [ -z "$IPKG_INSTROOT" -a -f /lib/config/uci.sh ] && . /lib/config/uci.sh

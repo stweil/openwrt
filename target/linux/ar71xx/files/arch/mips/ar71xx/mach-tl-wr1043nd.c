@@ -11,8 +11,6 @@
 #include <linux/platform_device.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
-#include <linux/spi/spi.h>
-#include <linux/spi/flash.h>
 #include <linux/input.h>
 
 #include <asm/mips_machine.h>
@@ -20,9 +18,13 @@
 #include <asm/mach-ar71xx/ar71xx.h>
 
 #include "devices.h"
+#include "dev-m25p80.h"
+#include "dev-ar913x-wmac.h"
 
+#define TL_WR1043ND_GPIO_LED_USB        1
 #define TL_WR1043ND_GPIO_LED_SYSTEM     2
 #define TL_WR1043ND_GPIO_LED_QSS        5
+#define TL_WR1043ND_GPIO_LED_WLAN       9
 
 #define TL_WR1043ND_GPIO_BTN_RESET      3
 #define TL_WR1043ND_GPIO_BTN_QSS        7
@@ -64,24 +66,22 @@ static struct flash_platform_data tl_wr1043nd_flash_data = {
 #endif
 };
 
-static struct spi_board_info tl_wr1043nd_spi_info[] = {
-	{
-		.bus_num	= 0,
-		.chip_select	= 0,
-		.max_speed_hz	= 25000000,
-		.modalias	= "m25p80",
-		.platform_data  = &tl_wr1043nd_flash_data,
-	}
-};
-
 static struct gpio_led tl_wr1043nd_leds_gpio[] __initdata = {
 	{
+		.name		= "tl-wr1043nd:green:usb",
+		.gpio		= TL_WR1043ND_GPIO_LED_USB,
+		.active_low	= 1,
+	}, {
 		.name		= "tl-wr1043nd:green:system",
 		.gpio		= TL_WR1043ND_GPIO_LED_SYSTEM,
 		.active_low	= 1,
 	}, {
-		.name		= "tl-wr1043nd:red:qss",
+		.name		= "tl-wr1043nd:green:qss",
 		.gpio		= TL_WR1043ND_GPIO_LED_QSS,
+		.active_low	= 0,
+	}, {
+		.name		= "tl-wr1043nd:green:wlan",
+		.gpio		= TL_WR1043ND_GPIO_LED_WLAN,
 		.active_low	= 1,
 	}
 };
@@ -121,8 +121,7 @@ static void __init tl_wr1043nd_setup(void)
 
 	ar71xx_add_device_usb();
 
-	ar71xx_add_device_spi(NULL, tl_wr1043nd_spi_info,
-					ARRAY_SIZE(tl_wr1043nd_spi_info));
+	ar71xx_add_device_m25p80(&tl_wr1043nd_flash_data);
 
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(tl_wr1043nd_leds_gpio),
 					tl_wr1043nd_leds_gpio);
@@ -130,7 +129,7 @@ static void __init tl_wr1043nd_setup(void)
 	ar71xx_add_device_gpio_buttons(-1, TL_WR1043ND_BUTTONS_POLL_INTERVAL,
 					ARRAY_SIZE(tl_wr1043nd_gpio_buttons),
 					tl_wr1043nd_gpio_buttons);
-	ar91xx_add_device_wmac();
+	ar913x_add_device_wmac();
 }
 
 MIPS_MACHINE(AR71XX_MACH_TL_WR1043ND, "TP-LINK TL-WR1043ND", tl_wr1043nd_setup);

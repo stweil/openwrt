@@ -137,6 +137,7 @@ enum ar71xx_mach_type {
 	AR71XX_MACH_MZK_W04NU,	/* Planex MZK-W04NU */
 	AR71XX_MACH_MZK_W300NH,	/* Planex MZK-W300NH */
 	AR71XX_MACH_TEW_632BRP,	/* TRENDnet TEW-632BRP */
+	AR71XX_MACH_DIR_615_C1,	/* D-Link DIR-615 rev. C1 */
 	AR71XX_MACH_TL_WR741ND,	/* TP-LINK TL-WR741ND */
 	AR71XX_MACH_TL_WR941ND,	/* TP-LINK TL-WR941ND */
 	AR71XX_MACH_TL_WR1043ND, /* TP-LINK TL-WR1041ND */
@@ -177,6 +178,7 @@ extern enum ar71xx_mach_type ar71xx_mach;
 #define AR71XX_ETH1_PLL_SHIFT		19
 
 #define AR724X_PLL_REG_CPU_CONFIG	0x00
+#define AR724X_PLL_REG_PCIE_CONFIG	0x18
 
 #define AR724X_PLL_DIV_SHIFT		0
 #define AR724X_PLL_DIV_MASK		0x3ff
@@ -383,8 +385,12 @@ void ar71xx_ddr_flush(u32 reg);
 #define AR724X_PCI_CFG_BASE	(AR71XX_PCI_MEM_BASE + 0x4000000)
 #define AR724X_PCI_CFG_SIZE	0x1000
 
+#define AR724X_PCI_REG_APP		0x00
+#define AR724X_PCI_REG_RESET		0x18
 #define AR724X_PCI_REG_INT_STATUS	0x4c
 #define AR724X_PCI_REG_INT_MASK		0x50
+
+#define AR724X_PCI_APP_LTSSM_ENABLE	BIT(0)
 
 #define AR724X_PCI_INT_DEV0		BIT(14)
 
@@ -394,6 +400,14 @@ static inline void ar724x_pci_wr(unsigned reg, u32 val)
 
 	base = ioremap_nocache(AR724X_PCI_CTRL_BASE, AR724X_PCI_CTRL_SIZE);
 	__raw_writel(val, base + reg);
+	iounmap(base);
+}
+
+static inline void ar724x_pci_wr_nf(unsigned reg, u32 val)
+{
+	void __iomem *base;
+
+	base = ioremap_nocache(AR724X_PCI_CTRL_BASE, AR724X_PCI_CTRL_SIZE);
 	iounmap(base);
 }
 
@@ -476,6 +490,10 @@ static inline u32 ar724x_pci_rr(unsigned reg)
 #define RESET_MODULE_PCI_BUS		BIT(1)
 #define RESET_MODULE_PCI_CORE		BIT(0)
 
+#define AR724X_RESET_PCIE_PHY_SERIAL	BIT(10)
+#define AR724X_RESET_PCIE_PHY		BIT(7)
+#define AR724X_RESET_PCIE		BIT(6)
+
 #define REV_ID_MAJOR_MASK	0xf0
 #define REV_ID_MAJOR_AR71XX	0xa0
 #define REV_ID_MAJOR_AR913X	0xb0
@@ -510,6 +528,7 @@ static inline u32 ar71xx_reset_rr(unsigned reg)
 
 void ar71xx_device_stop(u32 mask);
 void ar71xx_device_start(u32 mask);
+int ar71xx_device_stopped(u32 mask);
 
 /*
  * SPI block

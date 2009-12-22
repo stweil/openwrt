@@ -6,13 +6,13 @@
 #
 include $(TOPDIR)/rules.mk
 
-ARCH=i386
+ARCH:=i386
 BOARD:=x86
 BOARDNAME:=x86
 FEATURES:=squashfs jffs2 ext2 vdi vmdk pcmcia tgz
 SUBTARGETS=generic olpc
 
-LINUX_VERSION:=2.6.31.6
+LINUX_VERSION:=2.6.31.7
 
 include $(INCLUDE_DIR)/target.mk
 
