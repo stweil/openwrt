@@ -61,6 +61,7 @@ enum {
 	WRTSL54GS,
 	WRT54G3G,
 	WRT160N,
+	WRT300NV11,
 	WRT350N,
 	WRT600N,
 	WRT600NV11,
@@ -131,6 +132,9 @@ enum {
 
 	/* Sitecom */
 	WL105B,
+
+	/* Askey */
+	RT210W,
 };
 
 static void __init bcm4780_init(void) {
@@ -254,6 +258,19 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "ses_blue",	.gpio = 1 << 5, .polarity = REVERSE },
 			{ .name = "ses_orange", .gpio = 1 << 3, .polarity = REVERSE },
 		},
+	},
+	[WRT300NV11] = {
+		.name           = "Linksys WRT300N V1.1",
+		.buttons        = {
+			{ .name = "reset",     .gpio = 1 << 6 }, // "Reset" on back panel
+			{ .name = "ses",       .gpio = 1 << 4 }, // "Reserved" on top panel
+		},
+		.leds           = {
+			{ .name = "power",     .gpio = 1 << 1, .polarity = NORMAL  }, // "Power"
+			{ .name = "ses_amber", .gpio = 1 << 3, .polarity = REVERSE }, // "Security" Amber
+			{ .name = "ses_green", .gpio = 1 << 5, .polarity = REVERSE }, // "Security" Green
+		},
+		.platform_init = bcm57xx_init,
 	},
 	[WRT350N] = {
 		.name		= "Linksys WRT350N",
@@ -793,6 +810,21 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "power",	.gpio = 1 << 3},
 		},
 	},
+	/* Askey (and clones) */
+	[RT210W] = {
+		.name		= "Askey RT210W",
+		.buttons	= {
+			/* Power button is hard-wired to hardware reset */
+			/* but is also connected to GPIO 7 (probably for bootloader recovery)  */
+			{ .name = "power",	.gpio = 1 << 7},
+		},
+		.leds		= {
+		 	/* These were verified and named based on Belkin F5D4230-4 v1112 */
+			{ .name = "connected",	.gpio = 1 << 0, .polarity = REVERSE },
+			{ .name = "wlan",	.gpio = 1 << 3, .polarity = REVERSE },
+			{ .name = "power",	.gpio = 1 << 5, .polarity = REVERSE },
+		},
+	},
 };
 
 static struct platform_t __init *platform_detect(void)
@@ -886,6 +918,9 @@ static struct platform_t __init *platform_detect(void)
 	if (startswith(getvar("pmon_ver"), "CFE")) {
 		/* CFE based - newer hardware */
 		if (!strcmp(boardnum, "42")) { /* Linksys */
+			if (!strcmp(boardtype, "0x478") && !strcmp(getvar("boot_hw_model"), "WRT300N") && !strcmp(getvar("boot_hw_ver"), "1.1"))
+				return &platforms[WRT300NV11];
+
 			if (!strcmp(boardtype, "0x478") && !strcmp(getvar("cardbus"), "1"))
 				return &platforms[WRT350N];
 
@@ -959,6 +994,18 @@ static struct platform_t __init *platform_detect(void)
 		/* unknown asus stuff, probably bcm4702 */
 		if (startswith(boardnum, "asusX"))
 			return &platforms[ASUS_4702];
+
+		/* bcm4702 based Askey RT210W clones, Including:
+		 * Askey RT210W (duh?)
+		 * Siemens SE505v1
+		 * Belkin F5D7230-4 before version v1444 (MiniPCI slot, not integrated)
+		 */
+		if (!strcmp(boardtype,"bcm94710r4")
+		 && !strcmp(boardnum ,"100")
+		 && !strcmp(getvar("pmon_ver"),"v1.03.12.bk")
+		   ){
+			return &platforms[RT210W];
+		}
 	}
 
 	if (buf || !strcmp(boardnum, "00")) {/* probably buffalo */

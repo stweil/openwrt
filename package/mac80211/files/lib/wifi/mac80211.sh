@@ -149,7 +149,7 @@ enable_mac80211() {
 			else
 				offset="0"
 			fi
-			vif_mac="$( printf %02x $(($mac_1 + $offset)) ):$mac_2"
+			vif_mac="$( printf %02x $((0x$mac_1 + $offset)) ):$mac_2"
 		}
 		ifconfig "$ifname" hw ether "$vif_mac"
 
@@ -281,7 +281,7 @@ enable_mac80211() {
 check_device() {
 	config_get phy "$1" phy
 	[ -z "$phy" ] && {
-		find_mac80211_phy "$1" || return 0
+		find_mac80211_phy "$1" >/dev/null || return 0
 		config_get phy "$1" phy
 	}
 	[ "$phy" = "$dev" ] && found=1

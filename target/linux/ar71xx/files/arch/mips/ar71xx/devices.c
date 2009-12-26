@@ -14,7 +14,6 @@
 #include <linux/kernel.h>
 #include <linux/init.h>
 #include <linux/delay.h>
-#include <linux/dma-mapping.h>
 #include <linux/etherdevice.h>
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
@@ -24,153 +23,6 @@
 #include "devices.h"
 
 static u8 ar71xx_mac_base[ETH_ALEN] __initdata;
-
-/*
- * OHCI (USB full speed host controller)
- */
-static struct resource ar71xx_ohci_resources[] = {
-	[0] = {
-		.start	= AR71XX_OHCI_BASE,
-		.end	= AR71XX_OHCI_BASE + AR71XX_OHCI_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= AR71XX_MISC_IRQ_OHCI,
-		.end	= AR71XX_MISC_IRQ_OHCI,
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static struct resource ar7240_ohci_resources[] = {
-	[0] = {
-		.start	= AR7240_OHCI_BASE,
-		.end	= AR7240_OHCI_BASE + AR7240_OHCI_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= AR71XX_CPU_IRQ_USB,
-		.end	= AR71XX_CPU_IRQ_USB,
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static u64 ar71xx_ohci_dmamask = DMA_BIT_MASK(32);
-static struct platform_device ar71xx_ohci_device = {
-	.name		= "ar71xx-ohci",
-	.id		= -1,
-	.resource	= ar71xx_ohci_resources,
-	.num_resources	= ARRAY_SIZE(ar71xx_ohci_resources),
-	.dev = {
-		.dma_mask		= &ar71xx_ohci_dmamask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-	},
-};
-
-/*
- * EHCI (USB full speed host controller)
- */
-static struct resource ar71xx_ehci_resources[] = {
-	[0] = {
-		.start	= AR71XX_EHCI_BASE,
-		.end	= AR71XX_EHCI_BASE + AR71XX_EHCI_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-	[1] = {
-		.start	= AR71XX_CPU_IRQ_USB,
-		.end	= AR71XX_CPU_IRQ_USB,
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-
-static u64 ar71xx_ehci_dmamask = DMA_BIT_MASK(32);
-static struct ar71xx_ehci_platform_data ar71xx_ehci_data;
-
-static struct platform_device ar71xx_ehci_device = {
-	.name		= "ar71xx-ehci",
-	.id		= -1,
-	.resource	= ar71xx_ehci_resources,
-	.num_resources	= ARRAY_SIZE(ar71xx_ehci_resources),
-	.dev = {
-		.dma_mask		= &ar71xx_ehci_dmamask,
-		.coherent_dma_mask	= DMA_BIT_MASK(32),
-		.platform_data		= &ar71xx_ehci_data,
-	},
-};
-
-#define AR71XX_USB_RESET_MASK \
-	(RESET_MODULE_USB_HOST | RESET_MODULE_USB_PHY \
-	| RESET_MODULE_USB_OHCI_DLL)
-
-#define AR7240_USB_RESET_MASK \
-	(RESET_MODULE_USB_HOST | RESET_MODULE_USB_OHCI_DLL_7240)
-
-static void __init ar71xx_usb_setup(void)
-{
-	ar71xx_device_stop(AR71XX_USB_RESET_MASK);
-	mdelay(1000);
-	ar71xx_device_start(AR71XX_USB_RESET_MASK);
-
-	/* Turning on the Buff and Desc swap bits */
-	ar71xx_usb_ctrl_wr(USB_CTRL_REG_CONFIG, 0xf0000);
-
-	/* WAR for HW bug. Here it adjusts the duration between two SOFS */
-	ar71xx_usb_ctrl_wr(USB_CTRL_REG_FLADJ, 0x20c00);
-
-	mdelay(900);
-}
-
-static void __init ar7240_usb_setup(void)
-{
-	ar71xx_ohci_device.resource = ar7240_ohci_resources;
-
-	ar71xx_device_stop(AR7240_USB_RESET_MASK);
-	mdelay(1000);
-	ar71xx_device_start(AR7240_USB_RESET_MASK);
-
-	/* WAR for HW bug. Here it adjusts the duration between two SOFS */
-	ar71xx_usb_ctrl_wr(USB_CTRL_REG_FLADJ, 0x3);
-}
-
-static void __init ar91xx_usb_setup(void)
-{
-	ar71xx_device_stop(RESET_MODULE_USBSUS_OVERRIDE);
-	mdelay(10);
-
-	ar71xx_device_start(RESET_MODULE_USB_HOST);
-	mdelay(10);
-
-	ar71xx_device_start(RESET_MODULE_USB_PHY);
-	mdelay(10);
-}
-
-void __init ar71xx_add_device_usb(void)
-{
-	switch (ar71xx_soc) {
-	case AR71XX_SOC_AR7240:
-		ar7240_usb_setup();
-		platform_device_register(&ar71xx_ohci_device);
-		break;
-
-	case AR71XX_SOC_AR7130:
-	case AR71XX_SOC_AR7141:
-	case AR71XX_SOC_AR7161:
-		ar71xx_usb_setup();
-		platform_device_register(&ar71xx_ohci_device);
-		platform_device_register(&ar71xx_ehci_device);
-		break;
-
-	case AR71XX_SOC_AR9130:
-	case AR71XX_SOC_AR9132:
-		ar91xx_usb_setup();
-		ar71xx_ehci_data.is_ar91xx = 1;
-		platform_device_register(&ar71xx_ehci_device);
-		break;
-
-	default:
-		BUG();
-	}
-}
 
 static struct resource ar71xx_uart_resources[] = {
 	{
@@ -220,7 +72,7 @@ static struct resource ar71xx_mdio_resources[] = {
 
 static struct ag71xx_mdio_platform_data ar71xx_mdio_data;
 
-static struct platform_device ar71xx_mdio_device = {
+struct platform_device ar71xx_mdio_device = {
 	.name		= "ag71xx-mdio",
 	.id		= -1,
 	.resource	= ar71xx_mdio_resources,
@@ -400,7 +252,7 @@ struct ag71xx_platform_data ar71xx_eth0_data = {
 	.reset_bit	= RESET_MODULE_GE0_MAC,
 };
 
-static struct platform_device ar71xx_eth0_device = {
+struct platform_device ar71xx_eth0_device = {
 	.name		= "ag71xx",
 	.id		= 0,
 	.resource	= ar71xx_eth0_resources,
@@ -433,7 +285,7 @@ struct ag71xx_platform_data ar71xx_eth1_data = {
 	.reset_bit	= RESET_MODULE_GE1_MAC,
 };
 
-static struct platform_device ar71xx_eth1_device = {
+struct platform_device ar71xx_eth1_device = {
 	.name		= "ag71xx",
 	.id		= 1,
 	.resource	= ar71xx_eth1_resources,
@@ -665,88 +517,6 @@ void __init ar71xx_add_device_spi(struct ar71xx_spi_platform_data *pdata,
 	platform_device_register(&ar71xx_spi_device);
 }
 
-void __init ar71xx_add_device_leds_gpio(int id, unsigned num_leds,
-				struct gpio_led *leds)
-{
-	struct platform_device *pdev;
-	struct gpio_led_platform_data pdata;
-	struct gpio_led *p;
-	int err;
-
-	p = kmalloc(num_leds * sizeof(*p), GFP_KERNEL);
-	if (!p)
-		return;
-
-	memcpy(p, leds, num_leds * sizeof(*p));
-
-	pdev = platform_device_alloc("leds-gpio", id);
-	if (!pdev)
-		goto err_free_leds;
-
-	memset(&pdata, 0, sizeof(pdata));
-	pdata.num_leds = num_leds;
-	pdata.leds = p;
-
-	err = platform_device_add_data(pdev, &pdata, sizeof(pdata));
-	if (err)
-		goto err_put_pdev;
-
-	err = platform_device_add(pdev);
-	if (err)
-		goto err_put_pdev;
-
-	return;
-
-err_put_pdev:
-	platform_device_put(pdev);
-
-err_free_leds:
-	kfree(p);
-}
-
-void __init ar71xx_add_device_gpio_buttons(int id,
-					   unsigned poll_interval,
-					   unsigned nbuttons,
-					   struct gpio_button *buttons)
-{
-	struct platform_device *pdev;
-	struct gpio_buttons_platform_data pdata;
-	struct gpio_button *p;
-	int err;
-
-	p = kmalloc(nbuttons * sizeof(*p), GFP_KERNEL);
-	if (!p)
-		return;
-
-	memcpy(p, buttons, nbuttons * sizeof(*p));
-
-	pdev = platform_device_alloc("gpio-buttons", id);
-	if (!pdev)
-		goto err_free_buttons;
-
-	memset(&pdata, 0, sizeof(pdata));
-	pdata.poll_interval = poll_interval;
-	pdata.nbuttons = nbuttons;
-	pdata.buttons = p;
-
-	err = platform_device_add_data(pdev, &pdata, sizeof(pdata));
-	if (err)
-		goto err_put_pdev;
-
-
-	err = platform_device_add(pdev);
-	if (err)
-		goto err_put_pdev;
-
-	return;
-
-err_put_pdev:
-	platform_device_put(pdev);
-
-err_free_buttons:
-	kfree(p);
-}
-
 void __init ar71xx_add_device_wdt(void)
 {
 	platform_device_register_simple("ar71xx-wdt", -1, NULL, 0);
@@ -774,36 +544,4 @@ void __init ar71xx_parse_mac_addr(char *mac_str)
 	else
 		printk(KERN_DEBUG "ar71xx: failed to parse mac address "
 				"\"%s\"\n", mac_str);
-}
-
-static struct platform_device ar71xx_dsa_switch_device = {
-	.name		= "dsa",
-	.id		= 0,
-};
-
-void __init ar71xx_add_device_dsa(unsigned int id,
-				  struct dsa_platform_data *d)
-{
-	int i;
-
-	switch (id) {
-	case 0:
-		d->netdev = &ar71xx_eth0_device.dev;
-		break;
-	case 1:
-		d->netdev = &ar71xx_eth1_device.dev;
-		break;
-	default:
-		printk(KERN_ERR
-			"ar71xx: invalid ethernet id %d for DSA switch\n",
-			id);
-		return;
-	}
-
-	for (i = 0; i < d->nr_chips; i++)
-		d->chip[i].mii_bus = &ar71xx_mdio_device.dev;
-
-	ar71xx_dsa_switch_device.dev.platform_data = d;
-
-	platform_device_register(&ar71xx_dsa_switch_device);
 }

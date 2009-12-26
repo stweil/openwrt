@@ -9,17 +9,17 @@
  *  by the Free Software Foundation.
  */
 
-#include <linux/platform_device.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
-#include <linux/input.h>
 
-#include <asm/mips_machine.h>
 #include <asm/mach-ar71xx/ar71xx.h>
 
+#include "machtype.h"
 #include "devices.h"
 #include "dev-m25p80.h"
 #include "dev-ar913x-wmac.h"
+#include "dev-gpio-buttons.h"
+#include "dev-leds-gpio.h"
 
 #define TEW_632BRP_GPIO_LED_STATUS	1
 #define TEW_632BRP_GPIO_LED_WPS		3
