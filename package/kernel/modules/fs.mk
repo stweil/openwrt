@@ -111,12 +111,6 @@ endef
 
 $(eval $(call KernelPackage,fs-ext3))
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),lt,2.6.28)),1)
-	EXT4_NAME:=ext4dev
-else
-	EXT4_NAME:=ext4
-endif
-
 define KernelPackage/fs-ext4
   SUBMENU:=$(FS_MENU)
   TITLE:=EXT4 filesystem support
@@ -129,7 +123,7 @@ define KernelPackage/fs-ext4
 	CONFIG_JBD2
   DEPENDS:= @LINUX_2_6 +kmod-crc16 $(if $(DUMP)$(CONFIG_FS_MBCACHE),+kmod-fs-mbcache)
   FILES:= \
-	$(LINUX_DIR)/fs/ext4/$(EXT4_NAME).$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/fs/ext4/ext4.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/fs/jbd2/jbd2.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,jbd2 $(EXT4_NAME))
 endef
@@ -277,8 +271,7 @@ endef
 
 $(eval $(call KernelPackage,fs-nfsd))
 
-
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.28)),1)
+ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.30)),1)
   MSDOS_DIR:=fat
 endif
 MSDOS_DIR?=msdos
@@ -364,7 +357,7 @@ define KernelPackage/fs-btrfs
 	CONFIG_BTRFS_FS \
 	CONFIG_BTRFS_FS_POSIX_ACL=n
   # for crc32c
-  DEPENDS:=+kmod-crypto-core @!LINUX_2_6_21&&!LINUX_2_6_25&&!LINUX_2_6_28
+  DEPENDS:=+kmod-crypto-core @!LINUX_2_6_21&&!LINUX_2_6_25
   FILES:=\
 	$(LINUX_DIR)/crypto/crc32c.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/lib/libcrc32c.$(LINUX_KMOD_SUFFIX) \

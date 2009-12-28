@@ -12,7 +12,7 @@ WIRELESS_MENU:=Wireless Drivers
 define KernelPackage/ieee80211
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=802.11 Networking stack
-  DEPENDS:=+kmod-crypto-arc4 +kmod-crypto-aes +kmod-crypto-michael-mic @LINUX_2_4||@LINUX_2_6_21||LINUX_2_6_23||LINUX_2_6_24||LINUX_2_6_25||LINUX_2_6_26||LINUX_2_6_28
+  DEPENDS:=+kmod-crypto-arc4 +kmod-crypto-aes +kmod-crypto-michael-mic @LINUX_2_4||@LINUX_2_6_21||LINUX_2_6_25
   KCONFIG:= \
 	CONFIG_IEEE80211 \
 	CONFIG_IEEE80211_CRYPT_WEP \
@@ -167,18 +167,10 @@ ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.30)),1)
 	$(LINUX_DIR)/drivers/net/wireless/$(ORINOCO_DIR)orinoco.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,orinoco)
 else
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.28)),1)
-  FILES:= \
-	$(LINUX_DIR)/drivers/net/wireless/$(ORINOCO_DIR)hermes.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/net/wireless/$(ORINOCO_DIR)orinoco.$(LINUX_KMOD_SUFFIX) \
-    $(LINUX_DIR)/drivers/net/wireless/$(ORINOCO_DIR)hermes_dld.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,hermes hermes_dld orinoco)
-else
   FILES:= \
 	$(LINUX_DIR)/drivers/net/wireless/hermes.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/net/wireless/orinoco.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,hermes orinoco)
-endif
 endif
 endef
 
