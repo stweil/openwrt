@@ -133,8 +133,20 @@ define Image/Build/AP83
 		( \
 			dd if=$(KDIR)/vmlinux-$(2).uImage bs=1280k conv=sync; \
 			dd if=$(KDIR)/root.$(1); \
-		) > $(call imgname,$(1),$(2)-firmware).bin; \
+		) > $(call imgname,$(1),$(2))-sysupgrade.bin; \
 	fi; fi
+endef
+
+define Image/Build/PB4X
+	$(call PatchKernelLzma,$(2),$(3))
+	dd if=$(KDIR)/vmlinux-$(2).bin.lzma \
+	   of=$(call imgname,kernel,$(2)).bin bs=64k conv=sync
+	dd if=$(KDIR)/root.$(1) \
+	   of=$(call imgname,$(1),$(2)-rootfs).bin bs=128k conv=sync
+	-sh $(TOPDIR)/scripts/combined-image.sh \
+		"$(call imgname,kernel,$(2)).bin" \
+		"$(call imgname,$(1),$(2)-rootfs).bin" \
+		$(call imgname,$(1),$(2))-sysupgrade.bin
 endef
 
 define Image/Build/MyLoader
@@ -264,136 +276,100 @@ define Image/Build/WNDR3700
 		-o $(call imgname,$(1),$(2))-factory.img
 endef
 
-define Image/Build/Template/Compex
-	$(call Image/Build/MyLoader,$(1),$(2))
-endef
-
 define Image/Build/Template/Compex/squashfs
-	$(call Image/Build/Template/Compex,squashfs,$(1))
-endef
-
-define Image/Build/Template/WRT400N
-	$(call Image/Build/WRT400N,$(1),$(2),$(3),$(4))
+	$(call Image/Build/MyLoader,squashfs,$(1))
 endef
 
 define Image/Build/Template/WRT400N/squashfs
-	$(call Image/Build/Template/WRT400N,squashfs,$(1),$(2),$(3))
+	$(call Image/Build/WRT400N,squashfs,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/WRT400N/jffs2-64k
-	$(call Image/Build/Template/WRT400N,jffs2-64k,$(1),$(2),$(3))
-endef
-
-define Image/Build/Template/DIR825B1
-	$(call Image/Build/DIR825B1,$(1),$(2),$(3),$(4))
+	$(call Image/Build/WRT400N,jffs2-64k,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/DIR825B1/squashfs
-	$(call Image/Build/Template/DIR825B1,squashfs,$(1),$(2),$(3))
+	$(call Image/Build/DIR825B1,squashfs,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/DIR825B1/jffs2-64k
-	$(call Image/Build/Template/DIR825B1,jffs2-64k,$(1),$(2),$(3))
-endef
-
-define Image/Build/Template/CyberTAN
-	$(call Image/Build/CyberTAN,$(1),$(2),$(3),$(4))
+	$(call Image/Build/DIR825B1,jffs2-64k,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/CyberTAN/squashfs
-	$(call Image/Build/Template/CyberTAN,squashfs,$(1),$(2),$(3))
+	$(call Image/Build/CyberTAN,squashfs,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/CyberTAN/jffs2-64k
-	$(call Image/Build/Template/CyberTAN,jffs2-64k,$(1),$(2),$(3))
-endef
-
-define Image/Build/Template/Cameo
-	$(call Image/Build/Cameo,$(1),$(2),$(3),$(4))
+	$(call Image/Build/CyberTAN,jffs2-64k,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/Cameo/squashfs
-	$(call Image/Build/Template/Cameo,squashfs,$(1),$(2),$(3))
-endef
-
-define Image/Build/Template/AP83
-	$(call Image/Build/AP83,$(1),$(2),$(3))
+	$(call Image/Build/Cameo,squashfs,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/AP83/squashfs
-	$(call Image/Build/Template/AP83,squashfs,$(1),$(2))
+	$(call Image/Build/AP83,squashfs,$(1),$(2))
 endef
 
 define Image/Build/Template/AP83/jffs2-64k
-	$(call Image/Build/Template/AP83,jffs2-64k,$(1),$(2))
-endef
-
-define Image/Build/Template/TPLINK
-	$(call Image/Build/TPLINK,$(1),$(2),$(3),$(4))
+	$(call Image/Build/AP83,jffs2-64k,$(1),$(2))
 endef
 
 define Image/Build/Template/TPLINK/squashfs
-	$(call Image/Build/Template/TPLINK,squashfs,$(1),$(2),$(3))
-endef
-
-define Image/Build/Template/TPLINK4K
-	$(call Image/Build/TPLINK,$(1),$(2),$(3),$(4))
+	$(call Image/Build/TPLINK,squashfs,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/TPLINK4K/squashfs
-	$(call Image/Build/Template/TPLINK,squashfs,$(1),$(2),$(3))
-endef
-
-define Image/Build/Template/UBNT
-	$(call Image/Build/UBNT,$(1),$(2),$(3),$(4),$(5),$(6))
+	$(call Image/Build/TPLINK,squashfs,$(1),$(2),$(3))
 endef
 
 define Image/Build/Template/UBNT/squashfs
-	$(call Image/Build/Template/UBNT,squashfs,$(1),$(2),$(3),$(4),$(5))
+	$(call Image/Build/UBNT,squashfs,$(1),$(2),$(3),$(4),$(5))
 endef
 
 define Image/Build/Template/UBNT/jffs2-64k
-	$(call Image/Build/Template/UBNT,jffs2-64k,$(1),$(2),$(3),$(4),$(5))
-endef
-
-define Image/Build/Template/UBNTXM
-	$(call Image/Build/UBNTXM,$(1),$(2),$(3),$(4),$(5),$(6))
+	$(call Image/Build/UBNT,jffs2-64k,$(1),$(2),$(3),$(4),$(5))
 endef
 
 define Image/Build/Template/UBNTXM/squashfs
-	$(call Image/Build/Template/UBNTXM,squashfs,$(1),$(2),$(3),$(4),$(5))
+	$(call Image/Build/UBNTXM,squashfs,$(1),$(2),$(3),$(4),$(5))
 endef
 
 define Image/Build/Template/UBNTXM/jffs2-64k
-	$(call Image/Build/Template/UBNTXM,jffs2-64k,$(1),$(2),$(3),$(4),$(5))
-endef
-
-define Image/Build/Template/Planex
-	$(call Image/Build/Planex,$(1),$(2),$(3))
+	$(call Image/Build/UBNTXM,jffs2-64k,$(1),$(2),$(3),$(4),$(5))
 endef
 
 define Image/Build/Template/Planex/squashfs
-	$(call Image/Build/Template/Planex,squashfs,$(1),$(2))
+	$(call Image/Build/Planex,squashfs,$(1),$(2))
 endef
 
 define Image/Build/Template/Planex/jffs2-64k
-	$(call Image/Build/Template/Planex,jffs2-64k,$(1),$(2))
-endef
-
-define Image/Build/Template/WNDR3700
-	$(call Image/Build/WNDR3700,$(1),$(2),$(3))
+	$(call Image/Build/Planex,jffs2-64k,$(1),$(2))
 endef
 
 define Image/Build/Template/WNDR3700/squashfs
-	$(call Image/Build/Template/WNDR3700,squashfs,$(1),$(2))
+	$(call Image/Build/WNDR3700,squashfs,$(1),$(2))
 endef
 
 define Image/Build/Template/WNDR3700/jffs2-64k
-	$(call Image/Build/Template/WNDR3700,jffs2-64k,$(1),$(2))
+	$(call Image/Build/WNDR3700,jffs2-64k,$(1),$(2))
+endef
+
+define Image/Build/Profile/AP81
+	$(call Image/Build/Template/AP83/$(1),ap81,board=AP81)
 endef
 
 define Image/Build/Profile/AP83
 	$(call Image/Build/Template/AP83/$(1),ap83,board=AP83)
+endef
+
+define Image/Build/Profile/PB42
+	$(call Image/Build/Template/PB4X/$(1),pb42,board=PB42)
+endef
+
+define Image/Build/Profile/PB44
+	$(call Image/Build/Template/PB4X/$(1),pb44,board=PB44)
 endef
 
 define Image/Build/Profile/WP543
@@ -498,12 +474,15 @@ define Image/Build/Profile/WRT160NL
 endef
 
 define Image/Build/Profile/Default
+	$(call Image/Build/Profile/AP81,$(1))
 	$(call Image/Build/Profile/AP83,$(1))
 	$(call Image/Build/Profile/A02RBW300N,$(1))
 	$(call Image/Build/Profile/DIR615C1,$(1))
 	$(call Image/Build/Profile/DIR825B1,$(1))
 	$(call Image/Build/Profile/MZKW04NU,$(1))
 	$(call Image/Build/Profile/MZKW300NH,$(1))
+	$(call Image/Build/Profile/PB42,$(1))
+	$(call Image/Build/Profile/PB44,$(1))
 	$(call Image/Build/Profile/TEW632BRP,$(1))
 	$(call Image/Build/Profile/TEW652BRP,$(1))
 	$(call Image/Build/Profile/TLWR741NDV1,$(1))
