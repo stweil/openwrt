@@ -76,6 +76,12 @@ define Image/Build/EVA
 	$(call prepare_generic_squashfs,$(BIN_DIR)/openwrt-$(2)-$(KERNEL)-$(1).bin)
 endef
 
+ifeq ($(CONFIG_TARGET_ar7_Sinus),y)
+define Image/Build
+	# Don't build images for Sinus router.
+	# Parameter $(1) = filesystem, e.g. ext2.
+endef
+else
 define Image/Build
 	dd if=$(KDIR)/loader.bin $(call align/$(1)) > $(BIN_DIR)/openwrt-$(BOARD)-$(1).bin
 	cat $(KDIR)/root.$(1) >> $(BIN_DIR)/openwrt-$(BOARD)-$(1).bin
@@ -98,5 +104,6 @@ define Image/Build
 #	$(call Image/Build/sErCoMm,$(1),jdr454wb,$(1))
 	$(call Image/Build/EVA,$(1),EVA)
 endef
+endif
 
 $(eval $(call BuildImage))
