@@ -9,8 +9,10 @@
 import sys
 import os
 import re
+import getopt
 
-DEBUG = 0
+# Commandline options
+opt_dryrun = False
 
 
 def parseVer_1234(match):
@@ -23,7 +25,10 @@ def parseVer_1234(match):
 
 def parseVer_123(match):
 	progname = match.group(1)
-	patchlevel = match.group(5)
+	try:
+		patchlevel = match.group(5)
+	except (IndexError), e:
+		patchlevel = None
 	if patchlevel:
 		patchlevel = ord(patchlevel[0])
 	else:
@@ -36,7 +41,10 @@ def parseVer_123(match):
 
 def parseVer_12(match):
 	progname = match.group(1)
-	patchlevel = match.group(4)
+	try:
+		patchlevel = match.group(4)
+	except (IndexError), e:
+		patchlevel = None
 	if patchlevel:
 		patchlevel = ord(patchlevel[0])
 	else:
@@ -72,18 +80,20 @@ versionRegex = (
 	(re.compile(r"(.+)[-_](\d+)\.(\d+)\.(\d+)\.(\d+)"), parseVer_1234),	# xxx-1.2.3.4
 	(re.compile(r"(.+)[-_](\d\d\d\d)-?(\d\d)-?(\d\d)"), parseVer_ymd),	# xxx-YYYY-MM-DD
 	(re.compile(r"(.+)[-_](\d+)\.(\d+)\.(\d+)(\w?)"), parseVer_123),	# xxx-1.2.3a
+	(re.compile(r"(.+)[-_](\d+)_(\d+)_(\d+)"), parseVer_123),		# xxx-1_2_3
 	(re.compile(r"(.+)[-_](\d+)\.(\d+)(\w?)"), parseVer_12),		# xxx-1.2a
 	(re.compile(r"(.+)[-_]r?(\d+)"), parseVer_r),				# xxx-r1111
 )
 
-blacklist = (
-	re.compile(r"wl_apsta.*"),
-	re.compile(r"boost.*"),
-	re.compile(r".*\.fw"),
-	re.compile(r".*\.arm"),
-	re.compile(r".*\.bin"),
-	re.compile(r"RT\d+_Firmware.*"),
-)
+blacklist = [
+	("linux",		re.compile(r"linux-.*")),
+	("gcc",			re.compile(r"gcc-.*")),
+	("wl_apsta",		re.compile(r"wl_apsta.*")),
+	(".fw",			re.compile(r".*\.fw")),
+	(".arm",		re.compile(r".*\.arm")),
+	(".bin",		re.compile(r".*\.bin")),
+	("rt-firmware",		re.compile(r"RT[\d\w]+_Firmware.*")),
+]
 
 class EntryParseError(Exception): pass
 
@@ -98,8 +108,7 @@ class Entry:
 				filename = filename[0:0-len(ext)]
 				break
 		else:
-			if DEBUG:
-				print "Extension did not match on", filename
+			print self.filename, "has an unknown file-extension"
 			raise EntryParseError("ext")
 		for (regex, parseVersion) in versionRegex:
 			match = regex.match(filename)
@@ -107,14 +116,13 @@ class Entry:
 				(self.progname, self.version) = parseVersion(match)
 				break
 		else:
-			if DEBUG:
-				print "Version regex did not match on", filename
+			print self.filename, "has an unknown version pattern"
 			raise EntryParseError("ver")
 
 	def deleteFile(self):
 		path = (self.directory + "/" + self.filename).replace("//", "/")
 		print "Deleting", path
-		if not DEBUG:
+		if not opt_dryrun:
 			os.unlink(path)
 
 	def __eq__(self, y):
@@ -125,22 +133,54 @@ class Entry:
 
 def usage():
 	print "OpenWRT download directory cleanup utility"
-	print "Usage: " + sys.argv[0] + " path/to/dl"
+	print "Usage: " + sys.argv[0] + " [OPTIONS] <path/to/dl>"
+	print ""
+	print " -d|--dry-run            Do a dry-run. Don't delete any files"
+	print " -B|--show-blacklist     Show the blacklist and exit"
+	print " -w|--whitelist ITEM     Remove ITEM from blacklist"
 
 def main(argv):
-	if len(argv) != 2:
+	global opt_dryrun
+
+	try:
+		(opts, args) = getopt.getopt(argv[1:],
+			"hdBw:",
+			[ "help", "dry-run", "show-blacklist", "whitelist=", ])
+		if len(args) != 1:
+			raise getopt.GetoptError()
+	except getopt.GetoptError:
 		usage()
 		return 1
-	directory = argv[1]
+	directory = args[0]
+	for (o, v) in opts:
+		if o in ("-h", "--help"):
+			usage()
+			return 0
+		if o in ("-d", "--dry-run"):
+			opt_dryrun = True
+		if o in ("-w", "--whitelist"):
+			for i in range(0, len(blacklist)):
+				(name, regex) = blacklist[i]
+				if name == v:
+					del blacklist[i]
+					break
+			else:
+				print "Whitelist error: Item", v,\
+				      "is not in blacklist"
+				return 1
+		if o in ("-B", "--show-blacklist"):
+			for (name, regex) in blacklist:
+				print name
+			return 0
 
 	# Create a directory listing and parse the file names.
 	entries = []
 	for filename in os.listdir(directory):
 		if filename == "." or filename == "..":
 			continue
-		for black in blacklist:
-			if black.match(filename):
-				if DEBUG:
+		for (name, regex) in blacklist:
+			if regex.match(filename):
+				if opt_dryrun:
 					print filename, "is blacklisted"
 				break
 		else:
@@ -167,7 +207,7 @@ def main(argv):
 			for version in versions:
 				if version != lastVersion:
 					version.deleteFile()
-			if DEBUG:
+			if opt_dryrun:
 				print "Keeping", lastVersion.filename
 
 	return 0
