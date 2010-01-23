@@ -19,6 +19,14 @@ config AR71XX_MACH_AP83
 	select AR71XX_DEV_USB
 	default n
 
+config AR71XX_MACH_DIR_600_A1
+	bool "D-Link DIR-600 rev. A1 support"
+	select AR71XX_DEV_AP91_PCI if PCI
+	select AR71XX_DEV_M25P80
+	select AR71XX_DEV_GPIO_BUTTONS
+	select AR71XX_DEV_LEDS_GPIO
+	default n
+
 config AR71XX_MACH_DIR_615_C1
 	bool "D-Link DIR-615 rev. C1 support"
 	select AR71XX_DEV_M25P80
@@ -59,6 +67,14 @@ config AR71XX_MACH_AW_NR580
 	select AR71XX_DEV_PB42_PCI if PCI
 	select AR71XX_DEV_LEDS_GPIO
 	default n
+
+config AR71XX_MACH_WZR_HP_G300NH
+	bool "Buffalo WZR-HP-G300NH board support"
+	select AR71XX_DEV_AR913X_WMAC
+	select AR71XX_DEV_GPIO_BUTTONS
+	select AR71XX_DEV_LEDS_GPIO
+	select AR71XX_DEV_USB
+	default y
 
 config AR71XX_MACH_GENERIC
 	bool "Generic AR71xx based machine support"

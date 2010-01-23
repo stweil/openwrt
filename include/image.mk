@@ -86,6 +86,14 @@ ifneq ($(CONFIG_TARGET_ROOTFS_INITRAMFS),y)
 		( cd $(TARGET_DIR); find . | cpio -o -H newc | gzip -9 >$(BIN_DIR)/openwrt-$(BOARD)-rootfs.cpio.gz )
     endef
   endif
+  ifeq ($(CONFIG_TARGET_ROOTFS_UBIFS),y)
+    define Image/mkfs/ubifs
+		$(CP) ./ubinize.cfg $(KDIR)
+		$(STAGING_DIR_HOST)/bin/mkfs.ubifs $(UBIFS_OPTS) -o $(KDIR)/root.ubifs -d $(TARGET_DIR)
+		(cd $(KDIR); \
+		$(STAGING_DIR_HOST)/bin/ubinize $(UBINIZE_OPTS) -o $(BIN_DIR)/openwrt-$(BOARD)-rootfs.ubi ubinize.cfg)
+    endef
+  endif
 else
   define Image/BuildKernel
 	cp $(KDIR)/vmlinux.elf $(BIN_DIR)/openwrt-$(BOARD)-vmlinux.elf
@@ -118,9 +126,9 @@ endif
 
 
 define Image/mkfs/prepare/default
-	- find $(TARGET_DIR) -type f -not -perm +0100 -not -name 'ssh_host*' | $(XARGS) chmod 0644
-	- find $(TARGET_DIR) -type f -perm +0100 | $(XARGS) chmod 0755
-	- find $(TARGET_DIR) -type d | $(XARGS) chmod 0755
+	- $(FIND) $(TARGET_DIR) -type f -not -perm +0100 -not -name 'ssh_host*' -print0 | $(XARGS) -0 chmod 0644
+	- $(FIND) $(TARGET_DIR) -type f -perm +0100 -print0 | $(XARGS) -0 chmod 0755
+	- $(FIND) $(TARGET_DIR) -type d -print0 | $(XARGS) -0 chmod 0755
 	$(INSTALL_DIR) $(TARGET_DIR)/tmp
 	chmod 0777 $(TARGET_DIR)/tmp
 endef
@@ -150,6 +158,7 @@ ifneq ($(IB),1)
 	$(call Image/mkfs/cpiogz)
 	$(call Image/mkfs/ext2)
 	$(call Image/mkfs/iso)
+	$(call Image/mkfs/ubifs)
 	$(call Image/Checksum)
 else
   install: compile install-targets
@@ -160,6 +169,7 @@ else
 	$(call Image/mkfs/cpiogz)
 	$(call Image/mkfs/ext2)
 	$(call Image/mkfs/iso)
+	$(call Image/mkfs/ubifs)
 	$(call Image/Checksum)
 endif
 

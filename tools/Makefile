@@ -14,7 +14,7 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 tools-$(CONFIG_GCC_VERSION_4_3)$(CONFIG_GCC_VERSION_4_4) += gmp mpfr
 endif
 tools-y += m4 autoconf automake bison pkg-config sed mklibs
-tools-y += sstrip ipkg-utils genext2fs mtd-utils mkimage
+tools-y += sstrip ipkg-utils genext2fs libuuid mtd-utils mkimage
 tools-y += firmware-utils patch-cmdline quilt yaffs2
 tools-$(CONFIG_TARGET_orion) += wrt350nv2-builder upslug2
 ifneq ($(CONFIG_LINUX_2_4)$(CONFIG_LINUX_2_6_21)$(CONFIG_LINUX_2_6_25),)
@@ -41,6 +41,7 @@ $(curdir)/dtc/compile := $(curdir)/bison/install
 $(curdir)/autoconf/compile := $(curdir)/m4/install
 $(curdir)/automake/compile := $(curdir)/m4/install $(curdir)/autoconf/install
 $(curdir)/mpfr/compile := $(curdir)/gmp/install
+$(curdir)/mtd-utils/compile := $(curdir)/libuuid/install
 
 $(curdir)/builddirs := $(tools-y) $(tools-dep) $(tools-)
 $(curdir)/builddirs-default := $(tools-y)

@@ -10,12 +10,12 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-PKG_VERSION:=2010-01-07
-PKG_RELEASE:=8
-PKG_SOURCE_URL:= \
-	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2009/12 \
-	http://wireless.kernel.org/download/compat-wireless-2.6
-PKG_MD5SUM:=f783d3d4a140a76855916b54fa18be47
+PKG_VERSION:=2010-01-15
+PKG_RELEASE:=1
+PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources
+#	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2010/11 \
+#	http://wireless.kernel.org/download/compat-wireless-2.6
+PKG_MD5SUM:=aa6f80ad3fcc2b663e62c7b80d37abd3
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
@@ -39,12 +39,13 @@ endef
 define KernelPackage/mac80211
   $(call KernelPackage/mac80211/Default)
   TITLE:=Linux 802.11 Wireless Networking Stack
-  DEPENDS+= +kmod-crypto-arc4 +kmod-crypto-aes +wireless-tools +iw @!LINUX_2_6_21 @!LINUX_2_6_25
+  DEPENDS+= +kmod-crypto-core +kmod-crypto-arc4 +kmod-crypto-aes +wireless-tools +iw @!LINUX_2_6_21 @!LINUX_2_6_25
   FILES:= \
 	$(PKG_BUILD_DIR)/compat/compat.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/compat/compat_firmware_class.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/net/mac80211/mac80211.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/net/wireless/cfg80211.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,20,compat cfg80211 mac80211)
+  AUTOLOAD:=$(call AutoLoad,20,compat compat_firmware_class cfg80211 mac80211)
 endef
 
 define KernelPackage/mac80211/config

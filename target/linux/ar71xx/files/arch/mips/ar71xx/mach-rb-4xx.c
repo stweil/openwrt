@@ -43,7 +43,7 @@ static struct gpio_button rb4xx_gpio_buttons[] __initdata = {
 		.desc		= "reset_switch",
 		.type		= EV_KEY,
 		.code		= BTN_0,
-		.threshold	= 5,
+		.threshold	= 3,
 		.gpio		= RB4XX_GPIO_RESET_SWITCH,
 		.active_low	= 1,
 	}
@@ -56,6 +56,10 @@ static struct platform_device rb4xx_nand_device = {
 
 static struct ar71xx_pci_irq rb4xx_pci_irqs[] __initdata = {
 	{
+		.slot	= 0,
+		.pin	= 1,
+		.irq	= AR71XX_PCI_IRQ_DEV2,
+	}, {
 		.slot	= 1,
 		.pin	= 1,
 		.irq	= AR71XX_PCI_IRQ_DEV0,
@@ -244,12 +248,12 @@ static void __init rb450_generic_setup(int gige)
 
 	ar71xx_add_device_mdio(0xffffffe0);
 
-	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
+	ar71xx_eth0_data.phy_if_mode = (gige) ? PHY_INTERFACE_MODE_RGMII : PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.phy_mask = 0x0000000f;
 	ar71xx_eth0_data.speed = (gige) ? SPEED_1000 : SPEED_100;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 
-	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth1_data.phy_if_mode = (gige) ? PHY_INTERFACE_MODE_RGMII : PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth1_data.phy_mask = 0x00000010;
 
 	ar71xx_add_device_eth(1);
