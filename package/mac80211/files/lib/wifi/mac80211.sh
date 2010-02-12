@@ -173,14 +173,18 @@ disable_mac80211() (
 	set_wifi_down "$device"
 	# kill all running hostapd and wpa_supplicant processes that
 	# are running on atheros/mac80211 vifs
-	for pid in `pidof hostapd wpa_supplicant`; do
-		grep -E "($phy|wlan)" /proc/$pid/cmdline >/dev/null && \
+	for pid in `pidof hostapd`; do
+		grep -E "$phy" /proc/$pid/cmdline >/dev/null && \
 			kill $pid
 	done
 
 	include /lib/network
 	for wdev in $(ls /sys/class/ieee80211/${phy}/device/net 2>/dev/null); do
 		[ -f "/var/run/$wdev.pid" ] && kill $(cat /var/run/$wdev.pid) >&/dev/null 2>&1
+		for pid in `pidof wpa_supplicant`; do
+			grep "$wdev" /proc/$pid/cmdline >/dev/null && \
+				kill $pid
+		done
 		ifconfig "$wdev" down 2>/dev/null
 		unbridge "$dev"
 		iw dev "$wdev" del
@@ -243,6 +247,7 @@ enable_mac80211() {
 				# Hostapd will handle recreating the interface and
 				# it's accompanying monitor
 				apidx="$(($apidx + 1))"
+				i=$(($i + 1))
 				[ "$apidx" -gt 1 ] || iw phy "$phy" interface add "$ifname" type managed
 			;;
 			mesh)
@@ -307,6 +312,9 @@ enable_mac80211() {
 			local key keystring
 
 			case "$enc" in
+				*none*)
+					config_get keymgmt "$vif" keymgmt
+				;;
 				*wep*)
 					config_get keymgmt "$vif" keymgmt
 					if [ -z "$keymgmt" ]; then
@@ -392,7 +400,18 @@ enable_mac80211() {
 						fi
 					;;
 					*)
-						iw dev "$ifname" connect "$ssid" ${fixed:+$freq} $bssid
+						if [ -z "$keymgmt" ]; then
+							iw dev "$ifname" connect "$ssid" ${fixed:+$freq} $bssid
+						else
+							if eval "type wpa_supplicant_setup_vif" 2>/dev/null >/dev/null; then
+								wpa_supplicant_setup_vif "$vif" wext || {
+									echo "enable_mac80211($device): Failed to set up wpa_supplicant for interface $ifname" >&2
+									# make sure this wifi interface won't accidentally stay open without encryption
+									ifconfig "$ifname" down
+									continue
+								}
+							fi
+						fi
 					;;
 				esac
 

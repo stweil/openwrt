@@ -1,5 +1,5 @@
 
-DEVICENAME ~~ (null|full|ptmx|tty|zero|gpio) {
+DEVICENAME ~~ (null|full|ptmx|tty|zero|gpio|hvc) {
 	nothrottle
 	makedev /dev/%DEVICENAME% 0666
 	next
@@ -33,6 +33,12 @@ DEVPATH is set, SUBSYSTEM ~~ (input) {
 	nothrottle
 	makedev /dev/input/%DEVICENAME% 0644
 }
+
+DEVICENAME == device-mapper {
+       nothrottle
+       makedev /dev/mapper/control 0600
+}
+
 
 DEVPATH is set {
 	nothrottle

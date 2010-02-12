@@ -39,32 +39,11 @@ void prom_putchar(char c)
 	amazon_writel(c, AMAZON_ASC_TBUF);
 }
 
-void prom_printf(const char * fmt, ...)
-{
-	va_list args;
-	int l;
-	char *p, *buf_end;
-	char buf[1024];	
-
-	va_start(args, fmt);
-	/* FIXME - hopefully i < sizeof(buf) */
-	l = vsprintf(buf, fmt, args); 
-	va_end(args);
-	buf_end = buf + l;
-	
-	for (p = buf; p < buf_end; p++)
-		prom_putchar(*p);
-}
-
-
 void __init prom_init(void)
 {
 	char **envp = (char **) fw_arg2;
 
 	int memsize = 16; /* assume 16M as default */
-
-	mips_machgroup = MACH_GROUP_INFINEON;
-	mips_machtype = MACH_INFINEON_AMAZON;
 
 	envp = (char **)KSEG1ADDR((unsigned long)envp);
 	while (*envp) {

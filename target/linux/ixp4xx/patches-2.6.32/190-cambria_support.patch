@@ -398,6 +398,7 @@
 +static struct cambria_board_info * __init cambria_find_board_info(char *model)
 +{
 +	int i;
++	model[6] = '\0';
 +
 +	for (i = 0; i < ARRAY_SIZE(cambria_boards); i++) {
 +		struct cambria_board_info *info = &cambria_boards[i];
@@ -410,10 +411,10 @@
 +
 +static struct memory_accessor *at24_mem_acc;
 +
-+static int at24_setup(struct memory_accessor *mem_acc, void *context)
++static void at24_setup(struct memory_accessor *mem_acc, void *context)
 +{
 +	char mac_addr[ETH_ALEN];
-+	char model[6];
++	char model[7];
 +
 +	at24_mem_acc = mem_acc;
 +
@@ -430,7 +431,6 @@
 +		cambria_info = cambria_find_board_info(model);
 +	}
 +
-+	return 0;
 +}
 +
 +static struct at24_platform_data cambria_eeprom_info = {

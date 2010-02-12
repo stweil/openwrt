@@ -22,7 +22,8 @@
 #define JZ_REG_RTC_CTRL		0x00
 #define JZ_REG_RTC_SEC		0x04
 #define JZ_REG_RTC_SEC_ALARM	0x08
-#define JZ_REG_REGULATOR	0x0C
+#define JZ_REG_RTC_REGULATOR	0x0C
+#define JZ_REG_RTC_SCRATCHPAD	0x34
 
 #define JZ_RTC_CTRL_WRDY	BIT(7)
 #define JZ_RTC_CTRL_1HZ		BIT(6)
@@ -211,6 +212,7 @@ static int __devinit jz4740_rtc_probe(struct platform_device *pdev)
 {
 	int ret;
 	struct jz4740_rtc *rtc;
+	uint32_t scratchpad;
 
 	rtc = kmalloc(sizeof(*rtc), GFP_KERNEL);
 
@@ -258,13 +260,18 @@ static int __devinit jz4740_rtc_probe(struct platform_device *pdev)
 	}
 
 	ret = request_irq(rtc->irq, jz4740_rtc_irq, 0,
-				pdev->name,  rtc);
+				pdev->name, rtc);
 
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to request rtc irq: %d\n", ret);
 		goto err_unregister_rtc;
 	}
-	printk("rtc-ctrl: %d\n", jz4740_rtc_reg_read(rtc, JZ_REG_RTC_CTRL));
+
+	scratchpad = jz4740_rtc_reg_read(rtc, JZ_REG_RTC_SCRATCHPAD);
+	if (scratchpad != 0x12345678) {
+		jz4740_rtc_reg_write(rtc, JZ_REG_RTC_SCRATCHPAD, 0x12345678);
+		jz4740_rtc_reg_write(rtc, JZ_REG_RTC_SEC, 0);
+	}
 
 	return 0;
 
@@ -284,6 +291,8 @@ err_free:
 static int __devexit jz4740_rtc_remove(struct platform_device *pdev)
 {
 	struct jz4740_rtc *rtc = platform_get_drvdata(pdev);
+
+	free_irq(rtc->irq, rtc);
 
 	rtc_device_unregister(rtc->rtc);
 
@@ -322,4 +331,3 @@ MODULE_AUTHOR("Lars-Peter Clausen <lars@metafoo.de>");
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("RTC driver for the JZ4720/JZ4740 SoC\n");
 MODULE_ALIAS("platform:jz4740-rtc");
-MODULE_ALIAS("platform:jz4720-rtc");

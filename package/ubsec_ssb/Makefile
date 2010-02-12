@@ -10,6 +10,7 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=ubsec-ssb
 PKG_VERSION:=2009-02-21
+PKG_RELEASE:=1
 
 CRYPTO_MENU:=OCF Configuration
 
