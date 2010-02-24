@@ -2,6 +2,7 @@
  * swconfig.c: Switch configuration utility
  *
  * Copyright (C) 2008 Felix Fietkau <nbd@openwrt.org>
+ * Copyright (C) 2010 Martin Mares <mj@ucw.cz>
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,9 +35,12 @@
 #include "swlib.h"
 
 enum {
-	GET,
-	SET,
-	LOAD
+	CMD_NONE,
+	CMD_GET,
+	CMD_SET,
+	CMD_LOAD,
+	CMD_HELP,
+	CMD_SHOW,
 };
 
 static void
@@ -80,9 +84,79 @@ list_attributes(struct switch_dev *dev)
 }
 
 static void
+print_attr_val(const struct switch_attr *attr, const struct switch_val *val)
+{
+	int i;
+
+	switch (attr->type) {
+	case SWITCH_TYPE_INT:
+		printf("%d", val->value.i);
+		break;
+	case SWITCH_TYPE_STRING:
+		printf("%s", val->value.s);
+		break;
+	case SWITCH_TYPE_PORTS:
+		for(i = 0; i < val->len; i++) {
+			printf("%d%s ",
+				val->value.ports[i].id,
+				(val->value.ports[i].flags &
+				 SWLIB_PORT_FLAG_TAGGED) ? "t" : "");
+		}
+		break;
+	default:
+		printf("?unknown-type?");
+	}
+}
+
+static void
+show_attrs(struct switch_dev *dev, struct switch_attr *attr, struct switch_val *val)
+{
+	while (attr) {
+		if (attr->type != SWITCH_TYPE_NOVAL) {
+			printf("\t%s: ", attr->name);
+			if (swlib_get_attr(dev, attr, val) < 0)
+				printf("???");
+			else
+				print_attr_val(attr, val);
+			putchar('\n');
+		}
+		attr = attr->next;
+	}
+}
+
+static void
+show_global(struct switch_dev *dev)
+{
+	struct switch_val val;
+
+	printf("Global attributes:\n");
+	show_attrs(dev, dev->ops, &val);
+}
+
+static void
+show_port(struct switch_dev *dev, int port)
+{
+	struct switch_val val;
+
+	printf("Port %d:\n", port);
+	val.port_vlan = port;
+	show_attrs(dev, dev->port_ops, &val);
+}
+
+static void
+show_vlan(struct switch_dev *dev, int vlan)
+{
+	struct switch_val val;
+
+	printf("VLAN %d:\n", vlan);
+	val.port_vlan = vlan;
+	show_attrs(dev, dev->vlan_ops, &val);
+}
+
+static void
 print_usage(void)
 {
-	printf("swconfig dev <dev> [port <port>|vlan <vlan>] (help|set <key> <value>|get <key>|load <config>)\n");
+	printf("swconfig dev <dev> [port <port>|vlan <vlan>] (help|set <key> <value>|get <key>|load <config>|show)\n");
 	exit(1);
 }
 
@@ -122,15 +196,12 @@ int main(int argc, char **argv)
 	int err;
 	int i;
 
-	struct switch_port *ports;
-
-	int cmd = 0;
+	int cmd = CMD_NONE;
 	char *cdev = NULL;
 	int cport = -1;
 	int cvlan = -1;
 	char *ckey = NULL;
 	char *cvalue = NULL;
-	int chelp = 0;
 
 	if(argc < 4)
 		print_usage();
@@ -142,44 +213,38 @@ int main(int argc, char **argv)
 
 	for(i = 3; i < argc; i++)
 	{
-		int p;
-		if (!strcmp(argv[i], "help")) {
-			chelp = 1;
-			continue;
-		}
-		if( i + 1 >= argc)
+		char *arg = argv[i];
+		if (cmd != CMD_NONE) {
 			print_usage();
-		p = atoi(argv[i + 1]);
-		if (!strcmp(argv[i], "port")) {
-			cport = p;
-		} else if (!strcmp(argv[i], "vlan")) {
-			cvlan = p;
-		} else if (!strcmp(argv[i], "set")) {
-			if(argc <= i + 1)
-				print_usage();
-			cmd = SET;
-			ckey = argv[i + 1];
-			if (argc > i + 2)
-				cvalue = argv[i + 2];
-			else
-				cvalue = NULL;
-			i++;
-		} else if (!strcmp(argv[i], "get")) {
-			cmd = GET;
-			ckey = argv[i + 1];
-		} else if (!strcmp(argv[i], "load")) {
+		} else if (!strcmp(arg, "port") && i+1 < argc) {
+			cport = atoi(argv[++i]);
+		} else if (!strcmp(arg, "vlan") && i+1 < argc) {
+			cvlan = atoi(argv[++i]);
+		} else if (!strcmp(arg, "help")) {
+			cmd = CMD_HELP;
+		} else if (!strcmp(arg, "set") && i+1 < argc) {
+			cmd = CMD_SET;
+			ckey = argv[++i];
+			if (i+1 < argc)
+				cvalue = argv[++i];
+		} else if (!strcmp(arg, "get") && i+1 < argc) {
+			cmd = CMD_GET;
+			ckey = argv[++i];
+		} else if (!strcmp(arg, "load") && i+1 < argc) {
 			if ((cport >= 0) || (cvlan >= 0))
 				print_usage();
-
-			ckey = argv[i + 1];
-			cmd = LOAD;
+			cmd = CMD_LOAD;
+			ckey = argv[++i];
+		} else if (!strcmp(arg, "show")) {
+			cmd = CMD_SHOW;
 		} else {
 			print_usage();
 		}
-		i++;
 	}
 
-	if(cport > -1 && cvlan > -1)
+	if (cmd == CMD_NONE)
+		print_usage();
+	if (cport > -1 && cvlan > -1)
 		print_usage();
 
 	dev = swlib_connect(cdev);
@@ -188,17 +253,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	ports = malloc(sizeof(struct switch_port) * dev->ports);
-	memset(ports, 0, sizeof(struct switch_port) * dev->ports);
 	swlib_scan(dev);
 
-	if(chelp)
-	{
-		list_attributes(dev);
-		goto out;
-	}
-
-	if (cmd != LOAD) {
+	if (cmd == CMD_GET || cmd == CMD_SET) {
 		if(cport > -1)
 			a = swlib_lookup_attr(dev, SWLIB_ATTR_GROUP_PORT, ckey);
 		else if(cvlan > -1)
@@ -215,7 +272,7 @@ int main(int argc, char **argv)
 
 	switch(cmd)
 	{
-	case SET:
+	case CMD_SET:
 		if ((a->type != SWITCH_TYPE_NOVAL) &&
 				(cvalue == NULL))
 			print_usage();
@@ -230,7 +287,7 @@ int main(int argc, char **argv)
 			goto out;
 		}
 		break;
-	case GET:
+	case CMD_GET:
 		if(cvlan > -1)
 			val.port_vlan = cvlan;
 		if(cport > -1)
@@ -241,32 +298,32 @@ int main(int argc, char **argv)
 			retval = -1;
 			goto out;
 		}
-		switch(a->type) {
-		case SWITCH_TYPE_INT:
-			printf("%d\n", val.value.i);
-			break;
-		case SWITCH_TYPE_STRING:
-			printf("%s\n", val.value.s);
-			break;
-		case SWITCH_TYPE_PORTS:
-			for(i = 0; i < val.len; i++) {
-				printf("%d%s ",
-					val.value.ports[i].id,
-					(val.value.ports[i].flags &
-					 SWLIB_PORT_FLAG_TAGGED) ? "t" : "");
-			}
-			printf("\n");
-			break;
-		}
+		print_attr_val(a, &val);
+		putchar('\n');
 		break;
-	case LOAD:
+	case CMD_LOAD:
 		swconfig_load_uci(dev, ckey);
+		break;
+	case CMD_HELP:
+		list_attributes(dev);
+		break;
+	case CMD_SHOW:
+		if (cport >= 0 || cvlan >= 0) {
+			if (cport >= 0)
+				show_port(dev, cport);
+			else
+				show_vlan(dev, cvlan);
+		} else {
+			show_global(dev);
+			for (i=0; i < dev->ports; i++)
+				show_port(dev, i);
+			for (i=0; i < dev->vlans; i++)
+				show_vlan(dev, i);
+		}
 		break;
 	}
 
 out:
 	swlib_free_all(dev);
-	free(ports);
-
 	return 0;
 }

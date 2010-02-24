@@ -65,9 +65,9 @@ endif
 ifneq ($(LOCAL_TYPE),hostapd)
   ifdef CONFIG_WPA_SUPPLICANT_NO_TIMESTAMP_CHECK
     TARGET_CFLAGS += -DNO_TIMESTAMP_CHECK
-    DRIVER_MAKEOPTS += \
-		CONFIG_DRIVER_ROBOSWITCH=$(CONFIG_PACKAGE_kmod-switch)
   endif
+  DRIVER_MAKEOPTS += \
+	CONFIG_DRIVER_ROBOSWITCH=$(CONFIG_PACKAGE_kmod-switch)
 endif
 
 define Package/hostapd/Default
@@ -75,7 +75,7 @@ define Package/hostapd/Default
   CATEGORY:=Network
   TITLE:=IEEE 802.1x Authenticator
   URL:=http://hostap.epitest.fi/
-  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny
+  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
 endef
 
@@ -116,7 +116,7 @@ define Package/wpad/Default
   CATEGORY:=Network
   TITLE:=IEEE 802.1x Authenticator/Supplicant
   URL:=http://hostap.epitest.fi/
-  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny
+  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
 endef
 
@@ -146,7 +146,7 @@ define Package/wpa-supplicant
   CATEGORY:=Network
   TITLE:=WPA Supplicant
   URL:=http://hostap.epitest.fi/wpa_supplicant/
-  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny
+  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda
   VARIANT:=supplicant-full
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
 endef
@@ -224,7 +224,8 @@ endef
 define Build/Compile/wpad
 	echo ` \
 		$(call Build/RunMake,hostapd,-s MULTICALL=1 dump_cflags); \
-		$(call Build/RunMake,wpa_supplicant,-s dump_cflags) | sed -e 's,$(TARGET_CFLAGS),,' \
+		$(call Build/RunMake,wpa_supplicant,-s dump_cflags) | \
+		sed -e 's,-n ,,g' -e 's,$(TARGET_CFLAGS),,' \
 	` > $(PKG_BUILD_DIR)/.cflags
 	$(call Build/RunMake,hostapd, \
 		CFLAGS="$$$$(cat $(PKG_BUILD_DIR)/.cflags)" \

@@ -39,6 +39,20 @@ endef
 
 $(eval $(call KernelPackage,ata-ahci))
 
+define KernelPackage/ata-sil
+$(call KernelPackage/ata/Depends,)
+  TITLE:=Silicon Image SATA support
+  KCONFIG:=CONFIG_SATA_SIL
+  FILES:=$(LINUX_DIR)/drivers/ata/sata_sil.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,41,sata_sil)
+endef
+
+define KernelPackage/ata-sil/description
+ Support for Silicon Image Serial ATA controllers.
+endef
+
+$(eval $(call KernelPackage,ata-sil))
+
 
 define KernelPackage/ata-sil24
 $(call KernelPackage/ata/Depends,)
@@ -307,7 +321,7 @@ define KernelPackage/scsi-core
 	CONFIG_SCSI \
 	CONFIG_BLK_DEV_SD
   FILES:= \
-	$(LINUX_DIR)/drivers/scsi/scsi_mod.$(LINUX_KMOD_SUFFIX) \
+	$(if $(findstring y,$(CONFIG_SCSI)),,$(LINUX_DIR)/drivers/scsi/scsi_mod.$(LINUX_KMOD_SUFFIX)) \
 	$(LINUX_DIR)/drivers/scsi/sd_mod.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,scsi_mod) $(call AutoLoad,40,sd_mod)
 endef
@@ -375,6 +389,7 @@ define KernelPackage/dm
        CONFIG_DM_MULTIPATH=n \
        CONFIG_DM_ZERO=n \
        CONFIG_DM_SNAPSHOT=n \
+       CONFIG_DM_LOG_USERSPACE=n \
        CONFIG_MD=y \
        CONFIG_BLK_DEV_DM \
        CONFIG_DM_MIRROR

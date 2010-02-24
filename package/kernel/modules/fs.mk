@@ -61,7 +61,7 @@ $(eval $(call KernelPackage,fs-ntfs))
 
 define KernelPackage/fs-mbcache
   SUBMENU:=$(FS_MENU)
-  TITLE:=mbcache (used by ext2/ext3)
+  TITLE:=mbcache (used by ext2/ext3/ext4)
   KCONFIG:=CONFIG_FS_MBCACHE
   ifneq ($(CONFIG_FS_MBCACHE),)
     FILES:=$(LINUX_DIR)/fs/mbcache.$(LINUX_KMOD_SUFFIX)
@@ -115,7 +115,6 @@ define KernelPackage/fs-ext4
   SUBMENU:=$(FS_MENU)
   TITLE:=EXT4 filesystem support
   KCONFIG:= \
-	CONFIG_EXT4DEV_COMPAT=y \
 	CONFIG_EXT4_FS_XATTR=y \
 	CONFIG_EXT4_FS_POSIX_ACL=y \
 	CONFIG_EXT4_FS_SECURITY=y \
@@ -125,7 +124,7 @@ define KernelPackage/fs-ext4
   FILES:= \
 	$(LINUX_DIR)/fs/ext4/ext4.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/fs/jbd2/jbd2.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,30,jbd2 $(EXT4_NAME))
+  AUTOLOAD:=$(call AutoLoad,30,jbd2 ext4)
 endef
 
 define KernelPackage/fs-ext4/description
@@ -214,13 +213,26 @@ define KernelPackage/fs-nfs-common
   AUTOLOAD:=$(call AutoLoad,30,sunrpc lockd)
 endef
 
-define KernelPackage/fs-nfs-common/2.6
-  KCONFIG+=CONFIG_SUNRPC_GSS
+$(eval $(call KernelPackage,fs-nfs-common))
+
+
+define KernelPackage/fs-nfs-common-v4
+  SUBMENU:=$(FS_MENU)
+  TITLE:=Common NFS V4 filesystem modules
+  KCONFIG+=\
+	CONFIG_SUNRPC_GSS\
+	CONFIG_NFS_V4=y\
+	CONFIG_NFSD_V4=y
+  DEPENDS:= @LINUX_2_6 +kmod-fs-nfs-common
   FILES+=$(LINUX_DIR)/net/sunrpc/auth_gss/auth_rpcgss.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD=$(call AutoLoad,30,sunrpc lockd auth_rpcgss)
+  AUTOLOAD=$(call AutoLoad,30,auth_rpcgss)
 endef
 
-$(eval $(call KernelPackage,fs-nfs-common))
+define KernelPackage/fs-nfs-common-v4/description
+ Kernel modules for NFS V4 & NFSD V4 kernel support
+endef
+
+$(eval $(call KernelPackage,fs-nfs-common-v4))
 
 
 define KernelPackage/fs-nfs

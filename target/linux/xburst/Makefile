@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 ARCH:=mipsel
 BOARD:=xburst
 BOARDNAME:=XBurst JZ47x0
-FEATURES:=jffs2 tgz ubifs
+FEATURES:=jffs2 tgz ubifs audio
 
 LINUX_VERSION:=2.6.32.8
 

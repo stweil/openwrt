@@ -63,20 +63,25 @@ if !TOOLCHAINOPTS
 if !LINUX_2_4
 	config GCC_VERSION_4_2_4
 		default y if avr32
-		default y if TARGET_ppc40x
-		default y if TARGET_ppc44x
 
 	config GCC_VERSION_4_3_3
 		default y if powerpc64
 		default y if TARGET_etrax
 		default y if TARGET_coldfire
 
+	config GCC_VERSION_4_3_4
+		default y if TARGET_gemini
+
 	config GCC_VERSION_4_3_3_CS
-		default y if (mips || mipsel) && !TARGET_octeon
+		default y if (mips || mipsel) && !(TARGET_octeon || TARGET_sibyte)
 		default y if (arm || armeb) && !TARGET_gemini
 
 	config GCC_VERSION_4_4_1
 		default y if ubicom32
-		default y if TARGET_octeon
+
+	config GCC_VERSION_4_4_3
+		default y if powerpc
+		default y if (TARGET_octeon || TARGET_sibyte)
+
 endif
 endif
