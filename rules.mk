@@ -80,7 +80,6 @@ STAMP_DIR_HOST=$(BUILD_DIR_HOST)/stamp
 TARGET_ROOTFS_DIR?=$(if $(call qstrip,$(CONFIG_TARGET_ROOTFS_DIR)),$(call qstrip,$(CONFIG_TARGET_ROOTFS_DIR)),$(BUILD_DIR))
 TARGET_DIR:=$(TARGET_ROOTFS_DIR)/root-$(BOARD)
 STAGING_DIR_ROOT:=$(STAGING_DIR)/root-$(BOARD)
-DEBUG_DIR:=$(BUILD_DIR)/debug-$(BOARD)
 BUILD_LOG_DIR:=$(TOPDIR)/logs
 
 TARGET_PATH:=$(STAGING_DIR_HOST)/bin:$(PATH)
@@ -218,6 +217,10 @@ endef
 define shexport
 $(call shvar,$(1))=$$(call $(1))
 export $(call shvar,$(1))
+endef
+
+define include_mk
+$(eval -include $(if $(DUMP),,$(STAGING_DIR)/mk/$(strip $(1))))
 endef
 
 # file extension
