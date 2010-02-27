@@ -9,7 +9,7 @@ NFSDIR=`dirname $NFSFILE`
 start() {
   touch $NFSFILE
   rm $NFSFILE
-  date `date -r $NFSDIR +%m%d%H%M%Y.%S`
+  date `date -r $NFSDIR +%Y%m%d%H%M.%S`
 }
 
 # eof
