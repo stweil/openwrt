@@ -1,0 +1,14 @@
+Index: linux/drivers/net/cpmac.c
+===================================================================
+--- linux.orig/drivers/net/cpmac.c	2010-03-03 20:54:20.000000000 +0100
++++ linux/drivers/net/cpmac.c	2010-03-03 20:54:38.000000000 +0100
+@@ -1284,8 +1284,8 @@
+ {
+ 	platform_driver_unregister(&cpmac_driver);
+ 	mdiobus_unregister(cpmac_mii);
+-	mdiobus_free(cpmac_mii);
+ 	iounmap(cpmac_mii->priv);
++	mdiobus_free(cpmac_mii);
+ }
+ 
+ module_init(cpmac_init);
