@@ -318,7 +318,36 @@ enable_mac80211() {
 		if [ -n "$rts" ]; then
 			iw phy "$phy" set rts "${rts%%.*}"
 		fi
+	done
 
+	local start_hostapd=
+	rm -f /var/run/hostapd-$phy.conf
+	for vif in $vifs; do
+		config_get mode "$vif" mode
+		[ "$mode" = "ap" ] || continue
+		mac80211_hostapd_setup_bss "$phy" "$vif"
+		start_hostapd=1
+	done
+
+	[ -n "$start_hostapd" ] && {
+		hostapd -P /var/run/wifi-$phy.pid -B /var/run/hostapd-$phy.conf || {
+			echo "Failed to start hostapd for $phy"
+			return
+		}
+		sleep 2
+
+		for vif in $vifs; do
+			config_get mode "$vif" mode
+			config_get ifname "$vif" ifname
+			[ "$mode" = "ap" ] || continue
+			mac80211_start_vif "$vif" "$ifname"
+		done
+	}
+
+	for vif in $vifs; do
+		config_get mode "$vif" mode
+		config_get ifname "$vif" ifname
+		[ ! "$mode" = "ap" ] || continue
 		ifconfig "$ifname" up
 
 		if [ ! "$mode" = "ap" ]; then
@@ -327,6 +356,7 @@ enable_mac80211() {
 			case "$mode" in
 				adhoc)
 					config_get bssid "$vif" bssid
+					config_get ssid "$vif" ssid
 					iw dev "$ifname" ibss join "$ssid" $freq ${fixed:+fixed-freq} $bssid
 				;;
 				sta)
@@ -343,29 +373,6 @@ enable_mac80211() {
 		fi
 	done
 
-	local start_hostapd=
-	rm -f /var/run/hostapd-$phy.conf
-	for vif in $vifs; do
-		config_get mode "$vif" mode
-		[ "$mode" = "ap" ] || continue
-		mac80211_hostapd_setup_bss "$phy" "$vif"
-		start_hostapd=1
-	done
-
-	[ -n "$start_hostapd" ] || return 0
-
-	hostapd -P /var/run/wifi-$phy.pid -B /var/run/hostapd-$phy.conf || {
-		echo "Failed to start hostapd for $phy"
-		return
-	}
-	sleep 2
-
-	for vif in $vifs; do
-		config_get mode "$vif" mode
-		config_get ifname "$vif" ifname
-		[ "$mode" = "ap" ] || continue
-		mac80211_start_vif "$vif" "$ifname"
-	done
 }
 
 

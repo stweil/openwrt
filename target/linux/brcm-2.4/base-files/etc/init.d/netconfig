@@ -14,11 +14,12 @@ start() {
 					case "$1" in
 					vlan[0-9]|vlan1[0-5])
 						local id="${1#vlan}"
+						local ports="${2%\*}"
 						append batch "delete network.eth0.${1}${N}"
 						append batch "set network.eth0_${id}=switch_vlan${N}"
 						append batch "set network.eth0_${id}.device=eth0${N}"
 						append batch "set network.eth0_${id}.vlan=${id}${N}"
-						append batch "set network.eth0_${id}.ports='${2}'${N}"
+						append batch "set network.eth0_${id}.ports='${ports}'${N}"
 					;;
 					esac
 				}
@@ -82,7 +83,7 @@ start() {
 		FS="="
 		c["lan_ifname"]="eth0.0"
 		c["wan_ifname"]="eth0.1"
-		c["vlan0ports"]="1 2 3 4 5*"
+		c["vlan0ports"]="1 2 3 4 5"
 		c["vlan1ports"]="0 5"
 		getline < "/proc/diag/model"
 		model=$0
@@ -112,7 +113,7 @@ start() {
 			c["lan_ifname"] = "eth0"
 		}
 		if (model == "ASUS WL-500g Premium V2") {
-				c["vlan0ports"] = "0 1 2 3 5*"
+				c["vlan0ports"] = "0 1 2 3 5"
 				c["vlan1ports"] = "4 5"
 		}
 		if (model == "Dell TrueMobile 2300") {
@@ -122,7 +123,7 @@ start() {
 			c["vlan1ports"] = ""
 		}
 		if (model == "Dell TrueMobile 2300 v2") {
-			c["vlan0ports"] = "0 1 2 3 5*"
+			c["vlan0ports"] = "0 1 2 3 5"
 			c["vlan1ports"] = "4 5"
 		}
 		if (nvram["boardtype"] == "bcm94710r4") {
@@ -131,17 +132,17 @@ start() {
 			c["wan_ifname"] = "eth1"
 		}
 		if (nvram["boardtype"] == "wgt634u") {
-			c["vlan0ports"] = "0 1 2 3 5*"
+			c["vlan0ports"] = "0 1 2 3 5"
 			c["vlan1ports"] = "4 5"
 		}
 		if (nvram["boardtype"] == "0x0467") {
-			c["vlan0ports"] = "0 1 2 3 5*"
+			c["vlan0ports"] = "0 1 2 3 5"
 			c["vlan1ports"] = "4 5"
 		}
 		if ((nvram["boardtype"] == "0x042f") || (nvram["boardtype"] == "0x0472")) {
 			if (nvram["boardnum"] == "45") {
 				# WL-500gP
-				c["vlan0ports"] = "1 2 3 4 5*"
+				c["vlan0ports"] = "1 2 3 4 5"
 				c["vlan1ports"] = "0 5"
 			} else {
 				# Generic BCM94704
@@ -193,12 +194,12 @@ start() {
 		if (model == "ASUS WL-700gE") {
 			c["lan_ifname"]="eth0.0"
 			c["wan_ifname"]="eth0.1"
-			c["vlan0ports"]="1 2 3 4 5*"
+			c["vlan0ports"]="1 2 3 4 5"
 			c["vlan1ports"]="0 5"
 		}
 
 		if (model == "Motorola WR850G V2/V3") {
-			c["vlan0ports"]="0 1 2 3 5*"
+			c["vlan0ports"]="0 1 2 3 5"
 			c["vlan1ports"]="4 5"
 		}
 		if (model == "ASUS WL-500W") {
@@ -210,7 +211,7 @@ start() {
 		if (model == "OvisLink WL-1600GL") {
 			c["lan_ifname"] = "eth0.0"
 			c["wan_ifname"] = "eth0.1"
-			c["vlan0ports"] = "0 1 2 3 5*"
+			c["vlan0ports"] = "0 1 2 3 5"
 			c["vlan1ports"] = "4 5"
 		}
 

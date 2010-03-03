@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006-2010 OpenWrt.org
 
 setup_switch_hw() {
 	local dev="$1"
@@ -13,7 +13,7 @@ setup_switch_hw() {
 	[ -d "$proc" ] && {
 		echo "$reset"  > "$proc/reset"
 		echo "$evlan"  > "$proc/enable_vlan"
-		echo "$enable" > "$proc/enable"
+		[ -f "$proc/enable" ] && echo "$enable" > "$proc/enable"
 	}
 }
 
@@ -25,13 +25,21 @@ setup_switch_vlan() {
 	config_get vlan  "$s" vlan
 	config_get ports "$s" ports
 
-	[ -n "$dev" ] && [ -n "$vlan" ] && { 
+	[ -n "$dev" ] && [ -n "$vlan" ] && {
+		ports="${ports%\*}"
+
+		[ "$_vlan_pvid_set" = 1 ] || {
+			ports="$ports*"
+			_vlan_pvid_set=1
+		}
+
 		local proc="/proc/switch/$dev/vlan/$vlan/ports"
 		[ -f "$proc" ] && echo "$ports" > "$proc"
 	}
 }
 
 setup_switch() {
+	_vlan_pvid_set=0
 	config_load network
 	config_foreach setup_switch_hw switch
 	config_foreach setup_switch_vlan switch_vlan
