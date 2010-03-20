@@ -79,8 +79,7 @@
 #define AR71XX_PCI_IRQ_BASE     48
 #define AR71XX_PCI_IRQ_COUNT	8
 
-#define AR71XX_CPU_IRQ_PCI	(AR71XX_CPU_IRQ_BASE + 2)
-#define AR71XX_CPU_IRQ_WMAC	(AR71XX_CPU_IRQ_BASE + 2)
+#define AR71XX_CPU_IRQ_IP2	(AR71XX_CPU_IRQ_BASE + 2)
 #define AR71XX_CPU_IRQ_USB	(AR71XX_CPU_IRQ_BASE + 3)
 #define AR71XX_CPU_IRQ_GE0	(AR71XX_CPU_IRQ_BASE + 4)
 #define AR71XX_CPU_IRQ_GE1	(AR71XX_CPU_IRQ_BASE + 5)
@@ -269,6 +268,7 @@ static inline u32 ar71xx_gpio_rr(unsigned reg)
 void ar71xx_gpio_init(void) __init;
 void ar71xx_gpio_function_enable(u32 mask);
 void ar71xx_gpio_function_disable(u32 mask);
+void ar71xx_gpio_function_setup(u32 set, u32 clear);
 
 /*
  * DDR_CTRL block
@@ -355,34 +355,6 @@ void ar71xx_ddr_flush(u32 reg);
 #define AR724X_PCI_APP_LTSSM_ENABLE	BIT(0)
 
 #define AR724X_PCI_INT_DEV0		BIT(14)
-
-static inline void ar724x_pci_wr(unsigned reg, u32 val)
-{
-	void __iomem *base;
-
-	base = ioremap_nocache(AR724X_PCI_CTRL_BASE, AR724X_PCI_CTRL_SIZE);
-	__raw_writel(val, base + reg);
-	iounmap(base);
-}
-
-static inline void ar724x_pci_wr_nf(unsigned reg, u32 val)
-{
-	void __iomem *base;
-
-	base = ioremap_nocache(AR724X_PCI_CTRL_BASE, AR724X_PCI_CTRL_SIZE);
-	iounmap(base);
-}
-
-static inline u32 ar724x_pci_rr(unsigned reg)
-{
-	void __iomem *base;
-	u32 ret;
-
-	base = ioremap_nocache(AR724X_PCI_CTRL_BASE, AR724X_PCI_CTRL_SIZE);
-	ret = __raw_readl(base + reg);
-	iounmap(base);
-	return ret;
-}
 
 /*
  * RESET block

@@ -68,7 +68,7 @@ platform_check_image() {
 	[ "$ARGC" -gt 1 ] && return 1
 
 	case "$board" in
-	ap81 | ap83 | dir-600-a1 | dir-615-c1 | dir-825-b1 | mzk-w04nu | mzk-w300nh | tew-632brp | wrt-400n | bullet-m | nano-m | rocket-m | wzr-hp-g300nh)
+	ap81 | ap83 | dir-600-a1 | dir-615-c1 | dir-825-b1 | mzk-w04nu | mzk-w300nh | tew-632brp | wrt400n | bullet-m | nano-m | rocket-m | wzr-hp-g300nh)
 		[ "$magic" != "2705" ] && {
 			echo "Invalid image type."
 			return 1
@@ -123,7 +123,7 @@ platform_do_upgrade() {
 	local board=$(ar71xx_board_name)
 
 	case "$board" in
-	routerstation | routerstation-pro)
+	routerstation | routerstation-pro | ls-sr71)
 		platform_do_upgrade_combined "$ARGV"
 		;;
 	*)

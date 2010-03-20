@@ -90,6 +90,9 @@ dnsmasq() {
 
 	config_get DOMAIN "$cfg" domain
 
+	config_get_bool readethers "$cfg" readethers
+	[ "$readethers" = "1" ] && [ -e "/etc/ethers" ] || touch /etc/ethers
+
 	config_get leasefile $cfg leasefile
 	[ -e "$leasefile" ] || touch "$leasefile"
 	config_get_bool cachelocal "$cfg" cachelocal 1
@@ -176,13 +179,15 @@ dhcp_host_add() {
 	config_get networkid "$cfg" networkid
 	[ -n "$networkid" ] && dhcp_option_add "$cfg" "$networkid"
 
-	config_get mac "$cfg" mac
-	[ -n "$mac" ] || return 0
-
 	config_get ip "$cfg" ip
 	[ -n "$ip" ] || return 0
 
-	append args "--dhcp-host=$mac,${networkid:+net:$networkid,}$ip${name:+,$name}"
+	macs=""
+	config_get mac "$cfg" mac
+	for m in $mac; do append macs "$m" ","; done
+	[ -n "$macs" ] || return 0
+
+	append args "--dhcp-host=$macs,${networkid:+net:$networkid,}$ip${name:+,$name}"
 }
 
 dhcp_mac_add() {
@@ -235,7 +240,7 @@ dhcp_add() {
 		DNS_SERVERS="$DNS_SERVERS $dnsserver"
 	}
 
-	append_bool "$cfg" ignore "-2 $ifname" && return 0
+	append_bool "$cfg" ignore "-2 '$ifname'" && return 0
 
 	config_get proto "$net" proto
 	[ static = "$proto" ] || return 0
@@ -258,7 +263,7 @@ dhcp_add() {
 
 	leasetime="${leasetime:-12h}"
 	start="$(dhcp_calc "${start:-100}")"
-	limit="$((${limit:-150} + 1))"
+	limit="${limit:-150}"
 	eval "$(ipcalc.sh $ipaddr $netmask $start $limit)"
 	if [ "$dynamicdhcp" = "0" ]; then END="static"; fi
 	append args "--dhcp-range=$networkid,$START,$END,$NETMASK,$leasetime${options:+ $options}"

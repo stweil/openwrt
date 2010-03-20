@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2008-2009 OpenWrt.org
+# Copyright (C) 2008-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -90,26 +90,6 @@ define Image/Build/WRT400N
 	fi; fi
 endef
 
-dir600a1_mtdlayout=mtdparts=spi0.0:192k(u-boot)ro,64k(nvram)ro,896k(kernel),2816k(rootfs),64k(mac)ro,64k(art)ro,3712k@0x40000(firmware)
-define Image/Build/DIR600A1
-	$(call PatchKernelLzma,$(2),$(3) $(dir600a1_mtdlayout))
-	if [ `stat -c%s "$(KDIR)/vmlinux-$(2).bin.lzma"` -gt 917504 ]; then \
-		echo "Warning: $(KDIR)/vmlinux-$(2).bin.lzma is too big"; \
-	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 2818048 ]; then \
-		echo "Warning: $(KDIR)/root.$(1) is too big"; \
-	else \
-		mkimage -A mips -O linux -T kernel -a 0x80060000 -C lzma -e \
-			0x80060000 \
-			-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
-			-d $(KDIR)/vmlinux-$(2).bin.lzma $(KDIR)/vmlinux-$(2).uImage; \
-		( \
-			dd if=$(KDIR)/vmlinux-$(2).uImage bs=896k conv=sync; \
-			dd if=$(KDIR)/root.$(1) bs=2752k conv=sync; \
-			echo -n "AP91-AR7240-RT-090223-00"; \
-		) > $(call imgname,$(1),$(2))-universal.bin; \
-	fi; fi
-endef
-
 dir825b1_mtdlayout=mtdparts=spi0.0:256k(uboot)ro,64k(config)ro,1024k(kernel),5184k(rootfs),64k(caldata)ro,1600k(unknown)ro,6208k@0x50000(firmware)
 define Image/Build/DIR825B1
 	$(call PatchKernelLzma,$(2),$(3) $(dir825b1_mtdlayout))
@@ -163,9 +143,37 @@ define Image/Build/Cameo
 			-d $(KDIR)/vmlinux-$(2).bin.lzma $(KDIR)/vmlinux-$(2).uImage; \
 		( \
 			dd if=$(KDIR)/vmlinux-$(2).uImage bs=896k conv=sync; \
+			dd if=$(KDIR)/root.$(1) \
+		) > $(call imgname,$(1),$(2))-sysupgrade.bin; \
+		( \
+			dd if=$(KDIR)/vmlinux-$(2).uImage bs=896k conv=sync; \
 			dd if=$(KDIR)/root.$(1) bs=2880k conv=sync; \
 			echo -n $(4); \
-		) > $(call imgname,$(1),$(2)).uni; \
+		) > $(call imgname,$(1),$(2))-factory.bin; \
+	fi; fi
+endef
+
+cameo7240_mtdlayout=mtdparts=spi0.0:192k(u-boot)ro,64k(nvram)ro,896k(kernel),2816k(rootfs),64k(mac)ro,64k(art)ro,3712k@0x40000(firmware)
+define Image/Build/Cameo7240
+	$(call PatchKernelLzma,$(2),$(3) $(cameo7240_mtdlayout))
+	if [ `stat -c%s "$(KDIR)/vmlinux-$(2).bin.lzma"` -gt 917504 ]; then \
+		echo "Warning: $(KDIR)/vmlinux-$(2).bin.lzma is too big"; \
+	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt 2818048 ]; then \
+		echo "Warning: $(KDIR)/root.$(1) is too big"; \
+	else \
+		mkimage -A mips -O linux -T kernel -a 0x80060000 -C lzma -e \
+			0x80060000 \
+			-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
+			-d $(KDIR)/vmlinux-$(2).bin.lzma $(KDIR)/vmlinux-$(2).uImage; \
+		( \
+			dd if=$(KDIR)/vmlinux-$(2).uImage bs=896k conv=sync; \
+			dd if=$(KDIR)/root.$(1) \
+		) > $(call imgname,$(1),$(2))-sysupgrade.bin; \
+		( \
+			dd if=$(KDIR)/vmlinux-$(2).uImage bs=896k conv=sync; \
+			dd if=$(KDIR)/root.$(1) bs=2752k conv=sync; \
+			echo -n $(4); \
+		) > $(call imgname,$(1),$(2))-factory.bin; \
 	fi; fi
 endef
 
@@ -205,22 +213,10 @@ define Image/Build/PB4X
 endef
 
 define Image/Build/MyLoader
-	-$(STAGING_DIR_HOST)/bin/mkmylofw -B $(2) \
-		-p0x030000:0xd0000:al:0x80060000:kernel:$(KDIR)/vmlinux.bin.lzma \
-		-p0x100000:0:::rootfs:$(KDIR)/root.$(1) \
-		$(call imgname,$(1),$(2))-2M.img
-	-$(STAGING_DIR_HOST)/bin/mkmylofw -B $(2) -s 0x400000 \
-		-p0x030000:0xd0000:al:0x80060000:kernel:$(KDIR)/vmlinux.bin.lzma \
-		-p0x100000:0:::rootfs:$(KDIR)/root.$(1) \
-		$(call imgname,$(1),$(2))-4M.img
-	-$(STAGING_DIR_HOST)/bin/mkmylofw -B $(2) -s 0x800000 \
-		-p0x030000:0xd0000:al:0x80060000:kernel:$(KDIR)/vmlinux.bin.lzma \
-		-p0x100000:0:::rootfs:$(KDIR)/root.$(1) \
-		$(call imgname,$(1),$(2))-8M.img
-	-$(STAGING_DIR_HOST)/bin/mkmylofw -B $(2) -s 0x1000000 \
-		-p0x030000:0xd0000:al:0x80060000:kernel:$(KDIR)/vmlinux.bin.lzma \
-		-p0x100000:0:::rootfs:$(KDIR)/root.$(1) \
-		$(call imgname,$(1),$(2))-16M.img
+	-$(STAGING_DIR_HOST)/bin/mkmylofw -B $(2) -s $(3) \
+		-p0x030000:0xe0000:al:0x80060000:kernel:$(KDIR)/vmlinux.bin.lzma \
+		-p0x110000:0:::rootfs:$(KDIR)/root.$(1) \
+		$(call imgname,$(1),$(2))-$(4)-factory.img
 endef
 
 ubntxm_mtdlayout=mtdparts=spi0.0:256k(u-boot)ro,64k(u-boot-env)ro,1024k(kernel),6528k(rootfs),256k(cfg)ro,64k(EEPROM)ro,7552k@0x50000(firmware)
@@ -282,7 +278,12 @@ define Image/Build/TPLINK
 		-B $(4) -N OpenWrt -V $(REVISION)\
 		-k $(KDIR)/vmlinux-$(2).bin.gz \
 		-r $(BIN_DIR)/openwrt-$(BOARD)-root.$(1) \
-		-o $(call imgname,$(1),$(2))-universal.bin
+		-o $(call imgname,$(1),$(2))-factory.bin
+	-$(STAGING_DIR_HOST)/bin/mktplinkfw \
+		-B $(4) -N OpenWrt -V $(REVISION) -s \
+		-k $(KDIR)/vmlinux-$(2).bin.gz \
+		-r $(BIN_DIR)/openwrt-$(BOARD)-root.$(1) \
+		-o $(call imgname,$(1),$(2))-sysupgrade.bin
 endef
 
 define Image/Build/TPLINK/initramfs
@@ -404,11 +405,18 @@ define Image/Build/Profile/PB44
 endef
 
 define Image/Build/Profile/WP543
-	$(call Image/Build/Template/$(fs_64k)/$(1),MyLoader,wp543)
+	$(call Image/Build/Template/$(fs_64k)/$(1),MyLoader,wp543,0x200000,2M)
+	$(call Image/Build/Template/$(fs_64k)/$(1),MyLoader,wp543,0x400000,4M)
+	$(call Image/Build/Template/$(fs_64k)/$(1),MyLoader,wp543,0x800000,8M)
+	$(call Image/Build/Template/$(fs_64k)/$(1),MyLoader,wp543,0x1000000,16M)
 endef
 
 define Image/Build/Profile/DIR600A1
-	$(call Image/Build/Template/$(fs_64k)/$(1),DIR600A1,dir-600-a1,board=DIR-600-A1)
+	$(call Image/Build/Template/$(fs_64k)/$(1),Cameo7240,dir-600-a1,board=DIR-600-A1,"AP91-AR7240-RT-090223-00")
+endef
+
+define Image/Build/Profile/FR54RTR
+	$(call Image/Build/Template/$(fs_64k)/$(1),Cameo7240,fr-54rtr,board=DIR-600-A1,"AP91-AR7240-RT-090223-01")
 endef
 
 define Image/Build/Profile/DIR615C1
@@ -523,6 +531,7 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/DIR600A1,$(1))
 	$(call Image/Build/Profile/DIR615C1,$(1))
 	$(call Image/Build/Profile/DIR825B1,$(1))
+	$(call Image/Build/Profile/FR54RTR,$(1))
 	$(call Image/Build/Profile/MZKW04NU,$(1))
 	$(call Image/Build/Profile/MZKW300NH,$(1))
 	$(call Image/Build/Profile/PB42,$(1))

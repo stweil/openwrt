@@ -8,9 +8,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=hostapd
-PKG_VERSION:=20100117
+PKG_VERSION:=20100309
 PKG_RELEASE:=1
-PKG_REV:=43a7fe2e0e614e52fa05ff4d78af91bd4e17d3b2
+PKG_REV:=7b90c16aa9ca377b1a6d160c1ba0f2bd304f7e2f
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=git://w1.fi/srv/git/hostap.git
@@ -75,7 +75,7 @@ define Package/hostapd/Default
   CATEGORY:=Network
   TITLE:=IEEE 802.1x Authenticator
   URL:=http://hostap.epitest.fi/
-  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda
+  DEPENDS:= +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda @(!(TARGET_avr32||TARGET_etrax)||BROKEN)
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
 endef
 
@@ -116,7 +116,7 @@ define Package/wpad/Default
   CATEGORY:=Network
   TITLE:=IEEE 802.1x Authenticator/Supplicant
   URL:=http://hostap.epitest.fi/
-  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda
+  DEPENDS:= +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda @(!(TARGET_avr32||TARGET_etrax)||BROKEN)
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
 endef
 
@@ -146,7 +146,7 @@ define Package/wpa-supplicant
   CATEGORY:=Network
   TITLE:=WPA Supplicant
   URL:=http://hostap.epitest.fi/wpa_supplicant/
-  DEPENDS:=@!TARGET_avr32 @!TARGET_etrax +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda
+  DEPENDS:= +PACKAGE_kmod-mac80211:libnl-tiny +PACKAGE_kmod-mac80211:crda @(!(TARGET_avr32||TARGET_etrax)||BROKEN)
   VARIANT:=supplicant-full
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
 endef
@@ -262,8 +262,6 @@ define Build/Compile
 endef
 
 define Install/hostapd
-	$(INSTALL_DIR) $(1)/etc/hotplug.d/net
-	$(INSTALL_DATA) ./files/hostapd.hotplug $(1)/etc/hotplug.d/net/
 	$(INSTALL_DIR) $(1)/lib/wifi
 	$(INSTALL_DATA) ./files/hostapd.sh $(1)/lib/wifi/hostapd.sh
 	$(INSTALL_DIR) $(1)/usr/sbin

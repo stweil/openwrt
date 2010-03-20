@@ -170,7 +170,19 @@ define KernelPackage/pcmcia-yenta
   SUBMENU:=$(OTHER_MENU)
   TITLE:=yenta socket driver
   DEPENDS:=kmod-pcmcia-core
-  KCONFIG:=CONFIG_YENTA
+  KCONFIG:= \
+	CONFIG_PCMCIA \
+	CONFIG_CARDBUS \
+	CONFIG_YENTA
+endef
+
+define KernelPackage/pcmcia-yenta/2.4
+  FILES:= \
+	$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,41,yenta_socket)
+endef
+
+define KernelPackage/pcmcia-yenta/2.6
   FILES:= \
 	$(LINUX_DIR)/drivers/pcmcia/rsrc_nonstatic.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
@@ -178,6 +190,7 @@ define KernelPackage/pcmcia-yenta
 endef
 
 $(eval $(call KernelPackage,pcmcia-yenta))
+
 
 define KernelPackage/pcmcia-au1000
   SUBMENU:=$(OTHER_MENU)
@@ -518,6 +531,22 @@ define KernelPackage/leds-wndr3700-usb/description
 endef
 
 $(eval $(call KernelPackage,leds-wndr3700-usb))
+
+
+define KernelPackage/leds-rb750
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=RouterBOARD 750 LED support
+  DEPENDS:=@TARGET_ar71xx
+  KCONFIG:=CONFIG_LEDS_RB750
+  FILES:=$(LINUX_DIR)/drivers/leds/leds-rb750.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,60,leds-rb750)
+endef
+
+define KernelPackage/leds-rb750/description
+ Kernel module for the LEDs on the MikroTik RouterBOARD 750.
+endef
+
+$(eval $(call KernelPackage,leds-rb750))
 
 
 define KernelPackage/ledtrig-netdev

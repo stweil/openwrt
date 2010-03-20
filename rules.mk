@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -44,6 +44,23 @@ else
   FPIC:=-fpic
 endif
 
+ARCH_SUFFIX:=
+ifneq ($(findstring -mips32r2,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_r2
+endif
+ifneq ($(findstring -march=armv4,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v4
+endif
+ifneq ($(findstring -march=armv4t,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v4t
+endif
+ifneq ($(findstring -march=armv5t,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v5t
+endif
+ifneq ($(findstring -march=armv5te,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v5te
+endif
+
 DL_DIR:=$(if $(call qstrip,$(CONFIG_DOWNLOAD_FOLDER)),$(call qstrip,$(CONFIG_DOWNLOAD_FOLDER)),$(TOPDIR)/dl)
 BIN_DIR:=$(TOPDIR)/bin/$(BOARD)
 INCLUDE_DIR:=$(TOPDIR)/include
@@ -58,10 +75,10 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
   REAL_GNU_TARGET_NAME=$(OPTIMIZE_FOR_CPU)-openwrt-linux$(if $(TARGET_SUFFIX),-$(TARGET_SUFFIX))
   GNU_TARGET_NAME=$(OPTIMIZE_FOR_CPU)-openwrt-linux
   DIR_SUFFIX:=_$(LIBC)-$(LIBCV)$(if $(CONFIG_EABI_SUPPORT),_eabi)
-  BUILD_DIR:=$(BUILD_DIR_BASE)/target-$(ARCH)$(DIR_SUFFIX)$(if $(BUILD_SUFFIX),_$(BUILD_SUFFIX))
-  STAGING_DIR:=$(TOPDIR)/staging_dir/target-$(ARCH)$(DIR_SUFFIX)
-  BUILD_DIR_TOOLCHAIN:=$(BUILD_DIR_BASE)/toolchain-$(ARCH)_gcc-$(GCCV)$(DIR_SUFFIX)
-  TOOLCHAIN_DIR:=$(TOPDIR)/staging_dir/toolchain-$(ARCH)_gcc-$(GCCV)$(DIR_SUFFIX)
+  BUILD_DIR:=$(BUILD_DIR_BASE)/target-$(ARCH)$(ARCH_SUFFIX)$(DIR_SUFFIX)$(if $(BUILD_SUFFIX),_$(BUILD_SUFFIX))
+  STAGING_DIR:=$(TOPDIR)/staging_dir/target-$(ARCH)$(ARCH_SUFFIX)$(DIR_SUFFIX)
+  BUILD_DIR_TOOLCHAIN:=$(BUILD_DIR_BASE)/toolchain-$(ARCH)$(ARCH_SUFFIX)_gcc-$(GCCV)$(DIR_SUFFIX)
+  TOOLCHAIN_DIR:=$(TOPDIR)/staging_dir/toolchain-$(ARCH)$(ARCH_SUFFIX)_gcc-$(GCCV)$(DIR_SUFFIX)
   PACKAGE_DIR:=$(BIN_DIR)/packages
 else
   ifeq ($(CONFIG_NATIVE_TOOLCHAIN),)
@@ -142,6 +159,7 @@ TARGET_CXX:=$(if $(CONFIG_INSTALL_LIBSTDCPP),$(TARGET_CROSS)g++,no)
 PATCH:=$(SCRIPT_DIR)/patch-kernel.sh
 SED:=$(STAGING_DIR_HOST)/bin/sed -i -e
 CP:=cp -fpR
+LN:=ln -sf
 
 INSTALL_BIN:=install -m0755
 INSTALL_DIR:=install -d -m0755

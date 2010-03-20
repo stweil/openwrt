@@ -55,6 +55,7 @@ enum {
 };
 
 extern int ifxmips_pci_external_clock;
+extern int ifxmips_pci_req_mask;
 
 static unsigned int chiprev;
 static int cmdline_mac;
@@ -70,6 +71,7 @@ struct ifxmips_board {
 	struct gpio_led *ifxmips_leds;
 	struct gpio_led *gpio_leds;
 	int pci_external_clock;
+	int pci_req_mask;
 	int num_devs;
 };
 
@@ -335,9 +337,10 @@ struct ifxmips_board *ifxmips_find_board(void)
 
 int __init ifxmips_init_devices(void)
 {
-	struct ifxmips_board *board = ifxmips_find_board();
+	struct ifxmips_board *board;
 
 	chiprev = (ifxmips_r32(IFXMIPS_MPS_CHIPID) & 0x0FFFFFFF);
+	board = ifxmips_find_board();
 	ifxmips_brn = ifxmips_find_brn_block();
 
 	if (!cmdline_mac)
@@ -392,6 +395,8 @@ int __init ifxmips_init_devices(void)
 	ifxmips_gpio_dev.resource = &board->gpiodev_resource;
 	if (board->pci_external_clock)
 		ifxmips_pci_external_clock = 1;
+	if (board->pci_req_mask)
+		ifxmips_pci_req_mask = board->pci_req_mask;
 	printk(KERN_INFO "using board definition %s\n", board->name);
 	return platform_add_devices(board->devs, board->num_devs);
 }
