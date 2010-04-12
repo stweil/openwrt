@@ -38,7 +38,7 @@
 #define ETH_FCS_LEN	4
 
 #define AG71XX_DRV_NAME		"ag71xx"
-#define AG71XX_DRV_VERSION	"0.5.32"
+#define AG71XX_DRV_VERSION	"0.5.35"
 
 #define AG71XX_NAPI_WEIGHT	64
 #define AG71XX_OOM_REFILL	(1 + HZ/10)
@@ -455,7 +455,12 @@ static void inline ag71xx_mii_ctrl_set_speed(struct ag71xx *ag,
 
 #ifdef CONFIG_AG71XX_AR8216_SUPPORT
 void ag71xx_add_ar8216_header(struct ag71xx *ag, struct sk_buff *skb);
-int ag71xx_remove_ar8216_header(struct ag71xx *ag, struct sk_buff *skb);
+int ag71xx_remove_ar8216_header(struct ag71xx *ag, struct sk_buff *skb,
+				int pktlen);
+static inline int ag71xx_has_ar8216(struct ag71xx *ag)
+{
+	return ag71xx_get_pdata(ag)->has_ar8216;
+}
 #else
 static inline void ag71xx_add_ar8216_header(struct ag71xx *ag,
 					   struct sk_buff *skb)
@@ -463,7 +468,12 @@ static inline void ag71xx_add_ar8216_header(struct ag71xx *ag,
 }
 
 static inline int ag71xx_remove_ar8216_header(struct ag71xx *ag,
-					      struct sk_buff *skb)
+					      struct sk_buff *skb,
+					      int pktlen)
+{
+	return 0;
+}
+static inline int ag71xx_has_ar8216(struct ag71xx *ag)
 {
 	return 0;
 }

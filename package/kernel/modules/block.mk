@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2008 OpenWrt.org
+# Copyright (C) 2006-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -10,7 +10,7 @@ BLOCK_MENU:=Block Devices
 define KernelPackage/ata-core
   SUBMENU:=$(BLOCK_MENU)
   TITLE:=Serial and Parallel ATA support
-  DEPENDS:=@PCI_SUPPORT @LINUX_2_6 +kmod-scsi-core @(!TARGET_ubicom32||!TARGET_etrax)
+  DEPENDS:=@PCI_SUPPORT @LINUX_2_6 +kmod-scsi-core @(!TARGET_ubicom32||!TARGET_etrax||!TARGET_x86)
   KCONFIG:=CONFIG_ATA
   FILES:=$(LINUX_DIR)/drivers/ata/libata.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,21,libata,1)
@@ -21,7 +21,7 @@ $(eval $(call KernelPackage,ata-core))
 
 define KernelPackage/ata/Depends
   SUBMENU:=$(BLOCK_MENU)
-  DEPENDS:=kmod-ata-core $(1)
+  DEPENDS:=!TARGET_x86:kmod-ata-core $(1)
 endef
 
 
@@ -156,6 +156,25 @@ endef
 $(eval $(call KernelPackage,ata-magicbox-cf))
 
 
+define KernelPackage/ata-pdc202xx-old
+  SUBMENU:=$(BLOCK_MENU)
+  TITLE:=Older Promise PATA controller support
+  DEPENDS:=kmod-ata-core
+  KCONFIG:= \
+       CONFIG_ATA_SFF=y \
+       CONFIG_PATA_PDC_OLD
+  FILES:=$(LINUX_DIR)/drivers/ata/pata_pdc202xx_old.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,41,pata_pdc202xx_old,1)
+endef
+
+define KernelPackage/ata-pdc202xx-old/description
+ This option enables support for the Promise 20246, 20262, 20263,
+ 20265 and 20267 adapters.
+endef
+
+$(eval $(call KernelPackage,ata-pdc202xx-old))
+
+
 define KernelPackage/ata-piix
 $(call KernelPackage/ata/Depends,)
   TITLE:=Intel PIIX PATA/SATA support
@@ -193,8 +212,6 @@ define KernelPackage/ide-core
   DEPENDS:=@PCI_SUPPORT
   KCONFIG:= \
 	CONFIG_IDE \
-	CONFIG_IDE_GENERIC \
-	CONFIG_BLK_DEV_GENERIC \
 	CONFIG_BLK_DEV_IDE \
 	CONFIG_BLK_DEV_IDEDISK \
 	CONFIG_IDE_GD \
@@ -203,30 +220,26 @@ define KernelPackage/ide-core
 	CONFIG_BLK_DEV_IDEDMA_PCI=y \
 	CONFIG_BLK_DEV_IDEPCI=y
   FILES:= \
-  	$(LINUX_DIR)/drivers/ide/ide-core.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/drivers/ide/ide-gd_mod.$(LINUX_KMOD_SUFFIX)
+	$(LINUX_DIR)/drivers/ide/ide-core.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:= \
-	$(call AutoLoad,20,ide-core,1) \
-	$(call AutoLoad,40,ide-gd_mod,1)
+	$(call AutoLoad,20,ide-core,1)
 endef
 
 define KernelPackage/ide-core/2.4
-  FILES:= \
-  	$(LINUX_DIR)/drivers/ide/ide-core.$(LINUX_KMOD_SUFFIX) \
+  FILES+= \
 	$(LINUX_DIR)/drivers/ide/ide-detect.$(LINUX_KMOD_SUFFIX) \
   	$(LINUX_DIR)/drivers/ide/ide-disk.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:= \
-	$(call AutoLoad,20,ide-core,1) \
+  AUTOLOAD+= \
 	$(call AutoLoad,35,ide-detect,1) \
 	$(call AutoLoad,40,ide-disk,1)
 endef
 
-ifneq ($(CONFIG_arm)$(CONFIG_powerpc),y)
-  define KernelPackage/ide-core/2.6
-    FILES+=$(LINUX_DIR)/drivers/ide/ide-generic.$(LINUX_KMOD_SUFFIX)
-    AUTOLOAD+=$(call AutoLoad,30,ide-generic,1)
-  endef
-endif
+define KernelPackage/ide-core/2.6
+  FILES+= \
+  	$(LINUX_DIR)/drivers/ide/ide-gd_mod.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD+= \
+	$(call AutoLoad,40,ide-gd_mod,1)
+endef
 
 define KernelPackage/ide-core/description
  Kernel support for IDE, useful for usb mass storage devices (e.g. on WL-HDD)
@@ -243,6 +256,42 @@ define KernelPackage/ide/Depends
   SUBMENU:=$(BLOCK_MENU)
   DEPENDS:=kmod-ide-core $(1)
 endef
+
+
+define KernelPackage/ide-generic
+$(call KernelPackage/ide/Depends,@PCI_SUPPORT)
+  SUBMENU:=$(BLOCK_MENU)
+  TITLE:=Kernel support for generic PCI IDE chipsets
+  KCONFIG:=CONFIG_BLK_DEV_GENERIC
+endef
+
+define KernelPackage/ide-generic/2.4
+  FILES+= \
+	$(LINUX_DIR)/drivers/ide/pci/generic.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD+= \
+	$(call AutoLoad,30,generic,1)
+endef
+
+define KernelPackage/ide-generic/2.6
+  FILES+= \
+	$(LINUX_DIR)/drivers/ide/ide-pci-generic.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD+= \
+	$(call AutoLoad,30,ide-pci-generic,1)
+endef
+
+$(eval $(call KernelPackage,ide-generic))
+
+
+define KernelPackage/ide-generic-old
+$(call KernelPackage/ide/Depends,@LINUX_2_6)
+  SUBMENU:=$(BLOCK_MENU)
+  TITLE:=Kernel support for generic (legacy) IDE chipsets
+  KCONFIG:=CONFIG_IDE_GENERIC
+  FILES:=$(LINUX_DIR)/drivers/ide/ide-generic.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,30,ide-generic,1)
+endef
+
+$(eval $(call KernelPackage,ide-generic-old))
 
 
 define KernelPackage/ide-aec62xx
@@ -302,6 +351,7 @@ $(eval $(call KernelPackage,ide-it821x))
 define KernelPackage/scsi-core
   SUBMENU:=$(BLOCK_MENU)
   TITLE:=SCSI device support
+  DEPENDS:=@!TARGET_x86
   KCONFIG:= \
 	CONFIG_SCSI \
 	CONFIG_BLK_DEV_SD
@@ -379,7 +429,7 @@ define KernelPackage/dm
        CONFIG_BLK_DEV_DM \
        CONFIG_DM_MIRROR
   FILES:=$(LINUX_DIR)/drivers/md/dm-*.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,30,dm-mod dm-region-hash dm-mirror dm-log)
+  AUTOLOAD:=$(call AutoLoad,30,dm-mod dm-log dm-region-hash dm-mirror)
 endef
 
 define KernelPackage/dm/description
@@ -451,7 +501,7 @@ $(eval $(call KernelPackage,axonram))
 define KernelPackage/libsas
   SUBMENU:=$(BLOCK_MENU)
   TITLE:=SAS Domain Transport Attributes
-  DEPENDS:=+kmod-scsi-core @TARGET_x86
+  DEPENDS:=@TARGET_x86
   KCONFIG:=CONFIG_SCSI_SAS_LIBSAS \
 	CONFIG_SCSI_SAS_ATTRS \
 	CONFIG_SCSI_SAS_ATA=y \
@@ -474,7 +524,11 @@ define KernelPackage/mvsas
   TITLE:=Marvell 88SE6440 SAS/SATA driver
   DEPENDS:=@TARGET_x86 +kmod-libsas
   KCONFIG:=CONFIG_SCSI_MVSAS
-  FILES:=$(LINUX_DIR)/drivers/scsi/mvsas.$(LINUX_KMOD_SUFFIX)
+  ifneq ($(CONFIG_LINUX_2_6_25)$(CONFIG_LINUX_2_6_30),)
+	FILES:=$(LINUX_DIR)/drivers/scsi/mvsas.$(LINUX_KMOD_SUFFIX)
+  else
+	FILES:=$(LINUX_DIR)/drivers/scsi/mvsas/mvsas.$(LINUX_KMOD_SUFFIX)
+  endif
   AUTOLOAD:=$(call AutoLoad,40,mvsas,1)
 endef
 

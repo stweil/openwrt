@@ -1,56 +1,6 @@
-diff --git a/Kconfig b/Kconfig
-index 2dc1296..b87fe8a 100644
---- a/Kconfig
-+++ b/Kconfig
-@@ -1,6 +1,6 @@
- config ACX
- 	tristate "TI acx100/acx111 802.11b/g wireless chipsets"
--	depends on NET_RADIO && EXPERIMENTAL && (USB || PCI)
-+	depends on WLAN_PRE80211 && EXPERIMENTAL && (USB || PCI || VLYNQ)
- 	select FW_LOADER
- 	---help---
- 	A driver for 802.11b/g wireless cards based on
-@@ -17,7 +17,7 @@ config ACX
- 
- config ACX_PCI
- 	bool "TI acx100/acx111 802.11b/g PCI"
--	depends on ACX && PCI
-+	depends on ACX && (PCI || VLYNQ)
- 	---help---
- 	Include PCI and CardBus support in acx.
- 
-diff --git a/acx_struct.h b/acx_struct.h
-index 87ce97e..f25b6c7 100644
---- a/acx_struct.h
-+++ b/acx_struct.h
-@@ -1,3 +1,4 @@
-+#define CONFIG_ACX_PCI 1
- /***********************************************************************
- ** Copyright (C) 2003  ACX100 Open Source Project
- **
-@@ -1479,7 +1480,7 @@ struct acx_device {
- };
- 
- static inline acx_device_t*
--ndev2adev(struct net_device *ndev)
-+ndev2adev(const struct net_device *ndev)
- {
- 	return netdev_priv(ndev);
- }
-diff --git a/common.c b/common.c
-index 3926ed7..fa4e786 100644
 --- a/common.c
 +++ b/common.c
-@@ -1713,7 +1713,7 @@ proc_funcs[] = {
- static int
- manage_proc_entries(const struct net_device *ndev, int remove)
- {
--	acx_device_t *adev = ndev2adev((struct net_device *)ndev);
-+	acx_device_t *adev = ndev2adev(ndev);
- 	char procbuf[80];
- 	int i;
- 
-@@ -4155,6 +4155,11 @@ acx_l_process_data_frame_master(acx_device_t *adev, rxbuffer_t *rxbuf)
+@@ -4155,6 +4155,11 @@ acx_l_process_data_frame_master(acx_devi
  		/* To_DS = 0, From_DS = 1 */
  		hdr->fc = WF_FC_FROMDSi + WF_FTYPE_DATAi;
  

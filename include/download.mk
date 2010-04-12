@@ -70,7 +70,9 @@ define DownloadMethod/svn
 		cd $(TMP_DIR)/dl && \
 		rm -rf $(SUBDIR) && \
 		[ \! -d $(SUBDIR) ] && \
-		svn export --non-interactive --trust-server-cert -r$(VERSION) $(URL) $(SUBDIR) && \
+		( svn help export | grep -q trust-server-cert && \
+		svn export --non-interactive --trust-server-cert -r$(VERSION) $(URL) $(SUBDIR) || \
+		svn export --non-interactive -r$(VERSION) $(URL) $(SUBDIR) ) && \
 		echo "Packing checkout..." && \
 		$(call dl_pack,$(TMP_DIR)/dl/$(FILE),$(SUBDIR)) && \
 		mv $(TMP_DIR)/dl/$(FILE) $(DL_DIR)/ && \
@@ -102,10 +104,10 @@ define DownloadMethod/bzr
 		cd $(TMP_DIR)/dl && \
 		rm -rf $(SUBDIR) && \
 		[ \! -d $(SUBDIR) ] && \
-		bzr export -r$(VERSION) $(URL) $(SUBDIR) && \
+		bzr export -r$(VERSION) $(SUBDIR) $(URL) && \
 		echo "Packing checkout..." && \
 		$(call dl_pack,$(TMP_DIR)/dl/$(FILE),$(SUBDIR)) && \
-		mv $(TMP_DIR)/dl/$(FILE) $(DL_DIR)/ &&
+		mv $(TMP_DIR)/dl/$(FILE) $(DL_DIR)/ && \
 		rm -rf $(SUBDIR); \
 	)
 endef

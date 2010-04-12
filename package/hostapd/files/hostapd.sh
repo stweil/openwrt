@@ -106,6 +106,21 @@ hostapd_set_bss_options() {
 	append "$var" "ssid=$ssid" "$N"
 	[ -n "$bridge" ] && append "$var" "bridge=$bridge" "$N"
 	[ -n "$ieee80211d" ] && append "$var" "ieee80211d=$ieee80211d" "$N"
+
+	[ "$wpa" -ge "2" ] && config_get ieee80211w "$vif" ieee80211w
+	case "$ieee80211w" in
+		[012])
+			append "$var" "ieee80211w=$ieee80211w" "$N"
+			[ "$ieee80211w" -gt "0" ] && {
+				config_get ieee80211w_max_timeout "$vif" ieee80211w_max_timeout
+				config_get ieee80211w_retry_timeout "$vif" ieee80211w_retry_timeout
+				[ -n "$ieee80211w_max_timeout" ] && \
+					append "$var" "assoc_sa_query_max_timeout=$ieee80211w_max_timeout" "$N"
+				[ -n "$ieee80211w_retry_timeout" ] && \
+					append "$var" "assoc_sa_query_retry_timeout=$ieee80211w_retry_timeout" "$N"
+			}
+		;;
+	esac
 }
 
 hostapd_setup_vif() {
@@ -119,7 +134,8 @@ hostapd_setup_vif() {
 	config_get channel "$device" channel
 	config_get hwmode "$device" hwmode
 	case "$hwmode" in
-		bg) hwmode=g;;
+		*bg|*gdt|*gst|*fh) hwmode=g;;
+		*adt|*ast) hwmode=a;;
 	esac
 	[ "$channel" = auto ] && channel=
 	[ -n "$channel" -a -z "$hwmode" ] && wifi_fixup_hwmode "$device"
@@ -127,7 +143,7 @@ hostapd_setup_vif() {
 ctrl_interface=/var/run/hostapd-$ifname
 driver=$driver
 interface=$ifname
-${hwmode:+hw_mode=$hwmode}
+${hwmode:+hw_mode=${hwmode#11}}
 ${channel:+channel=$channel}
 $hostapd_cfg
 EOF

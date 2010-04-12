@@ -495,11 +495,11 @@ $(eval $(call KernelPackage,usb-serial-option))
 
 
 define KernelPackage/usb-storage
-$(call KernelPackage/usb/Depends,+kmod-scsi-core)
+$(call KernelPackage/usb/Depends,+!TARGET_x86:kmod-scsi-core)
   TITLE:=USB Storage support
   KCONFIG:=CONFIG_USB_STORAGE
   FILES:=$(LINUX_DIR)/drivers/usb/storage/usb-storage.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,60,scsi_mod sd_mod usb-storage,1)
+  AUTOLOAD:=$(call AutoLoad,60,usb-storage,1)
 endef
 
 define KernelPackage/usb-storage/description
@@ -507,6 +507,44 @@ define KernelPackage/usb-storage/description
 endef
 
 $(eval $(call KernelPackage,usb-storage))
+
+define KernelPackage/usb-storage-extras
+  SUBMENU:=$(USB_MENU)
+  TITLE:=Extra drivers for usb-storage
+  DEPENDS:=@LINUX_2_6 +kmod-usb-storage
+  KCONFIG:= \
+	CONFIG_USB_STORAGE_ALAUDA \
+	CONFIG_USB_STORAGE_CYPRESS_ATACB \
+	CONFIG_USB_STORAGE_DATAFAB \
+	CONFIG_USB_STORAGE_FREECOM \
+	CONFIG_USB_STORAGE_ISD200 \
+	CONFIG_USB_STORAGE_JUMPSHOT \
+	CONFIG_USB_STORAGE_KARMA \
+	CONFIG_USB_STORAGE_SDDR09 \
+	CONFIG_USB_STORAGE_SDDR55 \
+	CONFIG_USB_STORAGE_USBAT
+  FILES:= \
+	$(LINUX_DIR)/drivers/usb/storage/ums-alauda.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-cypress.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-datafab.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-freecom.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-isd200.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-jumpshot.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-karma.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-sddr09.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-sddr55.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/usb/storage/ums-usbat.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,60,ums-alauda ums-cypress ums-datafab \
+				ums-freecom ums-isd200 ums-jumpshot \
+				ums-karma ums-sddr09 ums-sddr55 ums-usbat)
+endef
+
+define KernelPackage/usb-storage-extras/description
+  Say Y here if you want to have some more drivers,
+  such as for SmartMedia card readers.
+endef
+
+$(eval $(call KernelPackage,usb-storage-extras))
 
 
 define KernelPackage/usb-video
@@ -739,7 +777,7 @@ $(eval $(call KernelPackage,usb-net-rndis))
 
 
 define KernelPackage/usb-hid
-$(call KernelPackage/usb/Depends,@LINUX_2_6 +kmod-input-core +kmod-input-evdev +kmod-hid)
+$(call KernelPackage/usb/Depends,@LINUX_2_6 +!TARGET_x86:kmod-input-core +kmod-input-evdev +!TARGET_x86:kmod-hid)
   TITLE:=Support for USB Human Input Devices
   KCONFIG:=CONFIG_HID_SUPPORT=y CONFIG_USB_HID
   FILES:=$(LINUX_DIR)/drivers/$(USBHID_DIR)/usbhid.ko
@@ -755,7 +793,7 @@ $(eval $(call KernelPackage,usb-hid))
 
 
 define KernelPackage/usb-yealink
-$(call KernelPackage/usb/Depends,@LINUX_2_6 +kmod-input-core +kmod-input-evdev)
+$(call KernelPackage/usb/Depends,@LINUX_2_6 +!TARGET_x86:kmod-input-core +kmod-input-evdev)
   TITLE:=USB Yealink VOIP phone
   KCONFIG:=CONFIG_USB_YEALINK CONFIG_INPUT_YEALINK CONFIG_INPUT=m CONFIG_INPUT_MISC=y
   FILES:=$(LINUX_DIR)/drivers/$(USBINPUT_DIR)/yealink.ko
@@ -770,7 +808,7 @@ $(eval $(call KernelPackage,usb-yealink))
 
 
 define KernelPackage/usb-cm109
-$(call KernelPackage/usb/Depends,@LINUX_2_6 +kmod-input-core +kmod-input-evdev)
+$(call KernelPackage/usb/Depends,@LINUX_2_6 +!TARGET_x86:kmod-input-core +kmod-input-evdev)
   TITLE:=Support for CM109 device
   KCONFIG:=CONFIG_USB_CM109 CONFIG_INPUT_CM109 CONFIG_INPUT=m CONFIG_INPUT_MISC=y
   FILES:=$(LINUX_DIR)/drivers/$(USBINPUT_DIR)/cm109.ko

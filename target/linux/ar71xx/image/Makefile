@@ -200,6 +200,27 @@ define Image/Build/AP83
 	fi; fi
 endef
 
+define Image/Build/PB92
+	$(call PatchKernelGzip,$(2),$(3))
+	if [ `stat -c%s $(KDIR)/root.$(1)` -gt 2818048 ]; then \
+		echo "Warning: $(KDIR)/root.$(1) is too big"; \
+	else \
+		mkimage -A mips -O linux -T kernel -a 0x80060000 -C gzip -e \
+			0x80060000 \
+			-n 'MIPS OpenWrt Linux-$(LINUX_VERSION)' \
+			-d $(KDIR)/vmlinux-$(2).bin.gz \
+			$(KDIR)/vmlinux-$(2).uImage; \
+		dd if=$(KDIR)/vmlinux-$(2).uImage \
+			of=$(call imgname,kernel,$(2)).bin bs=64k conv=sync; \
+		dd if=$(KDIR)/root.$(1) \
+			of=$(call imgname,$(1),$(2)-rootfs).bin bs=128k conv=sync; \
+		( \
+			dd if=$(KDIR)/vmlinux-$(2).uImage bs=896k conv=sync; \
+			dd if=$(KDIR)/root.$(1); \
+		) > $(call imgname,$(1),$(2))-sysupgrade.bin; \
+	fi
+endef
+
 define Image/Build/PB4X
 	$(call PatchKernelLzma,$(2),$(3))
 	dd if=$(KDIR)/vmlinux-$(2).bin.lzma \
@@ -289,7 +310,7 @@ endef
 define Image/Build/TPLINK/initramfs
 	$(call PatchKernelGzip,$(2),$(3))
 	-$(STAGING_DIR_HOST)/bin/mktplinkfw -c \
-		-B $(4) -N OpenWrt -V $(REVISION)\
+		-B $(4) -N OpenWrt -V $(REVISION) -s \
 		-k $(KDIR)/vmlinux-$(2).bin.gz \
 		-o $(call imgname,$(1),$(2))-uImage.bin
 endef
@@ -297,16 +318,12 @@ endef
 define Image/Build/CyberTAN
 	$(call PatchKernelGzip,$(2),$(3))
 	$(call MkImageGzip,$(KDIR)/vmlinux-$(2).bin.gz,$(KDIR)/vmlinux-$(2).uImage)
-	( \
-		dd if=$(KDIR)/vmlinux-$(2).uImage bs=64k conv=sync; \
-		dd if=/dev/zero bs=1 count=65476; \
-		dd if=$(KDIR)/root.$(1) bs=64k; \
-	) > $(KDIR)/vmlinux-$(2).image
-	$(STAGING_DIR_HOST)/bin/trx -o $(KDIR)/vmlinux-$(2).trx \
-		-f $(KDIR)/vmlinux-$(2).image
-	-$(STAGING_DIR_HOST)/bin/addpattern -B $(2) -v v$(4) -g \
-		-i $(KDIR)/vmlinux-$(2).trx \
+	$(STAGING_DIR_HOST)/bin/trx -o $(KDIR)/image.tmp -f $(KDIR)/vmlinux-$(2).uImage \
+		-x 32 -a 0x10000 -x -32 -f $(KDIR)/root.$(1)
+	-$(STAGING_DIR_HOST)/bin/addpattern -B $(2) -v v$(4) \
+		-i $(KDIR)/image.tmp \
 		-o $(call imgname,$(1),$(2)).bin
+	rm $(KDIR)/image.tmp
 endef
 
 wndr3700_mtdlayout=mtdparts=spi0.0:320k(u-boot)ro,128k(u-boot-env)ro,1024k(kernel),6656k(rootfs),64k(art)ro,7680k@0x70000(firmware)
@@ -402,6 +419,10 @@ endef
 
 define Image/Build/Profile/PB44
 	$(call Image/Build/Template/$(fs_64k)/$(1),PB4X,pb44,board=PB44)
+endef
+
+define Image/Build/Profile/PB92
+	$(call Image/Build/Template/$(fs_64k)/$(1),PB92,pb92,board=PB92)
 endef
 
 define Image/Build/Profile/WP543
@@ -536,6 +557,7 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/MZKW300NH,$(1))
 	$(call Image/Build/Profile/PB42,$(1))
 	$(call Image/Build/Profile/PB44,$(1))
+	$(call Image/Build/Profile/PB92,$(1))
 	$(call Image/Build/Profile/TEW632BRP,$(1))
 	$(call Image/Build/Profile/TEW652BRP,$(1))
 	$(call Image/Build/Profile/TLWR741NDV1,$(1))

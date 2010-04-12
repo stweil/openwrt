@@ -64,7 +64,7 @@ define KernelPackage/crc16
   TITLE:=CRC16 support
   KCONFIG:=CONFIG_CRC16
   FILES:=$(LINUX_DIR)/lib/crc16.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,20,crc16)
+  AUTOLOAD:=$(call AutoLoad,20,crc16,1)
 endef
 
 define KernelPackage/crc16/description
@@ -133,7 +133,6 @@ define KernelPackage/pcmcia-core
 	CONFIG_PCMCIA \
 	CONFIG_CARDBUS \
 	CONFIG_PCCARD \
-	CONFIG_PCCARD_NONSTATIC \
 	PCMCIA_DEBUG=n
 endef
 
@@ -143,15 +142,15 @@ define KernelPackage/pcmcia-core/2.4
 #	CONFIG_CARDBUS
   FILES:= \
 	$(LINUX_DIR)/drivers/pcmcia/pcmcia_core.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/pcmcia/ds.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,25,pcmcia_core ds)
+	$(LINUX_DIR)/drivers/pcmcia/ds.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,25,pcmcia_core ds yenta_socket)
 endef
 
 define KernelPackage/pcmcia-core/2.6
 #  KCONFIG:= \
 #	CONFIG_PCCARD \
 #	CONFIG_PCMCIA \
-#	CONFIG_PCCARD_NONSTATIC \
 #	PCMCIA_DEBUG=n
   FILES:= \
 	$(LINUX_DIR)/drivers/pcmcia/pcmcia_core.$(LINUX_KMOD_SUFFIX) \
@@ -169,20 +168,10 @@ $(eval $(call KernelPackage,pcmcia-core))
 define KernelPackage/pcmcia-yenta
   SUBMENU:=$(OTHER_MENU)
   TITLE:=yenta socket driver
-  DEPENDS:=kmod-pcmcia-core
+  DEPENDS:=@LINUX_2_6 kmod-pcmcia-core
   KCONFIG:= \
-	CONFIG_PCMCIA \
-	CONFIG_CARDBUS \
+	CONFIG_PCCARD_NONSTATIC \
 	CONFIG_YENTA
-endef
-
-define KernelPackage/pcmcia-yenta/2.4
-  FILES:= \
-	$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,41,yenta_socket)
-endef
-
-define KernelPackage/pcmcia-yenta/2.6
   FILES:= \
 	$(LINUX_DIR)/drivers/pcmcia/rsrc_nonstatic.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
@@ -272,7 +261,7 @@ $(eval $(call KernelPackage,ssb))
 define KernelPackage/bluetooth
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Bluetooth support
-  DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-hid
+  DEPENDS:=@USB_SUPPORT +kmod-usb-core +!TARGET_x86:kmod-hid
   KCONFIG:= \
 	CONFIG_BLUEZ \
 	CONFIG_BLUEZ_L2CAP \
@@ -662,7 +651,7 @@ $(eval $(call KernelPackage,sc520-wdt))
 define KernelPackage/input-core
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Input device core
-  DEPENDS:=@LINUX_2_6
+  DEPENDS:=@LINUX_2_6 @!TARGET_x86
   KCONFIG:=CONFIG_INPUT
   FILES:=$(LINUX_DIR)/drivers/input/input-core.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,19,input-core)
@@ -678,7 +667,7 @@ $(eval $(call KernelPackage,input-core))
 define KernelPackage/input-evdev
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Input event device
-  DEPENDS:=+kmod-input-core
+  DEPENDS:=+!TARGET_x86:kmod-input-core
   KCONFIG:=CONFIG_INPUT_EVDEV
   FILES:=$(LINUX_DIR)/drivers/input/evdev.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,60,evdev)
@@ -694,7 +683,7 @@ $(eval $(call KernelPackage,input-evdev))
 define KernelPackage/hid
   SUBMENU:=$(OTHER_MENU)
   TITLE:=HID Devices
-  DEPENDS:=+kmod-input-core +kmod-input-evdev
+  DEPENDS:=+kmod-input-core +kmod-input-evdev @!TARGET_x86
   KCONFIG:=CONFIG_HID
   FILES:=$(LINUX_DIR)/drivers/hid/hid.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,61,hid)
@@ -710,7 +699,7 @@ $(eval $(call KernelPackage,hid))
 define KernelPackage/input-polldev
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Polled Input device support
-  DEPENDS:=+kmod-input-core @LINUX_2_6
+  DEPENDS:=+!TARGET_x86:kmod-input-core @LINUX_2_6
   KCONFIG:=CONFIG_INPUT_POLLDEV
   FILES:=$(LINUX_DIR)/drivers/input/input-polldev.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,input-polldev)
@@ -726,7 +715,7 @@ $(eval $(call KernelPackage,input-polldev))
 define KernelPackage/input-gpio-keys
   SUBMENU:=$(OTHER_MENU)
   TITLE:=GPIO key support
-  DEPENDS:= @GPIO_SUPPORT +kmod-input-core
+  DEPENDS:= @GPIO_SUPPORT +!TARGET_x86:kmod-input-core
   KCONFIG:=CONFIG_KEYBOARD_GPIO
   FILES:=$(LINUX_DIR)/drivers/input/keyboard/gpio_keys.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,60,gpio_keys)
@@ -760,7 +749,7 @@ $(eval $(call KernelPackage,input-gpio-buttons))
 define KernelPackage/input-joydev
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Joystick device support
-  DEPENDS:=+kmod-input-core
+  DEPENDS:=+!TARGET_x86:kmod-input-core
   KCONFIG:=CONFIG_INPUT_JOYDEV
   FILES:=$(LINUX_DIR)/drivers/input/joydev.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,62,joydev)
@@ -812,7 +801,7 @@ define KernelPackage/cs5535-gpio
   DEPENDS:=@TARGET_x86||@TARGET_olpc
   KCONFIG:=CONFIG_CS5535_GPIO
   FILES:=$(LINUX_DIR)/drivers/char/cs5535_gpio.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,90,cs5535_gpio)
+  AUTOLOAD:=$(call AutoLoad,50,cs5535_gpio)
 endef
 
 define KernelPackage/cs5535-gpio/description
@@ -885,3 +874,34 @@ define KernelPackage/rfkill/description
 endef
 
 $(eval $(call KernelPackage,rfkill))
+
+define KernelPackage/geodewdt
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=Geode/LX Watchdog timer
+  DEPENDS:=@TARGET_x86 @LINUX_2_6
+  KCONFIG:=CONFIG_GEODE_WDT
+  FILES:=$(LINUX_DIR)/drivers/$(WATCHDOG_DIR)/geodewdt.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,50,geodewdt)
+endef
+
+define KernelPackage/geodewdt/description
+  Kernel module for Geode watchdog timer.
+endef
+
+$(eval $(call KernelPackage,geodewdt))
+
+define KernelPackage/pc8736x-gpio
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=PC8736x GPIO support
+  DEPENDS:=@TARGET_x86
+  KCONFIG:=CONFIG_PC8736x_GPIO
+  FILES:=$(LINUX_DIR)/drivers/char/pc8736x_gpio.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,40,pc8736x_gpio)
+endef
+
+define KernelPackage/pc8736x-gpio/description
+ Kernel module for PC8736x GPIO
+endef
+
+$(eval $(call KernelPackage,pc8736x-gpio))
+

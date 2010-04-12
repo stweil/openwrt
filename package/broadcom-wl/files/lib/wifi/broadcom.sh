@@ -128,6 +128,7 @@ enable_broadcom() {
 	config_get txpower "$device" txpower
 	config_get frag "$device" frag
 	config_get rts "$device" rts
+	config_get hwmode "$device" hwmode
 	local vif_pre_up vif_post_up vif_do_up vif_txpower
 	local doth=0
 	local wmm=0
@@ -157,6 +158,15 @@ enable_broadcom() {
 		disable|none|0)
 			macfilter=0;
 		;;
+	esac
+
+	case "$hwmode" in
+		*b)   hwmode=0;;
+		*bg)  hwmode=1;;
+		*g)   hwmode=2;;
+		*gst) hwmode=4;;
+		*lrs) hwmode=5;;
+		*)    hwmode=1;;
 	esac
 
 	for vif in $vifs; do
@@ -238,7 +248,7 @@ enable_broadcom() {
 		append vif_do_up "wpa_auth $auth" "$N"
 		append vif_do_up "wsec_restrict $wsec_r" "$N"
 		append vif_do_up "eap_restrict $eap_r" "$N"
-		
+
 		config_get ssid "$vif" ssid
 		append vif_post_up "vlan_mode 0" "$N"
 		append vif_post_up "ssid $ssid" "$N"
@@ -256,9 +266,9 @@ enable_broadcom() {
 				append vif_pre_up "allow_mode 1" "$N"
 			}
 		} || append vif_pre_up "allow_mode 0" "$N"
-		
+
 		append vif_post_up "enabled 1" "$N"
-		
+
 		config_get ifname "$vif" ifname
 		#append if_up "ifconfig $ifname up" ";$N"
 
@@ -278,7 +288,7 @@ enable_broadcom() {
 				[ -z "$bridge" ] || {
 					append vif_post_up "supplicant 1" "$N"
 					append vif_post_up "passphrase $key" "$N"
-					
+
 					use_nas=0
 				}
 			}
@@ -290,6 +300,7 @@ enable_broadcom() {
 	wlc ifname "$device" stdin <<EOF
 $ifdown
 
+gmode ${hwmode:-1}
 apsta $apsta
 ap $ap
 ${mssid:+mssid $mssid}

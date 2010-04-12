@@ -104,7 +104,7 @@ TARGET_PATH:=$(STAGING_DIR_HOST)/bin:$(PATH)
 TARGET_CFLAGS:=$(TARGET_OPTIMIZATION)$(if $(CONFIG_DEBUG), -g3)
 TARGET_CPPFLAGS:=-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include
 TARGET_LDFLAGS:=-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib
-LIBGCC_S=$(if $(wildcard $(TOOLCHAIN_DIR)/lib/libgcc_s.so),-L$(TOOLCHAIN_DIR)/lib -lgcc_s,$(wildcard $(TOOLCHAIN_DIR)/lib/gcc/*/*/libgcc.a))
+LIBGCC_S=$(if $(wildcard $(TOOLCHAIN_DIR)/lib/libgcc_s.so),-L$(TOOLCHAIN_DIR)/lib -lgcc_s,$(wildcard $(TOOLCHAIN_DIR)/usr/lib/gcc/*/*/libgcc.a))
 
 ifndef DUMP
   ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
@@ -172,7 +172,7 @@ ifneq ($(CONFIG_CCACHE),)
   TARGET_CC:= ccache $(TARGET_CC)
 endif
 
-TARGET_CONFIGURE_OPTS:= \
+TARGET_CONFIGURE_OPTS = \
   AR=$(TARGET_CROSS)ar \
   AS="$(TARGET_CC) -c $(TARGET_CFLAGS)" \
   LD=$(TARGET_CROSS)ld \

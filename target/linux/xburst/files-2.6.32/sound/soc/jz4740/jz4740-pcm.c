@@ -105,10 +105,11 @@ static int jz4740_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct jz4740_pcm_config *config;
 
 	config = rtd->dai->cpu_dai->dma_data;
-	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
-		prtd->dma = jz4740_dma_request(substream, "PCM Playback");
-	} else {
-		prtd->dma = jz4740_dma_request(substream, "PCM Capture");
+	if (!prtd->dma) {
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+			prtd->dma = jz4740_dma_request(substream, "PCM Playback");
+		else
+			prtd->dma = jz4740_dma_request(substream, "PCM Capture");
 	}
 
 	if (!prtd->dma)
@@ -135,8 +136,10 @@ static int jz4740_pcm_hw_free(struct snd_pcm_substream *substream)
 	struct jz4740_runtime_data *prtd = substream->runtime->private_data;
 
 	snd_pcm_set_runtime_buffer(substream, NULL);
-	if (prtd->dma)
+	if (prtd->dma) {
 		jz4740_dma_free(prtd->dma);
+		prtd->dma = NULL;
+	}
 
 	return 0;
 }

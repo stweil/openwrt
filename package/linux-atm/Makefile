@@ -6,6 +6,7 @@
 #
 
 include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=linux-atm
 PKG_VERSION:=2.5.1
@@ -40,37 +41,35 @@ define Package/atm-tools/description
   This package contains the Linux ATM tools.
 endef
 
-define Build/Prepare
-	$(call Build/Prepare/Default)
-	$(INSTALL_BIN) $(SCRIPT_DIR)/config.sub $(SCRIPT_DIR)/config.guess $(PKG_BUILD_DIR)/
-endef
-
 define Build/Configure
 	$(call Build/Configure/Default)
 	# prevent autoheader invocation
 	touch $(PKG_BUILD_DIR)/stamp-h.in
 endef
 
+TARGET_CFLAGS += -I$(LINUX_DIR)/include -I$(LINUX_DIR)/arch/$(LINUX_KARCH)/include
+
 define Build/Compile
+	# src/qgen is built with HOSTCC, which does not really like our LDFLAGS
+	$(MAKE) -C $(PKG_BUILD_DIR)/src/qgen \
+		LDFLAGS="" \
+		all
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all install
 endef
 
-ifneq ($(CONFIG_PACKAGE_linux-atm),)
-  define Build/InstallDev
-	mkdir -p $(1)/usr/include
-	$(CP)	$(PKG_BUILD_DIR)/src/include/atm{,d,sap}.h \
-		$(1)/usr/include/
-	mkdir -p $(1)/usr/lib
-	$(CP)	$(PKG_BUILD_DIR)/src/lib/.libs/libatm.{a,so*} \
-		$(1)/usr/lib/
-  endef
-endif
+define Build/InstallDev
+	$(INSTALL_DIR) $(1)/usr
+	$(CP) \
+		$(PKG_INSTALL_DIR)/usr/include \
+		$(PKG_INSTALL_DIR)/usr/lib \
+		$(1)/usr/
+endef
 
 define Package/linux-atm/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/src/lib/.libs/libatm.so.* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libatm.so* $(1)/usr/lib/
 endef
 
 define Package/atm-tools/install

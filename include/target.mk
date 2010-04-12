@@ -12,7 +12,7 @@ __target_inc=1
 DEVICE_TYPE?=router
 
 # Default packages - the really basic set
-DEFAULT_PACKAGES:=base-files libc libgcc busybox dropbear mtd uci opkg ucitrigger
+DEFAULT_PACKAGES:=base-files libc libgcc busybox dropbear mtd uci opkg
 # For router targets
 DEFAULT_PACKAGES.router:=dnsmasq iptables ppp ppp-mod-pppoe kmod-ipt-nathelper firewall
 DEFAULT_PACKAGES.bootloader:=
@@ -148,7 +148,9 @@ ifeq ($(DUMP),1)
       FEATURES += pcie
     endif
     ifneq ($(CONFIG_USB)$(CONFIG_USB_SUPPORT),)
-      FEATURES += usb
+      ifneq ($(CONFIG_USB_ARCH_HAS_HCD)$(CONFIG_USB_EHCI_HCD),)
+        FEATURES += usb
+      endif
     endif
     ifneq ($(CONFIG_PCMCIA)$(CONFIG_PCCARD),)
       FEATURES += pcmcia

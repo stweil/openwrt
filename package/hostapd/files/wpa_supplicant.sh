@@ -50,28 +50,25 @@ wpa_supplicant_setup_vif() {
 		*psk*)
 			key_mgmt='WPA-PSK'
 			config_get_bool usepassphrase "$vif" passphrase 1
+			if [ "$usepassphrase" = "1" ]; then
+				passphrase="psk=\"${key}\""
+			else
+				passphrase="psk=${key}"
+			fi
 			case "$enc" in
 				*psk2*)
 					proto='proto=RSN'
-					if [ "$usepassphrase" = "1" ]; then
-						passphrase="psk=\"${key}\""
-					else
-						passphrase="psk=${key}"
-					fi
+					config_get ieee80211w "$vif" ieee80211w
 				;;
 				*psk*)
 					proto='proto=WPA'
-					if [ "$usepassphrase" = "1" ]; then
-						passphrase="psk=\"${key}\""
-					else
-						passphrase="psk=${key}"
-					fi
 				;;
 			esac
 		;;
 		*wpa*|*8021x*)
 			proto='proto=WPA2'
 			key_mgmt='WPA-EAP'
+			config_get ieee80211w "$vif" ieee80211w
 			config_get ca_cert "$vif" ca_cert
 			ca_cert=${ca_cert:+"ca_cert=\"$ca_cert\""}
 			case "$eap_type" in
@@ -95,6 +92,13 @@ wpa_supplicant_setup_vif() {
 			eap_type="eap=$(echo $eap_type | tr 'a-z' 'A-Z')"
 		;;
 	esac
+
+	case "$ieee80211w" in
+		[012])
+			ieee80211w="ieee80211w=$ieee80211w"
+		;;
+	esac
+
 	config_get ifname "$vif" ifname
 	config_get bridge "$vif" bridge
 	config_get ssid "$vif" ssid
@@ -109,6 +113,7 @@ network={
 	$bssid
 	key_mgmt=$key_mgmt
 	$proto
+	$ieee80211w
 	$passphrase
 	$pairwise
 	$group

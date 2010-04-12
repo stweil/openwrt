@@ -614,7 +614,8 @@ static netdev_tx_t ag71xx_hard_start_xmit(struct sk_buff *skb,
 	if (!ag71xx_desc_empty(desc))
 		goto err_drop;
 
-	ag71xx_add_ar8216_header(ag, skb);
+	if (ag71xx_has_ar8216(ag))
+		ag71xx_add_ar8216_header(ag, skb);
 
 	if (skb->len <= 0) {
 		DBG("%s: packet len is too small\n", ag->dev->name);
@@ -758,6 +759,32 @@ static int ag71xx_tx_packets(struct ag71xx *ag)
 	return sent;
 }
 
+static int ag71xx_rx_copy_skb(struct ag71xx *ag, struct sk_buff **pskb,
+			      int pktlen)
+{
+	struct sk_buff *copy_skb;
+
+	if (ag->phy_dev && (ag->phy_dev->pkt_align % 4) == 2)
+		goto keep;
+
+	copy_skb = netdev_alloc_skb(ag->dev, pktlen + NET_IP_ALIGN);
+	if (!copy_skb)
+		return -ENOMEM;
+
+	skb_reserve(copy_skb, NET_IP_ALIGN);
+	skb_copy_from_linear_data(*pskb, copy_skb->data, pktlen);
+	skb_put(copy_skb, pktlen);
+
+	dev_kfree_skb_any(*pskb);
+	*pskb = copy_skb;
+
+	return 0;
+
+ keep:
+	skb_put(*pskb, pktlen);
+	return 0;
+}
+
 static int ag71xx_rx_packets(struct ag71xx *ag, int limit)
 {
 	struct net_device *dev = ag->dev;
@@ -772,6 +799,7 @@ static int ag71xx_rx_packets(struct ag71xx *ag, int limit)
 		struct ag71xx_desc *desc = ring->buf[i].desc;
 		struct sk_buff *skb;
 		int pktlen;
+		int err = 0;
 
 		if (ag71xx_desc_empty(desc))
 			break;
@@ -790,21 +818,27 @@ static int ag71xx_rx_packets(struct ag71xx *ag, int limit)
 		dma_unmap_single(&dev->dev, ring->buf[i].dma_addr,
 				 AG71XX_RX_PKT_SIZE, DMA_FROM_DEVICE);
 
-		skb_put(skb, pktlen);
-
-		skb->dev = dev;
-		skb->ip_summed = CHECKSUM_NONE;
-
 		dev->last_rx = jiffies;
 		dev->stats.rx_packets++;
 		dev->stats.rx_bytes += pktlen;
 
-		if (ag71xx_remove_ar8216_header(ag, skb) != 0) {
+		if (ag71xx_has_ar8216(ag))
+			err = ag71xx_remove_ar8216_header(ag, skb, pktlen);
+		else
+			err = ag71xx_rx_copy_skb(ag, &skb, pktlen);
+
+		if (err) {
 			dev->stats.rx_dropped++;
 			kfree_skb(skb);
 		} else {
-			skb->protocol = eth_type_trans(skb, dev);
-			netif_receive_skb(skb);
+			skb->dev = dev;
+			skb->ip_summed = CHECKSUM_NONE;
+			if (ag->phy_dev) {
+				ag->phy_dev->netif_receive_skb(skb);
+			} else {
+				skb->protocol = eth_type_trans(skb, dev);
+				netif_receive_skb(skb);
+			}
 		}
 
 		ring->buf[i].skb = NULL;
@@ -926,6 +960,20 @@ static void ag71xx_set_multicast_list(struct net_device *dev)
 	/* TODO */
 }
 
+#ifdef CONFIG_NET_POLL_CONTROLLER
+/*
+ * Polling 'interrupt' - used by things like netconsole to send skbs
+ * without having to re-enable interrupts. It's not called while
+ * the interrupt routine is executing.
+ */
+static void ag71xx_netpoll(struct net_device *dev)
+{
+	disable_irq(dev->irq);
+	ag71xx_interrupt(dev->irq, dev);
+	enable_irq(dev->irq);
+}
+#endif
+
 static const struct net_device_ops ag71xx_netdev_ops = {
 	.ndo_open		= ag71xx_open,
 	.ndo_stop		= ag71xx_stop,
@@ -936,6 +984,9 @@ static const struct net_device_ops ag71xx_netdev_ops = {
 	.ndo_change_mtu		= eth_change_mtu,
 	.ndo_set_mac_address	= eth_mac_addr,
 	.ndo_validate_addr	= eth_validate_addr,
+#ifdef CONFIG_NET_POLL_CONTROLLER
+	.ndo_poll_controller	= ag71xx_netpoll,
+#endif
 };
 
 static int __init ag71xx_probe(struct platform_device *pdev)
