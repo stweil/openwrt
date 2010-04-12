@@ -70,7 +70,7 @@ define Build/Compile
 		EXTRA_CFLAGS="$(PKG_EXTRA_CFLAGS)" \
 		LINUXINCLUDE="-I$(STAGING_DIR)/usr/include/mac80211 -I$(LINUX_DIR)/include \
 			-Iarch/$(LINUX_KARCH)/include \
-			-include linux/autoconf.h" \
+			-include generated/autoconf.h" \
 		V="$(V)" \
 		modules
 endef
