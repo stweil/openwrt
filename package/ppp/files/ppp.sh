@@ -1,63 +1,40 @@
-scan_ppp() {
-	config_get ifname "$1" ifname
-	pppdev="${pppdev:-0}"
-	config_get devunit "$1" unit
-	{
-	        unit=
-	        pppif=
-	        if [ ! -d /tmp/.ppp-counter ]; then
-	       	     mkdir -p /tmp/.ppp-counter
-	        fi
-	        local maxunit
-	        maxunit="$(cat /tmp/.ppp-counter/max-unit 2>/dev/null)" 
-	        if [ -z "$maxunit" ]; then
-	            maxunit=-1
-	        fi
-	        local i
-	        i=0
-	        while [ $i -le $maxunit ]; do
-	             local unitdev
-	             unitdev="$(cat /tmp/.ppp-counter/ppp${i} 2>/dev/null)"
-	             if [ "$unitdev" = "$1" ]; then
-	                  unit="$i"
-	                  pppif="ppp${i}"
-	                  break
-	             fi
-	             i="$(($i + 1))"
-	        done 
-	        if [ -z "$unit" ] || [ -z "$pppif" ]; then
-	            maxunit="$(($maxunit + 1))"
-	            if [ -n "$devunit" ]; then
-	             	unit="$devunit"
-		    elif [ "${ifname%%[0-9]*}" = ppp ]; then
-			 unit="${ifname##ppp}"
-	            else
-	                 unit="$maxunit"
-	            fi 
-         	    [ "$maxunit" -lt "$unit" ] && maxunit="$unit"
-		    pppif="ppp${unit}"
-		    echo "$1" >/tmp/.ppp-counter/$pppif 2>/dev/null
-		    echo "$maxunit" >/tmp/.ppp-counter/max-unit 2>/dev/null
-	        fi
-		config_set "$1" ifname "ppp$unit"
-		config_set "$1" unit "$unit"
+stop_interface_ppp() {
+	local cfg="$1"
+
+	local proto
+	config_get proto "$cfg" proto
+
+	local link="$proto-$cfg"
+	[ -f "/var/run/ppp-${link}.pid" ] && {
+		local pid="$(head -n1 /var/run/ppp-${link}.pid 2>/dev/null)"
+		local try=0
+		grep -qs pppd "/proc/$pid/cmdline" && kill -TERM $pid && \
+			while grep -qs pppd "/proc/$pid/cmdline" && [ $((try++)) -lt 5 ]; do sleep 1; done
+		grep -qs pppd "/proc/$pid/cmdline" && kill -KILL $pid && \
+			while grep -qs pppd "/proc/$pid/cmdline"; do sleep 1; done
+		rm -f "/var/run/ppp-${link}.pid"
 	}
+
+	remove_dns "$cfg"
+
+	local lock="/var/lock/ppp-$link"
+	[ -f "$lock" ] && lock -u "$lock"
 }
 
 start_pppd() {
 	local cfg="$1"; shift
-	local ifname
 
-	# make sure the network state references the correct ifname
-	scan_ppp "$cfg"
-	config_get ifname "$cfg" ifname
-	set_interface_ifname "$cfg" "$ifname"
+	local proto
+	config_get proto "$cfg" proto
+
+	# unique link identifier
+	local link="${proto:-ppp}-$cfg"
 
 	# make sure only one pppd process is started
-	lock "/var/lock/ppp-${cfg}"
-	local pid="$(head -n1 /var/run/ppp-${cfg}.pid 2>/dev/null)"
+	lock "/var/lock/ppp-${link}"
+	local pid="$(head -n1 /var/run/ppp-${link}.pid 2>/dev/null)"
 	[ -d "/proc/$pid" ] && grep pppd "/proc/$pid/cmdline" 2>/dev/null >/dev/null && {
-		lock -u "/var/lock/ppp-${cfg}"
+		lock -u "/var/lock/ppp-${link}"
 		return 0
 	}
 
@@ -65,61 +42,97 @@ start_pppd() {
 	# /dev/ppp fast enough to be used here
 	[ -e /dev/ppp ] || mknod /dev/ppp c 108 0
 
+	local device
 	config_get device "$cfg" device
-	config_get unit "$cfg" unit
+
+	local username
 	config_get username "$cfg" username
+
+	local password
 	config_get password "$cfg" password
+
+	local keepalive
 	config_get keepalive "$cfg" keepalive
 
+	local connect
 	config_get connect "$cfg" connect
-	config_get disconnect "$cfg" disconnect
-	config_get pppd_options "$cfg" pppd_options
-	config_get_bool defaultroute "$cfg" defaultroute 1
-	[ "$defaultroute" -eq 1 ] && defaultroute="defaultroute replacedefaultroute" || defaultroute=""
 
-	interval="${keepalive##*[, ]}"
+	local disconnect
+	config_get disconnect "$cfg" disconnect
+
+	local pppd_options
+	config_get pppd_options "$cfg" pppd_options
+
+	local defaultroute
+	config_get_bool defaultroute "$cfg" defaultroute 1
+	[ "$defaultroute" -eq 1 ] && \
+		defaultroute="defaultroute replacedefaultroute" || defaultroute="nodefaultroute"
+
+	local interval="${keepalive##*[, ]}"
 	[ "$interval" != "$keepalive" ] || interval=5
 
-	config_get_bool peerdns "$cfg" peerdns 1
-	[ "$peerdns" -eq 1 ] && peerdns="usepeerdns" || {
-		peerdns=""
-		config_get dns "$config" dns
-		for dns in $dns; do
-			grep -q "$dns" /tmp/resolv.conf.auto 2>/dev/null || \
-				echo "nameserver $dns" >> /tmp/resolv.conf.auto
-		done
+	local dns
+	config_get dns "$config" dns
+
+	local has_dns=0
+	local peer_default=1
+	[ -n "$dns" ] && {
+		has_dns=1
+		peer_default=0
 	}
 
-	config_get demand "$cfg" demand
-	[ -n "$demand" ] && echo "nameserver 1.1.1.1" > /tmp/resolv.conf.auto
+	local peerdns
+	config_get_bool peerdns "$cfg" peerdns $peer_default
 
+	[ "$peerdns" -eq 1 ] && {
+		peerdns="usepeerdns"
+	} || {
+		peerdns=""
+		add_dns "$cfg" $dns
+	}
+
+	local demand
+	config_get_bool demand "$cfg" demand 0
+
+	local demandargs
+	[ "$demand" -eq 1 ] && {
+		demandargs="precompiled-active-filter /etc/ppp/filter demand idle"
+		[ "$has_dns" -eq 0 ] && add_dns "$cfg" 1.1.1.1
+	} || {
+		demandargs="persist"
+	}
+
+	local ipv6
 	config_get_bool ipv6 "$cfg" ipv6 0
 	[ "$ipv6" -eq 1 ] && ipv6="+ipv6" || ipv6=""
 
-	/usr/sbin/pppd "$@" \
+	start-stop-daemon -S -b -x /usr/sbin/pppd -m -p /var/run/ppp-$link.pid -- "$@" \
 		${keepalive:+lcp-echo-interval $interval lcp-echo-failure ${keepalive%%[, ]*}} \
-		${demand:+precompiled-active-filter /etc/ppp/filter demand idle }${demand:-persist} \
+		$demandargs \
 		$peerdns \
 		$defaultroute \
 		${username:+user "$username" password "$password"} \
-		unit "$unit" \
-		linkname "$cfg" \
 		ipparam "$cfg" \
+		ifname "$link" \
 		${connect:+connect "$connect"} \
 		${disconnect:+disconnect "$disconnect"} \
 		${ipv6} \
-		${pppd_options}
+		${pppd_options} \
+		nodetach
 
-	lock -u "/var/lock/ppp-${cfg}"
+	lock -u "/var/lock/ppp-${link}"
 }
 
 setup_interface_ppp() {
 	local iface="$1"
 	local config="$2"
 
+	local device
 	config_get device "$config" device
 
+	local mtu
 	config_get mtu "$config" mtu
+
 	mtu=${mtu:-1492}
 	start_pppd "$config" \
 		mtu $mtu mru $mtu \

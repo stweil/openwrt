@@ -42,7 +42,7 @@ static struct gpio_button rb4xx_gpio_buttons[] __initdata = {
 	{
 		.desc		= "reset_switch",
 		.type		= EV_KEY,
-		.code		= BTN_0,
+		.code		= KEY_RESTART,
 		.threshold	= 3,
 		.gpio		= RB4XX_GPIO_RESET_SWITCH,
 		.active_low	= 1,
@@ -199,19 +199,22 @@ static void __init rb411u_setup(void)
 MIPS_MACHINE(AR71XX_MACH_RB_411U, "411U", "MikroTik RouterBOARD 411U",
 	     rb411u_setup);
 
+#define RB433_LAN_PHYMASK	BIT(0)
+#define RB433_WAN_PHYMASK	BIT(4)
+#define RB433_MDIO_PHYMASK	(RB433_LAN_PHYMASK | RB433_WAN_PHYMASK)
+
 static void __init rb433_setup(void)
 {
 	rb4xx_generic_setup();
 	rb433_add_device_spi();
 
-	ar71xx_add_device_mdio(0xffffffe9);
+	ar71xx_add_device_mdio(~RB433_MDIO_PHYMASK);
 
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
-	ar71xx_eth0_data.speed = SPEED_100;
-	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+	ar71xx_eth0_data.phy_mask = RB433_LAN_PHYMASK;
 
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
-	ar71xx_eth1_data.phy_mask = 0x00000010;
+	ar71xx_eth1_data.phy_mask = RB433_WAN_PHYMASK;
 
 	ar71xx_add_device_eth(1);
 	ar71xx_add_device_eth(0);
@@ -231,20 +234,22 @@ static void __init rb433u_setup(void)
 MIPS_MACHINE(AR71XX_MACH_RB_433U, "433U", "MikroTik RouterBOARD 433UAH",
 	     rb433u_setup);
 
+#define RB450_LAN_PHYMASK	BIT(0)
+#define RB450_WAN_PHYMASK	BIT(4)
+#define RB450_MDIO_PHYMASK	(RB450_LAN_PHYMASK | RB450_WAN_PHYMASK)
+
 static void __init rb450_generic_setup(int gige)
 {
 	rb4xx_generic_setup();
 	rb4xx_add_device_spi();
 
-	ar71xx_add_device_mdio(0xffffffe0);
+	ar71xx_add_device_mdio(~RB450_MDIO_PHYMASK);
 
 	ar71xx_eth0_data.phy_if_mode = (gige) ? PHY_INTERFACE_MODE_RGMII : PHY_INTERFACE_MODE_MII;
-	ar71xx_eth0_data.phy_mask = (gige) ? (1 << 0) : 0;
-	ar71xx_eth0_data.speed = (gige) ? SPEED_1000 : SPEED_100;
-	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+	ar71xx_eth0_data.phy_mask = RB450_LAN_PHYMASK;
 
 	ar71xx_eth1_data.phy_if_mode = (gige) ? PHY_INTERFACE_MODE_RGMII : PHY_INTERFACE_MODE_RMII;
-	ar71xx_eth1_data.phy_mask = 0x00000010;
+	ar71xx_eth1_data.phy_mask = RB450_WAN_PHYMASK;
 
 	ar71xx_add_device_eth(1);
 	ar71xx_add_device_eth(0);

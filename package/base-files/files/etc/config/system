@@ -1,9 +1,6 @@
-
 config system
 	option hostname	OpenWrt
 	option timezone	UTC
 
 config rdate
-	list server ptbtime1.ptb.de
-	list server ptbtime2.ptb.de
-	list server ptbtime3.ptb.de
+	option interface	wan

@@ -48,7 +48,7 @@ start_instance()
 	UHTTPD_KEY=""
 
 	local cfg="$1"
-	local realm="$(uci get system.@system[0].hostname 2>/dev/null)"
+	local realm="$(uci_get system.@system[0].hostname)"
 	local listen http https
 
 	append_arg "$cfg" home "-h"
@@ -58,6 +58,7 @@ start_instance()
 	append_arg "$cfg" lua_prefix "-l"
 	append_arg "$cfg" lua_handler "-L"
 	append_arg "$cfg" script_timeout "-t"
+	append_arg "$cfg" network_timeout "-T"
 
 	config_get http "$cfg" listen_http
 	for listen in $http; do

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2008 OpenWrt.org
+# Copyright (C) 2008-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -10,11 +10,13 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=drv_tapi
 PKG_VERSION:=3.11.0
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=drv_tapi-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources
 PKG_MD5SUM:=1ffee83ce69f55915468c309d8ae2138
+
+PATCH_DIR ?= ./patches$(if $(wildcard ./patches-$(KERNEL_PATCHVER)),-$(KERNEL_PATCHVER))
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -26,6 +28,7 @@ define KernelPackage/ifx-tapi
   DEPENDS:=+kmod-ifxos @BROKEN
   FILES:=$(PKG_BUILD_DIR)/src/drv_tapi.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,drv_tapi)
+  MENU:=1
 endef
 
 define KernelPackage/ifx-tapi/description
@@ -33,9 +36,7 @@ define KernelPackage/ifx-tapi/description
 endef
 
 define KernelPackage/ifx-tapi/config
-	if PACKAGE_kmod-ifx-tapi
-		source "$(SOURCE)/Config.in"
-	endif
+	source "$(SOURCE)/Config.in"
 endef
 
 CONFIGURE_ARGS += \

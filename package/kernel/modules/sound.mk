@@ -1,11 +1,27 @@
 #
-# Copyright (C) 2006-2008 OpenWrt.org
+# Copyright (C) 2006-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 
 SOUND_MENU:=Sound Support
+
+define KernelPackage/pcspkr
+  SUBMENU:=$(SOUND_MENU)
+  TITLE:=PC speaker support
+  DEPENDS:=@LINUX_2_6
+  KCONFIG:=CONFIG_INPUT_PCSPKR
+  FILES:=$(LINUX_DIR)/drivers/input/misc/pcspkr.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,50,pcspkr)
+endef
+
+define KernelPackage/pcspkr/description
+ This enables sounds (tones) through the pc speaker
+endef
+
+$(eval $(call KernelPackage,pcspkr))
+
 
 define KernelPackage/sound-core
   SUBMENU:=$(SOUND_MENU)
@@ -26,6 +42,7 @@ define KernelPackage/sound-core
 	CONFIG_SND_PCM_OSS \
 	CONFIG_SND_MIXER_OSS \
 	CONFIG_SOUND_OSS_CORE_PRECLAIM=y
+  $(call AddDepends/input)
 endef
 
 define KernelPackage/sound-core/2.4
@@ -77,18 +94,18 @@ endef
 $(eval $(call KernelPackage,sound-core))
 
 
-define KernelPackage/sound/Depends
+define AddDepends/sound
   SUBMENU:=$(SOUND_MENU)
-  DEPENDS:=kmod-sound-core $(1)
+  DEPENDS+=kmod-sound-core $(1) @!TARGET_uml
 endef
 
 
 define KernelPackage/sound-i8x0
-$(call KernelPackage/sound/Depends,@!TARGET_uml)
   TITLE:=Intel/SiS/nVidia/AMD/ALi AC97 Controller
   KCONFIG:=CONFIG_SND_INTEL8X0
   FILES:=$(LINUX_DIR)/sound/pci/snd-intel8x0.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,35,snd-i8x0)
+  $(call AddDepends/sound)
 endef
 
 define KernelPackage/sound-i8x0/description
@@ -100,31 +117,14 @@ endef
 $(eval $(call KernelPackage,sound-i8x0))
 
 
-define KernelPackage/sound-ps3
-$(call KernelPackage/sound/Depends,@TARGET_ps3||TARGET_ps3chk)
-  TITLE:=PS3 Audio
-  KCONFIG:=CONFIG_SND_PS3 \
-		CONFIG_SND_PPC=y \
-		CONFIG_SND_PS3_DEFAULT_START_DELAY=2000
-  FILES:=$(LINUX_DIR)/sound/ppc/snd_ps3.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,35, snd_ps3)
-endef
-
-define KernelPackage/sound-ps3/description
- support for the integrated PS3 audio device
-endef
-
-$(eval $(call KernelPackage,sound-ps3))
-
-
 define KernelPackage/sound-cs5535audio
-$(call KernelPackage/sound/Depends,@!TARGET_uml)
   TITLE:=CS5535 PCI Controller
   KCONFIG:=CONFIG_SND_CS5535AUDIO
   FILES:=$(LINUX_DIR)/sound/pci/cs5535audio/snd-cs5535audio.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/sound/ac97_bus.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/sound/pci/ac97/snd-ac97-codec.$(LINUX_KMOD_SUFFIX) 
   AUTOLOAD:=$(call AutoLoad,35, ac97_bus snd-ac97-codec snd-cs5535audio)
+  $(call AddDepends/sound)
 endef
 
 define KernelPackage/sound-cs5535audio/description
@@ -135,13 +135,13 @@ $(eval $(call KernelPackage,sound-cs5535audio))
 
 
 define KernelPackage/sound-soc-core
-$(call KernelPackage/sound/Depends)
   TITLE:=SoC sound support
   KCONFIG:= \
 	CONFIG_SND_SOC \
 	CONFIG_SND_SOC_ALL_CODECS=n
   FILES:=$(LINUX_DIR)/sound/soc/snd-soc-core.ko
   AUTOLOAD:=$(call AutoLoad,55, snd-soc-core)
+  $(call AddDepends/sound)
 endef
 
 $(eval $(call KernelPackage,sound-soc-core))

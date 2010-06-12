@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -58,12 +58,18 @@ bs=65536 conv=sync
 endef
 
 define Image/Build/CyberTAN
-	(dd if=/dev/zero bs=16 count=1; cat $(BIN_DIR)/openwrt-$(BOARD)-$(1).bin) | \
+	(dd if=/dev/zero bs=16 count=1; cat $(BIN_DIR)/$(IMG_PREFIX)-$(1).bin) | \
 		$(STAGING_DIR_HOST)/bin/addpattern -p $(3) -o $(BIN_DIR)/openwrt-$(2)-$(4)-code.bin
 endef
 
+define Image/Build/Titan
+	$(STAGING_DIR_HOST)/bin/mktitanimg -o $(BIN_DIR)/openwrt-$(2)-$(4)-code.bin -i $(KDIR)/loader.bin $(KDIR)/root.$(1) -a 0x10000 0x10000 -h 2  -p 0x4C575943 -s 0x0b010000
+	$(STAGING_DIR_HOST)/bin/mktitanimg -o $(BIN_DIR)/openwrt-$(2)-na-$(4)-code.bin -i $(KDIR)/loader.bin $(KDIR)/root.$(1) -a 0x10000 0x10000 -h 2  -p 0x4D575943 -s 0x0b010000
+endef
+
+
 #define Image/Build/sErCoMm
-#	cat sercomm/adam2.bin "$(BIN_DIR)/openwrt-$(BOARD)-$(1).bin" > "$(KDIR)/dgfw.tmp"
+#	cat sercomm/adam2.bin "$(BIN_DIR)/$(IMG_PREFIX)-$(1).bin" > "$(KDIR)/dgfw.tmp"
 #	dd if=sercomm/$(2) of="$(KDIR)/dgfw.tmp" bs=$$$$((0x3e0000 - 80)) seek=1 conv=notrunc
 #	$(STAGING_DIR_HOST)/bin/dgfirmware -f -w "$(BIN_DIR)/openwrt-$(2)-$(3).img" "$(KDIR)/dgfw.tmp"
 #	rm -f "$(KDIR)/dgfw.tmp"
@@ -83,9 +89,9 @@ define Image/Build
 endef
 else
 define Image/Build
-	dd if=$(KDIR)/loader.bin $(call align/$(1)) > $(BIN_DIR)/openwrt-$(BOARD)-$(1).bin
-	cat $(KDIR)/root.$(1) >> $(BIN_DIR)/openwrt-$(BOARD)-$(1).bin
-	$(call prepare_generic_squashfs,$(BIN_DIR)/openwrt-$(BOARD)-$(1).bin)
+	dd if=$(KDIR)/loader.bin $(call align/$(1)) > $(BIN_DIR)/$(IMG_PREFIX)-$(1).bin
+	cat $(KDIR)/root.$(1) >> $(BIN_DIR)/$(IMG_PREFIX)-$(1).bin
+	$(call prepare_generic_squashfs,$(BIN_DIR)/$(IMG_PREFIX)-$(1).bin)
 	$(call Image/Build/CyberTAN,$(1),AG1B,AG1B,$(1))
 	$(call Image/Build/CyberTAN,$(1),AG1A,AG1A,$(1))
 	$(call Image/Build/CyberTAN,$(1),WA21,WA21,$(1))
@@ -104,6 +110,7 @@ define Image/Build
 #	$(call Image/Build/sErCoMm,$(1),dg834,$(1))
 #	$(call Image/Build/sErCoMm,$(1),jdr454wb,$(1))
 	$(call Image/Build/EVA,$(1),EVA)
+	$(call Image/Build/Titan,$(1),Titan,Titan,$(1))
 endef
 endif
 

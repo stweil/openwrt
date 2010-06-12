@@ -8,15 +8,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=openssl
-PKG_VERSION:=0.9.8m
-PKG_RELEASE:=3
+PKG_VERSION:=0.9.8o
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.openssl.org/source/ \
 	ftp://ftp.funet.fi/pub/crypt/cryptography/libs/openssl/source/ \
 	ftp://ftp.webmonster.de/pub/openssl/source/ \
 	ftp://ftp.sunet.se/pub/security/tools/net/openssl/source/
-PKG_MD5SUM:=898bf125370926d5f692a2201124f8ec
+PKG_MD5SUM:=63ddc5116488985e820075e65fbe6aa4
 
 PKG_BUILD_DEPENDS:=ocf-crypto-headers
 PKG_CONFIG_DEPENDS:=CONFIG_OPENSSL_ENGINE
@@ -46,6 +46,7 @@ $(call Package/openssl/Default)
   CATEGORY:=Libraries
   DEPENDS:=+zlib
   TITLE+= (libraries)
+  MENU:=1
 endef
 
 define Package/libopenssl/description

@@ -92,7 +92,7 @@ swconfig_set_vlan_ports(struct switch_dev *dev, const struct switch_attr *attr, 
 		if (ports[i].id >= dev->ports)
 			return -EINVAL;
 
-		if (dev->set_port_pvid && !(ports[i].flags & SWITCH_PORT_FLAG_TAGGED))
+		if (dev->set_port_pvid && !(ports[i].flags & (1 << SWITCH_PORT_FLAG_TAGGED)))
 			dev->set_port_pvid(dev, ports[i].id, val->port_vlan);
 	}
 
@@ -761,6 +761,7 @@ swconfig_send_switch(struct sk_buff *msg, u32 pid, u32 seq, int flags,
 	NLA_PUT_STRING(msg, SWITCH_ATTR_DEV_NAME, dev->devname);
 	NLA_PUT_U32(msg, SWITCH_ATTR_VLANS, dev->vlans);
 	NLA_PUT_U32(msg, SWITCH_ATTR_PORTS, dev->ports);
+	NLA_PUT_U32(msg, SWITCH_ATTR_CPU_PORT, dev->cpu_port);
 
 	return genlmsg_end(msg, hdr);
 nla_put_failure:

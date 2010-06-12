@@ -1,10 +1,9 @@
 #
-# Copyright (C) 2009 OpenWrt.org
+# Copyright (C) 2009-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-# $Id: $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -12,7 +11,7 @@ include $(INCLUDE_DIR)/kernel.mk
 PKG_NAME:=lib_ifxos
 PKG_VERSION:=1.5.12
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources
 PKG_MD5SUM:=ba775356bdd5e1b73b3e11a152710ed6
 

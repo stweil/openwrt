@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2009 OpenWrt.org
+# Copyright (C) 2009-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -12,10 +12,15 @@ include $(INCLUDE_DIR)/kernel.mk
 PKG_NAME:=ifxmips-dsl-api
 PKG_BASE_NAME:=drv_dsl_cpe_api_danube
 PKG_VERSION:=3.24.4.4
+PKG_RELEASE:=2
 PKG_SOURCE:=$(PKG_BASE_NAME)-$(PKG_VERSION).tar.gz
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/drv_dsl_cpe_api-$(PKG_VERSION)
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources/
 PKG_MD5SUM:=c45bc531c1ed2ac80f68fb986b63bb87
+
+ifeq ($(DUMP),)
+  STAMP_CONFIGURED:=$(strip $(STAMP_CONFIGURED))_$(shell grep '^CONFIG_IFXMIPS_DSL_' $(TOPDIR)/.config | md5s)
+endif
 
 FW_BASE_NAME:=dsl_danube_firmware_adsl
 FW_A_VER:=02.04.04.00.00.01
@@ -25,6 +30,8 @@ FW_B_FILE_VER:=241702
 FW_A_MD5:=f717db3067a0049a26e233ab11238710
 FW_B_MD5:=349de7cd20368f4ac9b7e8322114a512
 
+PATCH_DIR ?= ./patches$(if $(wildcard ./patches-$(KERNEL_PATCHVER)),-$(KERNEL_PATCHVER))
+
 include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/ifxmips-dsl-api
@@ -33,12 +40,13 @@ define KernelPackage/ifxmips-dsl-api
   SUBMENU:=Network Devices
   TITLE:=DSL CPE API driver
   URL:=http://www.infineon.com/
-  MAINTAINER:=Infineon Technologies AG / Lantiq / blogic@openwrt.org
-  DEPENDS:=@TARGET_ifxmips @BROKEN
+  MAINTAINER:=Infineon Technologies AG / Lantiq / John Crispin <blogic@openwrt.org>
+  DEPENDS:=@TARGET_ifxmips +kmod-atm @BROKEN
   FILES:=$(PKG_BUILD_DIR)/src/mei/ifxmips_mei.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/src/drv_dsl_cpe_api.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/src/mei/ifxmips_atm.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,ifxmips_mei drv_dsl_cpe_api ifxmips_atm)
+  MENU:=1
 endef
 
 define KernelPackage/ifxmips-dsl-api/description

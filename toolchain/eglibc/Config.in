@@ -22,7 +22,11 @@ choice
 
 	config EGLIBC_VERSION_2_11
 		bool "eglibc 2.11"
-		depends GCC_VERSION_4_3 || GCC_VERSION_4_4
+		depends GCC_VERSION_4_3 || GCC_VERSION_4_4 || GCC_VERSION_4_5
+
+	config EGLIBC_VERSION_2_12
+		bool "eglibc 2.12"
+		depends GCC_VERSION_4_3 || GCC_VERSION_4_4 || GCC_VERSION_4_5
 
 	config EGLIBC_VERSION_TRUNK
 		bool "eglibc trunk"
@@ -36,9 +40,10 @@ config EGLIBC_REVISION
 	default "5887"  if EGLIBC_VERSION_2_6
 	default "8588"  if EGLIBC_VERSION_2_7
 	default "8587"  if EGLIBC_VERSION_2_8
-	default "8690"  if EGLIBC_VERSION_2_9
-	default "9289"  if EGLIBC_VERSION_2_10
-	default "9306"  if EGLIBC_VERSION_2_11
+	default "10153" if EGLIBC_VERSION_2_9
+	default "10152" if EGLIBC_VERSION_2_10
+	default "10454" if EGLIBC_VERSION_2_11
+	default "10495" if EGLIBC_VERSION_2_12
 	default "HEAD"  if EGLIBC_VERSION_TRUNK
 	default ""
 
@@ -46,4 +51,3 @@ menu "eglibc configuration"
 	depends on TOOLCHAINOPTS && USE_EGLIBC
 	source toolchain/eglibc/config/Config.in
 endmenu
-

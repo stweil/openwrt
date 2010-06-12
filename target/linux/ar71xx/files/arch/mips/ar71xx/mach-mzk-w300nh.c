@@ -51,11 +51,7 @@ static struct mtd_partition mzk_w300nh_partitions[] = {
 	} , {
 		.name		= "rootfs",
 		.offset		= 0x1b0000,
-		.size		= 0x610000,
-	} , {
-		.name		= "config",
-		.offset		= 0x7c0000,
-		.size		= 0x020000,
+		.size		= 0x630000,
 	} , {
 		.name		= "art",
 		.offset		= 0x7e0000,
@@ -64,7 +60,7 @@ static struct mtd_partition mzk_w300nh_partitions[] = {
 	} , {
 		.name		= "firmware",
 		.offset		= 0x050000,
-		.size		= 0x770000,
+		.size		= 0x790000,
 	}
 };
 #endif /* CONFIG_MTD_PARTITIONS */
@@ -104,14 +100,14 @@ static struct gpio_button mzk_w300nh_gpio_buttons[] __initdata = {
 	{
 		.desc		= "reset",
 		.type		= EV_KEY,
-		.code		= BTN_0,
+		.code		= KEY_RESTART,
 		.threshold	= 3,
 		.gpio		= MZK_W300NH_GPIO_BTN_RESET,
 		.active_low	= 1,
 	}, {
 		.desc		= "wps",
 		.type		= EV_KEY,
-		.code		= BTN_1,
+		.code		= KEY_WPS_BUTTON,
 		.threshold	= 3,
 		.gpio		= MZK_W300NH_GPIO_BTN_WPS,
 		.active_low	= 1,

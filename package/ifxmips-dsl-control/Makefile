@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2009 OpenWrt.org
+# Copyright (C) 2009-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -11,6 +11,7 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_BASE_NAME:=dsl_cpe_control_danube
 PKG_VERSION:=3.24.4.4
+PKG_RELEASE:=1
 PKG_SOURCE:=$(PKG_BASE_NAME)-$(PKG_VERSION).tar.gz
 PKG_BUILD_DIR:=$(BUILD_DIR)/dsl_cpe_control-$(PKG_VERSION)
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources/
@@ -23,7 +24,7 @@ define Package/ifxmips-dsl-control
   CATEGORY:=Network
   TITLE:=DSL CPE control application
   URL:=http://www.infineon.com/
-  MAINTAINER:=Infineon Technologies AG / Lantiq / blogic@openwrt.org
+  MAINTAINER:=Infineon Technologies AG / Lantiq / John Crispin <blogic@openwrt.org>
   DEPENDS:=+kmod-ifxmips-dsl-api +libpthread @BROKEN
 endef
 

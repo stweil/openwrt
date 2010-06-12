@@ -37,3 +37,14 @@
     return 0;
  }
  
+--- a/src/include/drv_dsl_cpe_os_linux.h
++++ b/src/include/drv_dsl_cpe_os_linux.h
+@@ -24,7 +24,7 @@
+ #include <linux/ctype.h>
+ #include <linux/version.h>
+ #include <linux/spinlock.h>
+-
++#include <linux/sched.h>
+ 
+ #if (LINUX_VERSION_CODE > KERNEL_VERSION(2,6,17))
+    #include <linux/utsrelease.h>

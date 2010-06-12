@@ -4,13 +4,14 @@
 #include <linux/etherdevice.h>
 
 #include <asm/bootinfo.h>
+#include <machine.h>
 
 #include <ifxmips.h>
 #include <ifxmips_prom.h>
 
 /* for voice cpu (MIPS24K) */
 unsigned int *prom_cp1_base;
-unsigned int prom_cp1_size;
+unsigned int prom_cp1_size = 0;
 
 /* for Multithreading (APRP) on MIPS34K */
 unsigned long physical_memsize;
@@ -65,8 +66,12 @@ out:
 }
 __setup("ethaddr", ifxmips_set_ethaddr);
 
-void __init
-prom_init(void)
+static void __init prom_detect_machtype(void)
+{
+	mips_machtype = IFXMIPS_MACH_EASY50712;
+}
+
+static void __init prom_init_cmdline(void)
 {
 	int argc = fw_arg0;
 	char **argv = (char **) fw_arg1;
@@ -84,13 +89,6 @@ prom_init(void)
 			char *a = (char *)KSEG1ADDR(argv[i]);
 			if (!argv[i])
 				continue;
-			/* for voice cpu on Twinpass/Danube */
-			if (cpu_data[0].cputype == CPU_24K)
-				if (!strncmp(a, "cp1_size=", 9))
-				{
-					prom_cp1_size = memparse(a + 9, &a);
-					continue;
-				}
 			if (strlen(arcs_cmdline) + strlen(a + 1) >= sizeof(arcs_cmdline))
 			{
 				early_printf("cmdline overflow, skipping: %s\n", a);
@@ -120,6 +118,8 @@ prom_init(void)
 	/* only on Twinpass/Danube a second CPU is used for Voice */
 	if ((cpu_data[0].cputype == CPU_24K) && (prom_cp1_size))
 	{
+#define CP1_SIZE	2 << 20
+		prom_cp1_size = CP1_SIZE;
 		memsize -= prom_cp1_size;
 		prom_cp1_base = (unsigned int *)KSEG1ADDR(memsize);
 
@@ -128,4 +128,11 @@ prom_init(void)
 	}
 
 	add_memory_region(0x00000000, memsize, BOOT_MEM_RAM);
+}
+
+void __init
+prom_init(void)
+{
+	prom_detect_machtype();
+	prom_init_cmdline();
 }

@@ -10,12 +10,12 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-PKG_VERSION:=2010-04-09
+PKG_VERSION:=2010-06-10
 PKG_RELEASE:=1
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources
 #	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2010/11 \
 #	http://wireless.kernel.org/download/compat-wireless-2.6
-PKG_MD5SUM:=4ae40fcb5552cd8d45e0b4368c548363
+PKG_MD5SUM:=4074469689f7a5a0d2e038f2b5dad0bb
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
@@ -66,10 +66,23 @@ define KernelPackage/mac80211
   DEPENDS+= +kmod-crypto-core +kmod-crypto-arc4 +kmod-crypto-aes +kmod-cfg80211
   FILES:= $(PKG_BUILD_DIR)/net/mac80211/mac80211.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,21,mac80211)
+  MENU:=1
 endef
 
 define KernelPackage/mac80211/config
-	source "$(SOURCE)/Config.in"
+	menu "Configuration"
+		depends on PACKAGE_kmod-mac80211
+
+	config PACKAGE_MAC80211_DEBUGFS
+		bool "Export mac80211 internals in DebugFS"
+		default y
+		help
+		  Select this to see extensive information about
+		  the internal state of mac80211 in debugfs.
+
+		  Say N unless you know you need this.
+
+	endmenu
 endef
 
 define KernelPackage/mac80211/description
@@ -186,10 +199,27 @@ $(call KernelPackage/rt2x00/Default)
   TITLE+= (LIB)
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rt2x00/rt2x00lib.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,25,rt2x00lib)
+  MENU:=1
 endef
 
 define KernelPackage/rt2x00-lib/config
-	source "$(SOURCE)/Config.in.rt2x00"
+	menu "Configuration"
+		depends PACKAGE_kmod-rt2x00-lib
+
+	config PACKAGE_RT2X00_LIB_DEBUGFS
+		bool "Enable rt2x00 debugfs support"
+		depends PACKAGE_MAC80211_DEBUGFS
+		help
+		  Enable creation of debugfs files for the rt2x00 drivers.
+		  These debugfs files support both reading and writing of the
+		  most important register types of the rt2x00 hardware.
+
+	config PACKAGE_RT2X00_DEBUG
+		bool "Enable rt2x00 debug output"
+		help
+		  Enable debugging output for all rt2x00 modules
+
+	endmenu
 endef
 
 define KernelPackage/rt2x00-pci
@@ -321,24 +351,27 @@ define KernelPackage/zd1211rw
 endef
 
 define KernelPackage/ath/config
+	menu "Configuration"
+		depends on PACKAGE_kmod-ath
 
-config ATH_USER_REGD
-	bool "Force Atheros drivers to respect the user's regdomain settings"
-	depends on PACKAGE_kmod-ath
-	help
-		Atheros' idea of regulatory handling is that the EEPROM of the card defines
-		the regulatory limits and the user is only allowed to restrict the settings
-		even further, even if the country allows frequencies or power levels that
-		are forbidden by the EEPROM settings.
-		Select this option if you want the driver to respect the user's decision about
-		regulatory settings.
+	config ATH_USER_REGD
+		bool "Force Atheros drivers to respect the user's regdomain settings"
+		help
+		  Atheros' idea of regulatory handling is that the EEPROM of the card defines
+		  the regulatory limits and the user is only allowed to restrict the settings
+		  even further, even if the country allows frequencies or power levels that
+		  are forbidden by the EEPROM settings.
 
-config PACKAGE_ATH_DEBUG
-	bool "Atheros wireless debugging"
-	depends on PACKAGE_kmod-ath
-	help
-		Say Y, if you want to debug atheros wireless drivers.
-		Right now only ath9k makes use of this.
+		  Select this option if you want the driver to respect the user's decision about
+		  regulatory settings.
+
+	config PACKAGE_ATH_DEBUG
+		bool "Atheros wireless debugging"
+		help
+		  Say Y, if you want to debug atheros wireless drivers.
+		  Right now only ath9k makes use of this.
+
+	endmenu
 endef
 
 define KernelPackage/ath
@@ -347,6 +380,7 @@ define KernelPackage/ath
   DEPENDS+= @PCI_SUPPORT +kmod-mac80211
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,26,ath)
+  MENU:=1
 endef
 
 define KernelPackage/ath/description
@@ -377,6 +411,7 @@ define KernelPackage/ath9k
 	$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k_hw.$(LINUX_KMOD_SUFFIX) \
 	$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ath9k/ath9k.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,27,ath9k_hw ath9k_common ath9k)
+  MENU:=1
 endef
 
 define KernelPackage/ath9k/description
@@ -385,7 +420,14 @@ Atheros IEEE 802.11n AR5008 and AR9001 family of chipsets.
 endef
 
 define KernelPackage/ath9k/config
-	source "$(SOURCE)/Config.in.ath9k"
+	menu "Configuration"
+		depends PACKAGE_kmod-ath9k
+
+	config PACKAGE_ATH9K_USE_MINSTREL
+		bool "use the new minstrel_ht rate control for ath9k"
+		default y
+
+	endmenu
 endef
 
 USB8388FW_NAME:=usb8388
@@ -490,11 +532,25 @@ define KernelPackage/net-ipw2200/description
  - ipw2200
 endef
 
+
+define KernelPackage/mwl8k
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=Driver for Marvell TOPDOG 802.11 Wireless cards
+  URL:=http://wireless.kernel.org/en/users/Drivers/mwl8k
+  DEPENDS+= @PCI_SUPPORT +kmod-mac80211
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/mwl8k.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,27,mwl8k)
+endef
+
+define KernelPackage/mwl8k/description
+ Kernel modules for Marvell TOPDOG 802.11 Wireless cards
+endef
+
 #Broadcom firmware
 ifneq ($(CONFIG_B43_EXPERIMENTAL),)
   PKG_B43_FWV4_NAME:=broadcom-wl
   PKG_B43_FWV4_VERSION:=4.178.10.4
-  PKG_B43_FWV4_OBJECT:=$(PKG_B43_FWV4_NAME)-$(PKG_B43_FWV4_VERSION)/linux/wl.o
+  PKG_B43_FWV4_OBJECT:=$(PKG_B43_FWV4_NAME)-$(PKG_B43_FWV4_VERSION)/linux/wl_apsta.o
   PKG_B43_FWV4_SOURCE:=$(PKG_B43_FWV4_NAME)-$(PKG_B43_FWV4_VERSION).tar.bz2
   PKG_B43_FWV4_SOURCE_URL:=http://mirror2.openwrt.org/sources/
   PKG_B43_FWV4_MD5SUM:=14477e8cbbb91b11896affac9b219fdb
@@ -522,7 +578,7 @@ PKG_B43_FWV3_SOURCE:=$(PKG_B43_FWV3_NAME)-$(PKG_B43_FWV3_VERSION).o
 PKG_B43_FWV3_SOURCE_URL:=http://downloads.openwrt.org/sources/
 PKG_B43_FWV3_MD5SUM:=e08665c5c5b66beb9c3b2dd54aa80cb3
 
-ifneq ($(CONFIG_B43_OPENFIRMWARE),)
+ifeq ($(CONFIG_B43_OPENFIRMWARE),y)
   PKG_B43_FWCUTTER_NAME:=b43-fwcutter
   PKG_B43_FWCUTTER_VERSION:=3e69531aa65b8f664a0ab00dfc3e2eefeb0cb417
   PKG_B43_FWCUTTER_SOURCE:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION).tar.bz2
@@ -532,11 +588,11 @@ ifneq ($(CONFIG_B43_OPENFIRMWARE),)
   PKG_B43_FWCUTTER_OBJECT:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION)/fwcutter/
 else
   PKG_B43_FWCUTTER_NAME:=b43-fwcutter
-  PKG_B43_FWCUTTER_VERSION:=012
+  PKG_B43_FWCUTTER_VERSION:=013
   PKG_B43_FWCUTTER_SOURCE:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION).tar.bz2
   PKG_B43_FWCUTTER_PROTO:=default
   PKG_B43_FWCUTTER_SOURCE_URL:=http://bu3sch.de/b43/fwcutter/
-  PKG_B43_FWCUTTER_MD5SUM:=69eadf67b459f313a8d6b37aaabef96c
+  PKG_B43_FWCUTTER_MD5SUM:=3547ec6c474ac1bc2c4a5bb765b791a4
   PKG_B43_FWCUTTER_SUBDIR:=b43-fwcutter-$(PKG_B43_FWCUTTER_VERSION)
   PKG_B43_FWCUTTER_OBJECT:=$(PKG_B43_FWCUTTER_NAME)-$(PKG_B43_FWCUTTER_VERSION)/
 endif
@@ -579,10 +635,93 @@ $(call KernelPackage/b43-common)
   TITLE:=Broadcom 43xx wireless support
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/b43/b43.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,b43)
+  MENU:=1
 endef
 
 define KernelPackage/b43/config
-	source "$(SOURCE)/Config.in.b43"
+	menu "Configuration"
+		depends on PACKAGE_kmod-b43
+
+	choice
+		prompt "b43 firmware version"
+		default B43_STABLE
+		help
+		  This option allows you to select the version of the b43 firmware.
+
+	config B43_STABLE
+		bool "4.150.10.5 (stable)"
+		help
+		  Stable firmware for BCM43xx devices.
+
+		  If unsure, select this.
+
+	config B43_EXPERIMENTAL
+		bool "4.178.10.4 (experimental)"
+		help
+		  Experimental firmware for BCM43xx devices.
+
+		  This firmware is not tested as much as the "stable" firmware.
+
+		  If unsure, select the "stable" firmware.
+
+	config B43_OPENFIRMWARE
+		bool "Open FirmWare for WiFi networks"
+		help
+		  Opensource firmware for BCM43xx devices.
+
+		  Do _not_ select this, unless you know what you are doing.
+		  The Opensource firmware is not suitable for embedded devices, yet.
+		  It does not support QoS, which is bad for AccessPoints.
+		  It does not support hardware crypto acceleration, which is a showstopper
+		  for embedded devices with low CPU resources.
+
+		  If unsure, select the "stable" firmware.
+
+	endchoice
+
+	config B43_FW_SQUASH
+		bool "Remove unnecessary firmware files"
+		depends on !B43_OPENFIRMWARE
+		default y
+		help
+		  This options allows you to remove unnecessary b43 firmware files
+		  from the final rootfs image. This can reduce the rootfs size by
+		  up to 200k.
+
+		  If unsure, say Y.
+
+	config B43_FW_SQUASH_COREREVS
+		string "Core revisions to include"
+		depends on B43_FW_SQUASH
+		default "5,6,7,8,9,10,13,14,15"
+		help
+		  This is a comma seperated list of core revision numbers.
+
+		  Example (keep files for rev5 only):
+		    5
+
+		  Example (keep files for rev5 and rev11):
+		    5,11
+
+	config B43_FW_SQUASH_PHYTYPES
+		string "PHY types to include"
+		depends on B43_FW_SQUASH
+		default "G,LP"
+		help
+		  This is a comma seperated list of PHY types:
+		    A  => A-PHY
+		    AG => Dual A-PHY G-PHY
+		    G  => G-PHY
+		    LP => LP-PHY
+		    N  => N-PHY
+
+		  Example (keep files for G-PHY only):
+		    G
+
+		  Example (keep files for G-PHY and N-PHY):
+		    G,N
+
+	endmenu
 endef
 
 define KernelPackage/b43/description
@@ -594,10 +733,37 @@ $(call KernelPackage/b43-common)
   TITLE:=Broadcom 43xx-legacy wireless support
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/b43legacy/b43legacy.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,b43legacy)
+  MENU:=1
 endef
 
 define KernelPackage/b43legacy/config
-	source "$(SOURCE)/Config.in.b43legacy"
+	menu "Configuration"
+		depends on PACKAGE_kmod-b43legacy
+
+	config B43LEGACY_FW_SQUASH
+		bool "Remove unnecessary firmware files"
+		default y
+		help
+		  This options allows you to remove unnecessary b43legacy firmware files
+		  from the final rootfs image. This can reduce the rootfs size by
+		  up to 50k.
+
+		  If unsure, say Y.
+
+	config B43LEGACY_FW_SQUASH_COREREVS
+		string "Core revisions to include"
+		depends on B43LEGACY_FW_SQUASH
+		default "1,2,3,4"
+		help
+		  This is a comma seperated list of core revision numbers.
+
+		  Example (keep files for rev4 only):
+		    4
+
+		  Example (keep files for rev2 and rev4):
+		    2,4
+
+	endmenu
 endef
 
 define KernelPackage/b43legacy/description
@@ -607,14 +773,13 @@ endef
 BUILDFLAGS:= \
 	-I$(PKG_BUILD_DIR)/include \
 	$(foreach opt,$(CONFOPTS),-DCONFIG_$(opt)) \
-	$(if $(CONFIG_PCI),-DCONFIG_B43_PCI_AUTOSELECT -DCONFIG_B43_PCICORE_AUTOSELECT -DCONFIG_SSB_DRIVER_PCICORE_POSSIBLE -DCONFIG_SSB_DRIVER_PCICORE) \
-	$(if $(CONFIG_PCI),-DCONFIG_SSB_PCIHOST_POSSIBLE -DCONFIG_SSB_PCIHOST) \
-	$(if $(CONFIG_PCI),-DCONFIG_SSB_SPROM) \
+	$(if $(CONFIG_PCI),-DCONFIG_B43_PCI_AUTOSELECT -DCONFIG_B43_PCICORE_AUTOSELECT) \
 	$(if $(CONFIG_LEDS_TRIGGERS), -DCONFIG_MAC80211_LEDS -DCONFIG_LEDS_TRIGGERS -DCONFIG_B43_LEDS -DCONFIG_B43LEGACY_LEDS -DCONFIG_AR9170_LEDS) \
 	-DCONFIG_B43_HWRNG -DCONFIG_B43LEGACY_HWRNG \
 	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS -DCONFIG_ATH9K_DEBUGFS) \
-	$(if $(CONFIG_PACKAGE_ATH_DEBUG),-DCONFIG_ATH_DEBUG) \
+	$(if $(CONFIG_PACKAGE_ATH_DEBUG),-DCONFIG_ATH_DEBUG -DCONFIG_ATH9K_PKTLOG) \
 	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
+	-DCONFIG_MAC80211_RC_MINSTREL_HT \
 	$(if $(CONFIG_ATH_USER_REGD),-DATH_USER_REGD=1) \
 	$(if $(CONFIG_PACKAGE_ATH9K_USE_MINSTREL),-DATH9K_USE_MINSTREL) \
 	$(if $(CONFIG_PACKAGE_RT2X00_LIB_DEBUGFS),-DCONFIG_RT2X00_LIB_DEBUGFS) \
@@ -635,17 +800,12 @@ MAKE_OPTS:= \
 	EXTRA_CFLAGS="$(BUILDFLAGS)" \
 	$(foreach opt,$(CONFOPTS),CONFIG_$(opt)=m) \
 	CONFIG_MAC80211=$(if $(CONFIG_PACKAGE_kmod-mac80211),m) \
-	CONFIG_MAC80211_RC_PID=y \
 	CONFIG_MAC80211_RC_MINSTREL=y \
 	CONFIG_MAC80211_LEDS=$(CONFIG_LEDS_TRIGGERS) \
 	CONFIG_MAC80211_DEBUGFS=$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),y) \
 	CONFIG_B43_PCMCIA=n CONFIG_B43_PIO=n \
 	CONFIG_B43_PCI_AUTOSELECT=$(if $(CONFIG_PCI),y) \
 	CONFIG_B43_PCICORE_AUTOSELECT=$(if $(CONFIG_PCI),y) \
-	CONFIG_SSB_DRIVER_PCICORE_POSSIBLE=$(if $(CONFIG_PCI),y) \
-	CONFIG_SSB_DRIVER_PCICORE=$(if $(CONFIG_PCI),y) \
-	CONFIG_SSB_PCIHOST_POSSIBLE=$(if $(CONFIG_PCI),y) \
-	CONFIG_SSB_PCIHOST=$(if $(CONFIG_PCI),y) \
 	CONFIG_B43LEGACY_LEDS=$(CONFIG_LEDS_TRIGGERS) \
 	CONFIG_B43_LEDS=$(CONFIG_LEDS_TRIGGERS) \
 	CONFIG_B43_HWRNG=$(if $(CONFIG_HW_RANDOM),y) \
@@ -654,6 +814,7 @@ MAKE_OPTS:= \
 	CONFIG_B43LEGACY=$(if $(CONFIG_PACKAGE_kmod-b43legacy),m) \
 	CONFIG_ATH_COMMON=$(if $(CONFIG_PACKAGE_kmod-ath),m) \
 	CONFIG_ATH_DEBUG=$(if $(CONFIG_PACKAGE_ATH_DEBUG),y) \
+	CONFIG_ATH9K_PKTLOG=$(if $(CONFIG_PACKAGE_ATH_DEBUG),y) \
 	CONFIG_ATH5K=$(if $(CONFIG_PACKAGE_kmod-ath5k),m) \
 	CONFIG_ATH9K=$(if $(CONFIG_PACKAGE_kmod-ath9k),m) \
 	CONFIG_ATH9K_DEBUGFS=$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),y) \
@@ -701,7 +862,7 @@ MAKE_OPTS:= \
 	CONFIG_LIB80211_CRYPT_TKIP= \
 	CONFIG_IWLWIFI= \
 	CONFIG_IWLAGN= \
-	CONFIG_MWL8K= \
+	CONFIG_MWL8K=$(if $(CONFIG_PACKAGE_kmod-mwl8k),m) \
 	CONFIG_ATMEL= \
 	CONFIG_PCMCIA_ATMEL= \
 	CONFIG_ADM8211= \
@@ -717,6 +878,7 @@ MAKE_OPTS:= \
 	CONFIG_AR9170_LEDS=$(CONFIG_LEDS_TRIGGERS) \
 	CONFIG_IWM= \
 	CONFIG_ATH9K_HTC= \
+	CONFIG_MAC80211_RC_MINSTREL_HT=y \
 	MADWIFI= \
 	OLD_IWL= \
 	KLIB_BUILD="$(LINUX_DIR)" \
@@ -827,7 +989,7 @@ define Build/b43-common
 	$(MAKE) -C "$(PKG_BUILD_DIR)/$(PKG_B43_FWCUTTER_OBJECT)" \
 		CFLAGS="-I$(STAGING_DIR_HOST)/include -include endian.h"
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_B43_FWCUTTER_OBJECT)/b43-fwcutter $(STAGING_DIR_HOST)/bin/
-ifneq ($(CONFIG_B43_OPENFIRMWARE),)
+ifeq ($(CONFIG_B43_OPENFIRMWARE),y)
 	$(INSTALL_DIR) $(STAGING_DIR_HOST)/bin/
 	$(MAKE) -C "$(PKG_BUILD_DIR)/$(PKG_B43_FWCUTTER_SUBDIR)/assembler/"
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/$(PKG_B43_FWCUTTER_SUBDIR)/assembler/b43-asm $(STAGING_DIR_HOST)/bin/
@@ -839,20 +1001,20 @@ endef
 define KernelPackage/b43/install
 	rm -rf $(1)/lib/firmware/
 	$(call Build/b43-common)
-ifneq ($(CONFIG_B43_OPENFIRMWARE),)
+ifeq ($(CONFIG_B43_OPENFIRMWARE),y)
 	tar xzf "$(DL_DIR)/$(PKG_B43_FWV4_SOURCE)" -C "$(PKG_BUILD_DIR)"
 else
 	tar xjf "$(DL_DIR)/$(PKG_B43_FWV4_SOURCE)" -C "$(PKG_BUILD_DIR)"
 endif
 	$(INSTALL_DIR) $(1)/lib/firmware/
-ifneq ($(CONFIG_B43_OPENFIRMWARE),)
+ifeq ($(CONFIG_B43_OPENFIRMWARE),y)
 	$(MAKE) -C "$(PKG_BUILD_DIR)/$(PKG_B43_FWV4_OBJECT)/"
 	$(INSTALL_DIR) $(1)/lib/firmware/b43-open/
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/$(PKG_B43_FWV4_OBJECT)/ucode5.fw $(1)/lib/firmware/b43-open/ucode5.fw
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/$(PKG_B43_FWV4_OBJECT)/b0g0bsinitvals5.fw $(1)/lib/firmware/b43-open/b0g0bsinitvals5.fw
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/$(PKG_B43_FWV4_OBJECT)/b0g0initvals5.fw $(1)/lib/firmware/b43-open/b0g0initvals5.fw
 else
-	b43-fwcutter --unsupported -w $(1)/lib/firmware/ $(PKG_BUILD_DIR)/$(PKG_B43_FWV4_OBJECT)
+	b43-fwcutter -w $(1)/lib/firmware/ $(PKG_BUILD_DIR)/$(PKG_B43_FWV4_OBJECT)
 endif
 ifneq ($(CONFIG_B43_FW_SQUASH),)
 	b43-fwsquash.py "$(CONFIG_B43_FW_SQUASH_PHYTYPES)" "$(CONFIG_B43_FW_SQUASH_COREREVS)" "$(1)/lib/firmware/b43"
@@ -900,3 +1062,4 @@ $(eval $(call KernelPackage,b43legacy))
 $(eval $(call KernelPackage,net-libipw))
 $(eval $(call KernelPackage,net-ipw2100))
 $(eval $(call KernelPackage,net-ipw2200))
+$(eval $(call KernelPackage,mwl8k))

@@ -9,16 +9,14 @@ include $(TOPDIR)/rules.mk
 ARCH:=mipsel
 BOARD:=xburst
 BOARDNAME:=Ingenic XBurst
-FEATURES:=jffs2 tgz ubifs audio
+FEATURES:=jffs2 targz ubifs audio
 SUBTARGETS:=qi_lb60 n516 n526
 
-LINUX_VERSION:=2.6.32.10
+LINUX_VERSION:=2.6.34
 
 DEVICE_TYPE=other
 
 include $(INCLUDE_DIR)/target.mk
-
-KERNELNAME:=uImage
 
 define Target/Description
 	Build firmware images for XBurst JZ47x0 based boards.

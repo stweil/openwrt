@@ -106,6 +106,7 @@ $(eval $(call KernelPackage,capi))
 define KernelPackage/misdn
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=mISDN (ISDN) Support
+  DEPENDS:=@LINUX_2_6
   KCONFIG:= \
   	CONFIG_MISDN \
 	CONFIG_MISDN_DSP \
@@ -137,6 +138,7 @@ $(eval $(call KernelPackage,misdn))
 define KernelPackage/isdn4linux
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=Old ISDN4Linux (deprecated)
+  DEPENDS:=@LINUX_2_6
   KCONFIG:= \
     CONFIG_ISDN_I4L \
     CONFIG_ISDN_PPP=y \
@@ -193,6 +195,11 @@ endef
 $(eval $(call KernelPackage,ipip))
 
 
+IPSEC-m:= \
+	key/af_key \
+	xfrm/xfrm_ipcomp \
+	xfrm/xfrm_user \
+
 define KernelPackage/ipsec
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=IPsec related modules (IPv4 and IPv6)
@@ -201,21 +208,29 @@ define KernelPackage/ipsec
 	CONFIG_NET_KEY \
 	CONFIG_XFRM_USER \
 	CONFIG_XFRM_IPCOMP
-  FILES:= \
-	$(LINUX_DIR)/net/key/af_key.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/net/xfrm/xfrm_user.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/net/xfrm/xfrm_ipcomp.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(foreach mod,$(IPSEC-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
+  AUTOLOAD:=$(call AutoLoad,30,$(notdir $(IPSEC-m)))
 endef
 
 define KernelPackage/ipsec/description
  Kernel modules for IPsec support in both IPv4 and IPv6.
  Includes:
  - af_key
+ - xfrm_ipcomp
  - xfrm_user
 endef
 
 $(eval $(call KernelPackage,ipsec))
 
+
+IPSEC4-m:= \
+	ipv4/ah4 \
+	ipv4/esp4 \
+	ipv4/xfrm4_mode_beet \
+	ipv4/xfrm4_mode_transport \
+	ipv4/xfrm4_mode_tunnel \
+	ipv4/xfrm4_tunnel \
+	ipv4/ipcomp \
 
 define KernelPackage/ipsec4
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
@@ -229,9 +244,8 @@ define KernelPackage/ipsec4
 	CONFIG_INET_XFRM_MODE_TRANSPORT \
 	CONFIG_INET_XFRM_MODE_TUNNEL \
 	CONFIG_INET_XFRM_TUNNEL
-  FILES:= $(foreach mod,ah4 esp4 ipcomp xfrm4_mode_beet xfrm4_mode_transport xfrm4_mode_tunnel xfrm4_tunnel , \
-	$(LINUX_DIR)/net/ipv4/$(mod).$(LINUX_KMOD_SUFFIX) \
-  )
+  FILES:=$(foreach mod,$(IPSEC4-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
+  AUTOLOAD:=$(call AutoLoad,32,$(notdir $(IPSEC4-m)))
 endef
 
 define KernelPackage/ipsec4/description
@@ -249,6 +263,15 @@ endef
 $(eval $(call KernelPackage,ipsec4))
 
 
+IPSEC6-m:= \
+	ipv6/ah6 \
+	ipv6/esp6 \
+	ipv6/xfrm6_mode_beet \
+	ipv6/xfrm6_mode_transport \
+	ipv6/xfrm6_mode_tunnel \
+	ipv6/xfrm6_tunnel \
+	ipv6/ipcomp6 \
+
 define KernelPackage/ipsec6
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=IPsec related modules (IPv6)
@@ -261,9 +284,8 @@ define KernelPackage/ipsec6
 	CONFIG_INET6_XFRM_MODE_TRANSPORT \
 	CONFIG_INET6_XFRM_MODE_TUNNEL \
 	CONFIG_INET6_XFRM_TUNNEL
-  FILES:= $(foreach mod,ah6 esp6 ipcomp6 xfrm6_mode_beet xfrm6_mode_transport xfrm6_mode_tunnel xfrm6_tunnel, \
-	$(LINUX_DIR)/net/ipv6/$(mod).$(LINUX_KMOD_SUFFIX) \
-  )
+  FILES:=$(foreach mod,$(IPSEC6-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
+  AUTOLOAD:=$(call AutoLoad,32,$(notdir $(IPSEC6-m)))
 endef
 
 define KernelPackage/ipsec6/description
@@ -289,9 +311,7 @@ define KernelPackage/iptunnel4
   KCONFIG:= \
 	CONFIG_NET_IPIP \
 	CONFIG_INET_TUNNEL
-  FILES:= $(foreach mod,tunnel4, \
-	$(LINUX_DIR)/net/ipv4/$(mod).$(LINUX_KMOD_SUFFIX) \
-  )
+  FILES:=$(LINUX_DIR)/net/ipv4/tunnel4.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,31,tunnel4)
 endef
 
@@ -308,9 +328,7 @@ define KernelPackage/iptunnel6
   DEPENDS:= @LINUX_2_6 +kmod-ipv6
   KCONFIG:= \
 	CONFIG_INET6_TUNNEL
-  FILES:= $(foreach mod,tunnel6, \
-	$(LINUX_DIR)/net/ipv6/$(mod).$(LINUX_KMOD_SUFFIX) \
-  )
+  FILES:=$(LINUX_DIR)/net/ipv6/tunnel6.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,31,tunnel6)
 endef
 
@@ -480,7 +498,7 @@ $(eval $(call KernelPackage,pppoa))
 define KernelPackage/pppol2tp
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=PPPoL2TP support
-  DEPENDS:=kmod-ppp +kmod-pppoe
+  DEPENDS:=@LINUX_2_6 kmod-ppp +kmod-pppoe
   KCONFIG:=CONFIG_PPPOL2TP
   FILES:=$(LINUX_DIR)/drivers/net/pppol2tp.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,40,pppol2tp)
@@ -585,7 +603,6 @@ $(eval $(call KernelPackage,sched))
 define KernelPackage/ax25
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=AX25 support
-  DEPENDS:= +kmod-crc16
   KCONFIG:= \
 	CONFIG_AX25 \
 	CONFIG_MKISS
@@ -593,6 +610,7 @@ define KernelPackage/ax25
 	$(LINUX_DIR)/net/ax25/ax25.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/net/hamradio/mkiss.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,80,ax25 mkiss)
+  $(call AddDepends/crc16)
 endef
 
 define KernelPackage/ax25/description

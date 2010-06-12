@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=base-files
-PKG_RELEASE:=42
+PKG_RELEASE:=48
 
 PKG_FILE_DEPENDS:=$(PLATFORM_DIR)/ $(GENERIC_PLATFORM_DIR)/base-files/
 
@@ -22,10 +22,7 @@ ifneq ($(DUMP),1)
     TARGET:=$(TARGET)-$(PROFILE)
   endif
   LIBGCC_VERSION:=$(GCC_VERSION)
-  ifeq ($(ARCH),x86_64)
-    LIB_SUFFIX:=64
-  endif
-  ifneq ($(findstring mips64,$(ARCH)),)
+  ifneq ($(findstring $(ARCH) , mips64 x86_64 ),)
     LIB_SUFFIX:=64
   endif
 else
@@ -395,17 +392,17 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 
   define Package/libgcc/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib$(LIB_SUFFIX)/libgcc_s.so.* $(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/libgcc_s.so.* $(1)/lib/
   endef
 
   define Package/libssp/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib$(LIB_SUFFIX)/libssp.so.* $(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/libssp.so.* $(1)/lib/
   endef
 
   define Package/libstdcpp/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(TOOLCHAIN_DIR)/usr/lib$(LIB_SUFFIX)/libstdc++.so.* $(1)/usr/lib/
+	$(CP) $(TOOLCHAIN_DIR)/usr/lib/libstdc++.so.* $(1)/usr/lib/
   endef
 
   use_libutil=$(if $(CONFIG_USE_GLIBC)$(CONFIG_EGLIBC_OPTION_EGLIBC_UTMP),libutil)
@@ -414,11 +411,15 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 
   define Package/glibc/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib/ld*.so.* $(1)/lib/
-	$(CP) $(TOOLCHAIN_DIR)/lib/ld-$(LIBC_SO_VERSION).so $(1)/lib/
+	$(CP) \
+		$(TOOLCHAIN_DIR)/lib/ld*.so.* \
+		$(TOOLCHAIN_DIR)/lib/ld-$(LIBC_SO_VERSION).so \
+		$(1)/lib/
 	for file in libanl libc libcidn libcrypt libdl libm $(use_libnsl) $(use_nsswitch) libresolv $(use_libutil); do \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file.so.* $(1)/lib/; \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_SO_VERSION).so $(1)/lib/; \
+		$(CP) \
+			$(TOOLCHAIN_DIR)/lib/$$$$file.so.* \
+			$(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_SO_VERSION).so \
+			$(1)/lib/; \
 	done
   endef
 
@@ -428,9 +429,19 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 
   define Package/uClibc/install
 	$(INSTALL_DIR) $(1)/lib
-	for file in ld$(LIB_SUFFIX)-uClibc libc libcrypt libdl libm libnsl libresolv libuClibc libutil; do \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file.so.* $(1)/lib/; \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_SO_VERSION).so $(1)/lib/; \
+	$(CP) \
+		$(TOOLCHAIN_DIR)/lib/ld*-uClibc.so.* \
+		$(TOOLCHAIN_DIR)/lib/ld*-uClibc-$(LIBC_SO_VERSION).so \
+		$(1)/lib/
+	$(CP) \
+		$(TOOLCHAIN_DIR)/lib/libc.so.* \
+		$(TOOLCHAIN_DIR)/lib/libuClibc-$(LIBC_SO_VERSION).so \
+		$(1)/lib/
+	for file in libcrypt libdl libm libnsl libresolv libutil; do \
+		$(CP) \
+			$(TOOLCHAIN_DIR)/lib/$$$$file.so.* \
+			$(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_SO_VERSION).so \
+			$(1)/lib/; \
 	done
   endef
 
@@ -449,8 +460,10 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 
   define Package/libpthread/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib/libpthread.so.* $(1)/lib/
-	$(CP) $(TOOLCHAIN_DIR)/lib/libpthread-$(LIBC_SO_VERSION).so $(1)/lib/
+	$(CP) \
+		$(TOOLCHAIN_DIR)/lib/libpthread.so.* \
+		$(TOOLCHAIN_DIR)/lib/libpthread-$(LIBC_SO_VERSION).so \
+		$(1)/lib/
   endef
 
   define Package/libpthread/install_lib
@@ -459,8 +472,10 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 
   define Package/librt/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib/librt.so.* $(1)/lib/
-	$(CP) $(TOOLCHAIN_DIR)/lib/librt-$(LIBC_SO_VERSION).so $(1)/lib/
+	$(CP) \
+		$(TOOLCHAIN_DIR)/lib/librt.so.* \
+		$(TOOLCHAIN_DIR)/lib/librt-$(LIBC_SO_VERSION).so \
+		$(1)/lib/
   endef
 
   define Package/ldd/install

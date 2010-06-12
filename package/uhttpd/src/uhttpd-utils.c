@@ -116,8 +116,8 @@ int uh_tcp_send(struct client *cl, const char *buf, int len)
 	FD_ZERO(&writer);
 	FD_SET(cl->socket, &writer);
 
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 500000;
+	timeout.tv_sec = cl->server->conf->network_timeout;
+	timeout.tv_usec = 0;
 
 	if( select(cl->socket + 1, NULL, &writer, NULL, &timeout) > 0 )
 	{
@@ -376,6 +376,79 @@ int uh_b64decode(char *buf, int blen, const unsigned char *src, int slen)
 	return len;
 }
 
+static char * canonpath(const char *path, char *path_resolved)
+{
+	char path_copy[PATH_MAX];
+	char *path_cpy = path_copy;
+	char *path_res = path_resolved;
+
+	struct stat s;
+
+
+	/* relative -> absolute */
+	if( *path != '/' )
+	{
+		getcwd(path_copy, PATH_MAX);
+		strncat(path_copy, "/", PATH_MAX - strlen(path_copy));
+		strncat(path_copy, path, PATH_MAX - strlen(path_copy));
+	}
+	else
+	{
+		strncpy(path_copy, path, PATH_MAX);
+	}
+
+	/* normalize */
+	while( (*path_cpy != '\0') && (path_cpy < (path_copy + PATH_MAX - 2)) )
+	{
+		if( *path_cpy == '/' )
+		{
+			/* skip repeating / */
+			if( path_cpy[1] == '/' )
+			{
+				path_cpy++;
+				continue;
+			}
+
+			/* /./ or /../ */
+			else if( path_cpy[1] == '.' )
+			{
+				/* skip /./ */
+				if( (path_cpy[2] == '/') || (path_cpy[2] == '\0') )
+				{
+					path_cpy += 2;
+					continue;
+				}
+
+				/* collapse /x/../ */
+				else if( (path_cpy[2] == '.') &&
+				         ((path_cpy[3] == '/') || (path_cpy[3] == '\0'))
+				) {
+					while( (path_res > path_resolved) && (*--path_res != '/') )
+						;
+
+					path_cpy += 3;
+					continue;
+				}
+			}
+		}
+
+		*path_res++ = *path_cpy++;
+	}
+
+	/* remove trailing slash if not root / */
+	if( (path_res > (path_resolved+1)) && (path_res[-1] == '/') )
+		path_res--;
+	else if( path_res == path_resolved )
+		*path_res++ = '/';
+
+	*path_res = '\0';
+
+	/* test access */
+	if( !stat(path_resolved, &s) && (s.st_mode & S_IROTH) )
+		return path_resolved;
+
+	return NULL;
+}
 
 struct path_info * uh_path_lookup(struct client *cl, const char *url)
 {
@@ -387,6 +460,7 @@ struct path_info * uh_path_lookup(struct client *cl, const char *url)
 	char *docroot = cl->server->conf->docroot;
 	char *pathptr = NULL;
 
+	int no_sym = cl->server->conf->no_symlinks;
 	int i = 0;
 	struct stat s;
 
@@ -432,8 +506,9 @@ struct path_info * uh_path_lookup(struct client *cl, const char *url)
 			memset(path_info, 0, sizeof(path_info));
 			memcpy(path_info, buffer, min(i + 1, sizeof(path_info) - 1));
 
-			if( realpath(path_info, path_phys) )
-			{
+			if( no_sym ? realpath(path_info, path_phys)
+			           : canonpath(path_info, path_phys)
+			) {
 				memset(path_info, 0, sizeof(path_info));
 				memcpy(path_info, &buffer[i],
 					min(strlen(buffer) - i, sizeof(path_info) - 1));
@@ -547,10 +622,14 @@ struct auth_realm * uh_auth_add(char *path, char *user, char *pass)
 				min(strlen(pass), sizeof(new->pass) - 1));
 		}
 
-		uh_realm_count++;
+		if( new->pass[0] )
+		{
+			uh_realm_count++;
+			return new;
+		}
 	}
 
-	return new;
+	return NULL;
 }
 
 int uh_auth_check(

@@ -9,9 +9,8 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=acx-mac80211
-PKG_REV:=e7a55711
-PKG_VERSION:=20100302
-#~ PKG_VERSION:=git
+PKG_REV:=02c4f99b
+PKG_VERSION:=20100514
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
@@ -25,7 +24,7 @@ include $(INCLUDE_DIR)/package.mk
 define KernelPackage/acx-mac80211
   SUBMENU:=Wireless Drivers
   TITLE:=ACX111 Mac80211 driver
-  DEPENDS:=@LINUX_2_6 @PCI_SUPPORT||TARGET_ar7 +kmod-mac80211 @BROKEN
+  DEPENDS:=@LINUX_2_6 @PCI_SUPPORT||TARGET_ar7 +kmod-mac80211
   FILES:=$(PKG_BUILD_DIR)/acx-mac80211.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,acx-mac80211)
 endef
@@ -67,7 +66,7 @@ define Build/Compile
 		CROSS_COMPILE="$(TARGET_CROSS)" \
 		SUBDIRS="$(PKG_BUILD_DIR)" \
 		$(PKG_EXTRA_KCONFIG) \
-		EXTRA_CFLAGS="$(PKG_EXTRA_CFLAGS)" \
+		EXTRA_CFLAGS="$(PKG_EXTRA_CFLAGS) -DCONFIG_ACX_MAC80211_VERSION=\"KERNEL_VERSION(2,6,34)\"" \
 		LINUXINCLUDE="-I$(STAGING_DIR)/usr/include/mac80211 -I$(LINUX_DIR)/include \
 			-Iarch/$(LINUX_KARCH)/include \
 			-include generated/autoconf.h" \

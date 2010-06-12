@@ -10,6 +10,7 @@ NETWORK_DEVICES_MENU:=Network Devices
 define KernelPackage/libphy
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=PHY library
+  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_PHYLIB
   FILES:=$(LINUX_DIR)/drivers/net/phy/libphy.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,40,libphy)
@@ -20,6 +21,36 @@ define KernelPackage/libphy/description
 endef
 
 $(eval $(call KernelPackage,libphy))
+
+define KernelPackage/swconfig
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=switch configuration API
+  DEPENDS:=+kmod-libphy
+  KCONFIG:=CONFIG_SWCONFIG
+  FILES:=$(LINUX_DIR)/drivers/net/phy/swconfig.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,41,swconfig)
+endef
+
+define KernelPackage/swconfig/description
+  Switch configuration API module
+endef
+
+$(eval $(call KernelPackage,swconfig))
+
+define KernelPackage/switch-ip175c
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=IC+ IP175C/IP178C switch support
+  DEPENDS:=+kmod-swconfig
+  KCONFIG:=CONFIG_IP175C_PHY
+  FILES:=$(LINUX_DIR)/drivers/net/phy/ip175c.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,42,ip175c)
+endef
+
+define KernelPackage/switch-ip175c/description
+  IC+ IP175C/IP178C switch support
+endef
+
+$(eval $(call KernelPackage,switch-ip175c))
 
 define KernelPackage/natsemi
   SUBMENU:=$(NETWORK_DEVICES_MENU)
@@ -273,7 +304,7 @@ $(eval $(call KernelPackage,3c59x))
 define KernelPackage/pcnet32
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   TITLE:=AMD PCnet32 PCI support
-  DEPENDS:=@TARGET_x86
+  DEPENDS:=@(TARGET_x86||TARGET_malta)
   KCONFIG:=CONFIG_PCNET32
   FILES:=$(LINUX_DIR)/drivers/net/pcnet32.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,pcnet32)
@@ -318,7 +349,7 @@ $(eval $(call KernelPackage,ssb-gige))
 define KernelPackage/hfcmulti
   TITLE:=HFC multiport cards (HFC-4S/8S/E1)
   KCONFIG:=CONFIG_MISDN_HFCMULTI
-  DEPENDS:=+kmod-misdn
+  DEPENDS:=@LINUX_2_6 +kmod-misdn
   SUBMENU:=$(NETWORK_DEVICES_MENU)
   FILES:=$(LINUX_DIR)/drivers/isdn/hardware/mISDN/hfcmulti.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,31,hfcmulti)
@@ -341,7 +372,8 @@ define KernelPackage/gigaset
     CONFIG_GIGASET_BASE \
     CONFIG_GIGASET_M101 \
     CONFIG_GIGASET_M105 \
-    CONFIG_GIGASET_UNDOCREQ=y
+    CONFIG_GIGASET_UNDOCREQ=y \
+    CONFIG_GIGASET_I4L=y
   FILES:= \
     $(LINUX_DIR)/drivers/isdn/gigaset/gigaset.$(LINUX_KMOD_SUFFIX) \
     $(LINUX_DIR)/drivers/isdn/gigaset/bas_gigaset.$(LINUX_KMOD_SUFFIX) \

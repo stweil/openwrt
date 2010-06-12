@@ -12,12 +12,13 @@ BOARDNAME:=RDC 321x
 FEATURES:=squashfs jffs2 pci usb pcmcia
 CFLAGS:=-Os -pipe -march=i486 -mtune=i486 -funit-at-a-time
 
-LINUX_VERSION:=2.6.30.10
+LINUX_VERSION:=2.6.32.14
 
 include $(INCLUDE_DIR)/target.mk
 
-DEFAULT_PACKAGES += wpad-mini kmod-r6040 kmod-input-core \
-		    kmod-input-polldev kmod-input-gpio-buttons kmod-button-hotplug
+DEFAULT_PACKAGES += wpad-mini kmod-libphy kmod-r6040 kmod-input-core \
+		    kmod-input-polldev kmod-input-gpio-buttons kmod-button-hotplug \
+		    kmod-rdc321x-wdt
 
 define Target/Description
         Build firmware images for RDC321x based routers

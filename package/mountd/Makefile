@@ -1,11 +1,11 @@
-# Copyright (C) 2009 OpenWrt.org
+# Copyright (C) 2009-2010 OpenWrt.org
 # All rights reserved.
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mountd
 PKG_VERSION:=0.1
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources
@@ -35,8 +35,8 @@ endef
 define Package/mountd/install
 	$(INSTALL_DIR) $(1)/sbin/ $(1)/etc/config/ $(1)/etc/init.d/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/mountd $(1)/sbin/
-	$(INSTALL_BIN) ./files/mountd.config $(1)/etc/config/mountd
-	$(INSTALL_DATA) ./files/mountd.init $(1)/etc/init.d/mountd
+	$(INSTALL_DATA) ./files/mountd.config $(1)/etc/config/mountd
+	$(INSTALL_BIN) ./files/mountd.init $(1)/etc/init.d/mountd
 endef
 
 $(eval $(call BuildPackage,mountd))
