@@ -63,7 +63,6 @@ scan_broadcom() {
 	apsta=0
 	radio=1
 	monitor=0
-	passive=0
 	case "$adhoc:$sta:$apmode:$mon" in
 		1*)
 			ap=0
@@ -84,7 +83,6 @@ scan_broadcom() {
 			ap=0
 			mssid=
 			monitor=1
-			passive=1
 		;;
 		::)
 			radio=0
@@ -96,6 +94,7 @@ disable_broadcom() {
 	local device="$1"
 	set_wifi_down "$device"
 	wlc ifname "$device" down
+	wlc ifname "$device" bssid `wlc ifname "$device" default_bssid`
 	(
 		include /lib/network
 
@@ -255,44 +254,35 @@ enable_broadcom() {
 
 		[ "$mode" = "monitor" ] && {
 			append vif_post_up "monitor $monitor" "$N"
-			append vif_post_up "passive $passive" "$N"
 		}
 
 		[ "$mode" = "adhoc" ] && {
 			config_get bssid "$vif" bssid
 			[ -n "$bssid" ] && {
-				append vif_pre_up "des_bssid $bssid" "$N"
-				append vif_pre_up "allow_mode 1" "$N"
+				append vif_pre_up "bssid $bssid" "$N"
+				append vif_pre_up "ibss_merge 0" "$N"
+			} || {
+				append vif_pre_up "ibss_merge 1" "$N"
 			}
-		} || append vif_pre_up "allow_mode 0" "$N"
+		}
 
 		append vif_post_up "enabled 1" "$N"
 
 		config_get ifname "$vif" ifname
 		#append if_up "ifconfig $ifname up" ";$N"
 
-		local net_cfg bridge
+		local net_cfg
 		net_cfg="$(find_net_config "$vif")"
 		[ -z "$net_cfg" ] || {
-			bridge="$(bridge_interface "$net_cfg")"
 			append if_up "set_wifi_up '$vif' '$ifname'" ";$N"
-			append if_up "start_net '$ifname' '$net_cfg' \$(wlc ifname '$ifname' bssid)" ";$N"
+			append if_up "start_net '$ifname' '$net_cfg'" ";$N"
 		}
 		[ -z "$nasopts" ] || {
 			eval "${vif}_ssid=\"\$ssid\""
 			nas_mode="-A"
-			use_nas=1
-			[ "$mode" = "sta" ] && {
-				nas_mode="-S"
-				[ -z "$bridge" ] || {
-					append vif_post_up "supplicant 1" "$N"
-					append vif_post_up "passphrase $key" "$N"
-
-					use_nas=0
-				}
-			}
-			[ -z "$nas" -o "$use_nas" = "0" ] || {
-				nas_cmd="${nas_cmd:+$nas_cmd$N}start-stop-daemon -S -b -p /var/run/nas.$ifname.pid -x $nas -- -P /var/run/nas.$ifname.pid -H 34954 ${bridge:+ -l $bridge} -i $ifname $nas_mode -m $auth -w $wsec -s \"\$${vif}_ssid\" -g 3600 $nasopts"
+			[ "$mode" = "sta" ] && nas_mode="-S"
+			[ -z "$nas" ] || {
+				nas_cmd="${nas_cmd:+$nas_cmd$N}start-stop-daemon -S -b -p /var/run/nas.$ifname.pid -x $nas -- -P /var/run/nas.$ifname.pid -H 34954 -i $ifname $nas_mode -m $auth -w $wsec -s \"\$${vif}_ssid\" -g 3600 -F $nasopts"
 			}
 		}
 		_c=$(($_c + 1))
@@ -315,14 +305,13 @@ txant ${txantenna:-3}
 fragthresh ${frag:-2346}
 rtsthresh ${rts:-2347}
 monitor ${monitor:-0}
-passive ${passive:-0}
 
 radio ${radio:-1}
 macfilter ${macfilter:-0}
 maclist ${maclist:-none}
 wds none
 ${wds:+wds $wds}
-country ${country:-IL0}
+country ${country:-US}
 ${channel:+channel $channel}
 maxassoc ${maxassoc:-128}
 slottime ${slottime:--1}
@@ -349,7 +338,7 @@ EOF
 detect_broadcom() {
 	local i=-1
 
-	while [ -f /proc/net/wl$((++i)) ]; do
+	while grep -qs "^ *wl$((++i)):" /proc/net/dev; do
 		config_get type wl${i} type
 		[ "$type" = broadcom ] && continue
 		cat <<EOF
