@@ -10,7 +10,6 @@ WIRELESS_MENU:=Wireless Drivers
 define KernelPackage/lib80211
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=802.11 Networking stack
-  DEPENDS:=@!LINUX_2_4
   KCONFIG:= \
 	CONFIG_LIB80211 \
 	CONFIG_LIB80211_CRYPT_WEP \
@@ -59,7 +58,7 @@ $(eval $(call KernelPackage,net-airo))
 define KernelPackage/net-hermes
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=Hermes 802.11b chipset support
-  DEPENDS:=@LINUX_2_6 @PCI_SUPPORT||PCMCIA_SUPPORT
+  DEPENDS:=@PCI_SUPPORT||PCMCIA_SUPPORT
   KCONFIG:=CONFIG_HERMES \
 	CONFIG_HERMES_CACHE_FW_ON_INIT=n
   FILES:= \

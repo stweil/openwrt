@@ -7,11 +7,7 @@
 
 OTHER_MENU:=Other modules
 
-# XXX: added a workaround for watchdog path changes
-ifeq ($(KERNEL),2.4)
-  WATCHDOG_DIR=char
-endif
-WATCHDOG_DIR?=watchdog
+WATCHDOG_DIR:=watchdog
 
 
 define KernelPackage/bluetooth
@@ -39,37 +35,6 @@ define KernelPackage/bluetooth
   $(call AddDepends/crc16)
   $(call AddDepends/hid)
   $(call AddDepends/rfkill)
-endef
-
-define KernelPackage/bluetooth/2.4
-#  KCONFIG:= \
-#	CONFIG_BLUEZ \
-#	CONFIG_BLUEZ_L2CAP \
-#	CONFIG_BLUEZ_SCO \
-#	CONFIG_BLUEZ_RFCOMM \
-#	CONFIG_BLUEZ_BNEP \
-#	CONFIG_BLUEZ_HCIUART \
-#	CONFIG_BLUEZ_HCIUSB
-  FILES:= \
-	$(LINUX_DIR)/net/bluetooth/bluez.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/net/bluetooth/l2cap.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/net/bluetooth/sco.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/net/bluetooth/rfcomm/rfcomm.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/net/bluetooth/bnep/bnep.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/bluetooth/hci_uart.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/bluetooth/hci_usb.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,90,bluez l2cap sco rfcomm bnep hci_uart hci_usb)
-endef
-
-define KernelPackage/bluetooth/2.6
-#  KCONFIG:= \
-#	CONFIG_BT \
-#	CONFIG_BT_L2CAP \
-#	CONFIG_BT_SCO \
-#	CONFIG_BT_RFCOMM \
-#	CONFIG_BT_BNEP \
-#	CONFIG_BT_HCIUSB \
-#	CONFIG_BT_HCIUART
   FILES:= \
 	$(LINUX_DIR)/net/bluetooth/bluetooth.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/net/bluetooth/l2cap.$(LINUX_KMOD_SUFFIX) \
@@ -92,7 +57,6 @@ $(eval $(call KernelPackage,bluetooth))
 define KernelPackage/crc-ccitt
   SUBMENU:=$(OTHER_MENU)
   TITLE:=CRC-CCITT support
-  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_CRC_CCITT
   FILES:=$(LINUX_DIR)/lib/crc-ccitt.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,crc-ccitt)
@@ -108,7 +72,6 @@ $(eval $(call KernelPackage,crc-ccitt))
 define KernelPackage/crc-itu-t
   SUBMENU:=$(OTHER_MENU)
   TITLE:=CRC ITU-T V.41 support
-  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_CRC_ITU_T
   FILES:=$(LINUX_DIR)/lib/crc-itu-t.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,crc-itu-t)
@@ -124,7 +87,6 @@ $(eval $(call KernelPackage,crc-itu-t))
 define KernelPackage/crc7
   SUBMENU:=$(OTHER_MENU)
   TITLE:=CRC7 support
-  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_CRC7
   FILES:=$(LINUX_DIR)/lib/crc7.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,crc7)
@@ -156,7 +118,6 @@ $(eval $(call KernelPackage,crc16))
 define KernelPackage/eeprom-93cx6
   SUBMENU:=$(OTHER_MENU)
   TITLE:=EEPROM 93CX6 support
-  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_EEPROM_93CX6
   FILES:=$(LINUX_DIR)/drivers/misc/eeprom/eeprom_93cx6.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,eeprom_93cx6)
@@ -286,20 +247,12 @@ define KernelPackage/input-core
   TITLE:=Input device core
   KCONFIG:=CONFIG_INPUT
   $(call SetDepends/input)
+  FILES:=$(LINUX_DIR)/drivers/input/input-core.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,19,input-core)
 endef
 
 define KernelPackage/input-core/description
  Kernel modules for support of input device
-endef
-
-define KernelPackage/input-core/2.4
-  FILES:=$(LINUX_DIR)/drivers/input/input.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,19,input)
-endef
-
-define KernelPackage/input-core/2.6
-  FILES:=$(LINUX_DIR)/drivers/input/input-core.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,19,input-core)
 endef
 
 $(eval $(call KernelPackage,input-core))
@@ -376,7 +329,6 @@ $(eval $(call KernelPackage,input-joydev))
 define KernelPackage/input-polldev
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Polled Input device support
-  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_INPUT_POLLDEV
   FILES:=$(LINUX_DIR)/drivers/input/input-polldev.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,input-polldev)
@@ -489,7 +441,6 @@ $(eval $(call KernelPackage,leds-wrap))
 define KernelPackage/ledtrig-morse
   SUBMENU:=$(OTHER_MENU)
   TITLE:=LED Morse Trigger
-  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_LEDS_TRIGGER_MORSE
   FILES:=$(LINUX_DIR)/drivers/leds/ledtrig-morse.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,ledtrig-morse)
@@ -505,7 +456,6 @@ $(eval $(call KernelPackage,ledtrig-morse))
 define KernelPackage/ledtrig-netdev
   SUBMENU:=$(OTHER_MENU)
   TITLE:=LED NETDEV Trigger
-  DEPENDS:=@LINUX_2_6
   KCONFIG:=CONFIG_LEDS_TRIGGER_NETDEV
   FILES:=$(LINUX_DIR)/drivers/leds/ledtrig-netdev.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,ledtrig-netdev)
@@ -521,7 +471,7 @@ $(eval $(call KernelPackage,ledtrig-netdev))
 define KernelPackage/lp
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Parallel port and line printer support
-  DEPENDS:=@LINUX_2_4
+  DEPENDS:=@BROKEN
   KCONFIG:= \
 	CONFIG_PARPORT \
 	CONFIG_PRINTER \
@@ -533,26 +483,12 @@ define KernelPackage/lp
   AUTOLOAD:=$(call AutoLoad,50,parport lp)
 endef
 
-define KernelPackage/lp/2.4
-  FILES:= \
-	$(LINUX_DIR)/drivers/parport/parport.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/parport/parport_*.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/char/lp.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/char/ppdev.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50, \
-  	parport \
-  	parport_splink \
-  	lp \
-  )
-endef
-
 $(eval $(call KernelPackage,lp))
 
 
 define KernelPackage/mmc
   SUBMENU:=$(OTHER_MENU)
   TITLE:=MMC/SD Card Support
-  DEPENDS:=@LINUX_2_6
   KCONFIG:= \
 	CONFIG_MMC \
 	CONFIG_MMC_BLOCK \
@@ -638,7 +574,7 @@ $(eval $(call KernelPackage,softdog))
 define KernelPackage/ssb
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Silicon Sonics Backplane glue code
-  DEPENDS:=@LINUX_2_6 @PCI_SUPPORT @!TARGET_brcm47xx @!TARGET_brcm63xx
+  DEPENDS:=@PCI_SUPPORT @!TARGET_brcm47xx @!TARGET_brcm63xx
   KCONFIG:=\
 	CONFIG_SSB \
 	CONFIG_SSB_B43_PCI_BRIDGE=y \
@@ -664,7 +600,6 @@ $(eval $(call KernelPackage,ssb))
 define KernelPackage/textsearch
 SUBMENU:=$(OTHER_MENU)
   TITLE:=Textsearch support is selected if needed
-  DEPENDS:=@LINUX_2_6
   KCONFIG:= \
     CONFIG_TEXTSEARCH=y \
     CONFIG_TEXTSEARCH_KMP \
@@ -683,7 +618,7 @@ $(eval $(call KernelPackage,textsearch))
 define KernelPackage/wdt-geode
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Geode/LX Watchdog timer
-  DEPENDS:=@TARGET_x86 @LINUX_2_6
+  DEPENDS:=@TARGET_x86
   KCONFIG:=CONFIG_GEODE_WDT
   FILES:=$(LINUX_DIR)/drivers/$(WATCHDOG_DIR)/geodewdt.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,geodewdt)
