@@ -9,14 +9,14 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=broadcom-wl
-PKG_VERSION:=5.10.56.27.1
+PKG_VERSION:=5.10.56.27.3
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)_$(ARCH).tar.bz2
 PKG_SOURCE_URL:=http://downloads.openwrt.org/sources
 
-PKG_MD5SUM.mipsel:=9f42cfa9c46ee1b0e04dc2d3ab9bc8cd
-PKG_MD5SUM.mips:=9dcc902af0fcac5f34b6656982e82c21
+PKG_MD5SUM.mipsel:=3363e3a6b3d9d73c49dea870c7834eac
+PKG_MD5SUM.mips:=f8de63debc75333d6b4e28193eb051ff
 PKG_MD5SUM:=$(PKG_MD5SUM.$(ARCH))
 
 include $(INCLUDE_DIR)/package.mk
@@ -34,7 +34,7 @@ define KernelPackage/brcm-wl/Default
   SECTION:=kernel
   DEPENDS:=@TARGET_brcm47xx||TARGET_brcm63xx +wireless-tools
   TITLE:=Kernel driver for BCM43xx chipsets
-  FILES:=$(PKG_BUILD_DIR)/driver$(1)/wl.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(PKG_BUILD_DIR)/driver$(1)/wl.ko
   AUTOLOAD:=$(call AutoLoad,30,wl)
 endef
 

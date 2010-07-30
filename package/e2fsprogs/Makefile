@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2008 OpenWrt.org
+# Copyright (C) 2006-2010 OpenWrt.org
 # Copyright 2010 Vertical Communications
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -8,12 +8,14 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=e2fsprogs
-PKG_VERSION:=1.41.11
-PKG_MD5SUM:=fb507a40c2706bc38306f150d069e345
+PKG_VERSION:=1.41.12
+PKG_MD5SUM:=1b24a21fc0c2381ef420961cbfec733f
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/e2fsprogs
+
+PKG_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -64,7 +66,7 @@ define Package/libblkid
 $(call Package/e2fsprogs/Default)
   SECTION:=libs
   CATEGORY:=Libraries
-  TITLE:=block device id library
+  TITLE:=Block device id library
 endef
 
 define Package/libblkid/description
@@ -132,7 +134,7 @@ define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		BUILDCC="$(HOSTCC)" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		all install
+		all
 endef
 
 define Build/InstallDev

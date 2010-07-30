@@ -53,8 +53,10 @@
 
 #if __BYTE_ORDER == __BIG_ENDIAN
 #define STORE32_LE(X)		bswap_32(X)
+#define LOAD32_LE(X)		bswap_32(X)
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
 #define STORE32_LE(X)		(X)
+#define LOAD32_LE(X)		(X)
 #else
 #error unkown endianness!
 #endif
@@ -98,7 +100,7 @@ int main(int argc, char **argv)
 	int c, i, append = 0;
 	size_t n;
 	ssize_t n2;
-	uint32_t cur_len;
+	uint32_t cur_len, fsmark=0;
 	unsigned long maxlen = TRX_MAX_LEN;
 	struct trx_header *p;
 	char trx_version = 1;
@@ -119,7 +121,7 @@ int main(int argc, char **argv)
 	in = NULL;
 	i = 0;
 
-	while ((c = getopt(argc, argv, "-:2o:m:a:x:b:f:A:")) != -1) {
+	while ((c = getopt(argc, argv, "-:2o:m:a:x:b:f:A:F:")) != -1) {
 		switch (c) {
 			case '2':
 				/* take care that nothing was written to buf so far */
@@ -131,6 +133,8 @@ int main(int argc, char **argv)
 					cur_len += 4;
 				}
 				break;
+			case 'F':
+				fsmark = cur_len;
 			case 'A':
 				append = 1;
 				/* fall through */
@@ -260,23 +264,24 @@ int main(int argc, char **argv)
 
 	/* for TRXv2 set bin-header Flags to 0xFF for CRC calculation like CFE does */ 
 	if (trx_version == 2) {
-		if(cur_len - p->offsets[3] < sizeof(binheader)) {
+		if(cur_len - LOAD32_LE(p->offsets[3]) < sizeof(binheader)) {
 			fprintf(stderr, "TRXv2 binheader too small!\n");
 			return EXIT_FAILURE;
 		}
-		memcpy(binheader, buf + p->offsets[3], sizeof(binheader)); /* save header */
-		memset(buf + p->offsets[3] + 22, 0xFF, 8); /* set stable and try1-3 to 0xFF */
+		memcpy(binheader, buf + LOAD32_LE(p->offsets[3]), sizeof(binheader)); /* save header */
+		memset(buf + LOAD32_LE(p->offsets[3]) + 22, 0xFF, 8); /* set stable and try1-3 to 0xFF */
 	}
 
 	p->crc32 = crc32buf((char *) &p->flag_version,
-						cur_len - offsetof(struct trx_header, flag_version));
+						(fsmark)?fsmark:cur_len - offsetof(struct trx_header, flag_version));
 	p->crc32 = STORE32_LE(p->crc32);
 
-	p->len = STORE32_LE(cur_len);
+	p->len = (fsmark)?fsmark:cur_len - offsetof(struct trx_header, flag_version);
+	p->len = STORE32_LE(p->len);
 
 	/* restore TRXv2 bin-header */
 	if (trx_version == 2) {
-		memcpy(buf + p->offsets[3], binheader, sizeof(binheader));
+		memcpy(buf + LOAD32_LE(p->offsets[3]), binheader, sizeof(binheader));
 	}
 
 	if (!fwrite(buf, cur_len, 1, out) || fflush(out)) {

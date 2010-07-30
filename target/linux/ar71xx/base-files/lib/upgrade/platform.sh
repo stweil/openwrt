@@ -68,14 +68,14 @@ platform_check_image() {
 	[ "$ARGC" -gt 1 ] && return 1
 
 	case "$board" in
-	ap81 | ap83 | dir-600-a1 | dir-615-c1 | dir-825-b1 | mzk-w04nu | mzk-w300nh | tew-632brp | wrt400n | bullet-m | nano-m | rocket-m | wzr-hp-g300nh)
+	ap81 | ap83 | dir-600-a1 | dir-615-c1 | dir-825-b1 | mzk-w04nu | mzk-w300nh | tew-632brp | wrt400n | bullet-m | nanostation-m | rocket-m | wzr-hp-g300nh )
 		[ "$magic" != "2705" ] && {
 			echo "Invalid image type."
 			return 1
 		}
 		return 0
 		;;
-	tl-wr741nd | tl-wr841n-v1 | tl-wr941nd | tl-wr1043nd)
+	tl-wa901nd | tl-wr741nd | tl-wr841n-v1 | tl-wr941nd | tl-wr1043nd)
 		[ "$magic" != "0100" ] && {
 			echo "Invalid image type."
 			return 1

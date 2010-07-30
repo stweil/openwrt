@@ -155,6 +155,15 @@ menu "Global build settings"
 		help
 			This removes all ipkg/opkg status data files from the target directory before building the root fs
 
+	config COLLECT_KERNEL_DEBUG
+		bool
+		prompt "Colllect kernel debug information"
+		select KERNEL_DEBUG_INFO
+		default n
+		help
+			This collects debugging symbols from the kernel and all compiled modules.
+			Useful for release builds, so that kernel issues can be debugged offline later.
+
 	comment "Kernel build options"
 
 	config KERNEL_DEBUG_FS
@@ -179,6 +188,17 @@ menu "Global build settings"
 		help
 		  This will give you more information in stack traces from kernel oopses
 
+	config KERNEL_DEBUG_KERNEL
+		bool
+		default n
+
+	config KERNEL_DEBUG_INFO
+		bool "Compile the kernel with debug information"
+		default n
+		select KERNEL_DEBUG_KERNEL
+		help
+		  This will compile your kernel and modules with debug information.
+
 	comment "Package build options"
 
 	config DEBUG
@@ -191,7 +211,7 @@ menu "Global build settings"
 	config IPV6
 		bool
 		prompt "Enable IPv6 support in packages"
-		default n
+		default y
 		help
 		  Enable IPV6 support in packages (passes --enable-ipv6 to configure scripts).
 

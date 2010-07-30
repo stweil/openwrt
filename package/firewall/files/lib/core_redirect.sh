@@ -26,9 +26,12 @@ fw_load_redirect() {
 
 	fw_callback pre redirect
 
-	[ -n "$redirect_src" -a -n "$redirect_dest_ip" ] || {
-		fw_die "redirect ${redirect_name}: needs src and dest_ip"
+	[ -n "$redirect_src" -a -n "$redirect_dest_ip$redirect_dest_port" ] || {
+		fw_die "redirect ${redirect_name}: needs src and dest_ip or dest_port"
 	}
+
+	list_contains FW_CONNTRACK_ZONES $redirect_src || \
+		append FW_CONNTRACK_ZONES $redirect_src
 
 	local mode=$(fw_get_family_mode ${redirect_family:-x} $redirect_src I)
 
@@ -50,6 +53,7 @@ fw_load_redirect() {
 			--to-destination ${redirect_dest_ip}${redirect_dest_port:+:$nat_dest_port} \
 		}
 
+		[ -n "$redirect_dest_ip" ] && \
 		fw add $mode f zone_${redirect_src}_forward ACCEPT ^ { $redirect_src_ip $redirect_dest_ip } { \
 			-d $redirect_dest_ip \
 			${redirect_proto:+-p $redirect_proto} \
