@@ -1,5 +1,5 @@
- 
-# Copyright (C) 2006-2009 OpenWrt.org
+#
+# Copyright (C) 2006-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -15,14 +15,14 @@ LINUX_VERSION:=2.6.32.16
 
 #~ LINUX_VERSION:=2.4.37.9
 #~ LINUX_VERSION:=2.6.26.8
-#~ LINUX_VERSION:=2.6.27.47
+#~ LINUX_VERSION:=2.6.27.48
 #~ LINUX_VERSION:=2.6.28.10
 #~ LINUX_VERSION:=2.6.29.6
 #~ LINUX_VERSION:=2.6.30.10
-#~ LINUX_VERSION:=2.6.31.6
-#~ LINUX_VERSION:=2.6.32.15
-#~ LINUX_VERSION:=2.6.33.5
-LINUX_VERSION:=2.6.34
+#~ LINUX_VERSION:=2.6.31.14
+#~ LINUX_VERSION:=2.6.32.16
+#~ LINUX_VERSION:=2.6.33.6
+LINUX_VERSION:=2.6.34.1
 
 include $(INCLUDE_DIR)/target.mk
 
