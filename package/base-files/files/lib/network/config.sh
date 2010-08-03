@@ -325,11 +325,12 @@ setup_interface() {
 
 	# Interface settings
 	grep "$iface:" /proc/net/dev > /dev/null && {
-		local mtu macaddr
+		local mtu macaddr txqueuelen
 		config_get mtu "$config" mtu
 		config_get macaddr "$config" macaddr
+		config_get txqueuelen "$config" txqueuelen
 		[ -n "$macaddr" ] && $DEBUG ifconfig "$iface" down
-		$DEBUG ifconfig "$iface" ${macaddr:+hw ether "$macaddr"} ${mtu:+mtu $mtu} up
+		$DEBUG ifconfig "$iface" ${macaddr:+hw ether "$macaddr"} ${mtu:+mtu $mtu} ${txqueuelen:+txqueuelen $txqueuelen} up
 	}
 	set_interface_ifname "$config" "$iface"
 
