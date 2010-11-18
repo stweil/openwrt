@@ -7,7 +7,6 @@
 #
 
 RELEASE:=Kamikaze
-SHELL:=/usr/bin/env bash
 PREP_MK= OPENWRT_BUILD= QUIET=0
 
 include $(TOPDIR)/include/verbose.mk
@@ -41,6 +40,8 @@ endif
 
 SCAN_COOKIE?=$(shell echo $$$$)
 export SCAN_COOKIE
+
+SUBMAKE:=umask 022; $(SUBMAKE)
 
 prepare-mk: FORCE ;
 
@@ -103,6 +104,9 @@ kernel_oldconfig: prepare_kernel_conf
 kernel_menuconfig: prepare_kernel_conf
 	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux menuconfig
 
+kernel_nconfig: prepare_kernel_conf
+	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux nconfig
+
 tmp/.prereq-build: include/prereq-build.mk
 	mkdir -p tmp
 	rm -f tmp/.host.mk
@@ -111,6 +115,9 @@ tmp/.prereq-build: include/prereq-build.mk
 		false; \
 	}
 	touch $@
+
+printdb: FORCE
+	@$(_SINGLE)$(NO_TRACE_MAKE) -p $@ V=99 DUMP_TARGET_DB=1 2>&1
 
 download: .config FORCE
 	@+$(SUBMAKE) tools/download

@@ -38,31 +38,31 @@ static struct mtd_partition wnr2000_partitions[] = {
 		.offset		= 0,
 		.size		= 0x040000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "u-boot-env",
 		.offset		= 0x040000,
 		.size		= 0x010000,
-	} , {
+	}, {
 		.name		= "rootfs",
 		.offset		= 0x050000,
 		.size		= 0x240000,
-	} , {
+	}, {
 		.name		= "user-config",
 		.offset		= 0x290000,
 		.size		= 0x010000,
-	} , {
+	}, {
 		.name		= "uImage",
 		.offset		= 0x2a0000,
 		.size		= 0x120000,
-	} , {
+	}, {
 		.name		= "language_table",
 		.offset		= 0x3c0000,
 		.size		= 0x020000,
-	} , {
+	}, {
 		.name		= "rootfs_checksum",
 		.offset		= 0x3e0000,
 		.size		= 0x010000,
-	} , {
+	}, {
 		.name		= "art",
 		.offset		= 0x3f0000,
 		.size		= 0x010000,
@@ -73,8 +73,8 @@ static struct mtd_partition wnr2000_partitions[] = {
 
 static struct flash_platform_data wnr2000_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-        .parts          = wnr2000_partitions,
-        .nr_parts       = ARRAY_SIZE(wnr2000_partitions),
+	.parts		= wnr2000_partitions,
+	.nr_parts	= ARRAY_SIZE(wnr2000_partitions),
 #endif
 };
 
@@ -118,14 +118,15 @@ static void __init wnr2000_setup(void)
 {
 	u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff1000);
 
-	ar71xx_set_mac_base(eeprom);
 	ar71xx_add_device_mdio(0x0);
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, eeprom, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth0_data.speed = SPEED_100;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 	ar71xx_eth0_data.has_ar8216 = 1;
 
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, eeprom, 1);
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth1_data.phy_mask = 0x10;
 

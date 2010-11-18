@@ -31,7 +31,7 @@ static struct gpio_button pb42_gpio_buttons[] __initdata = {
 		.threshold	= 3,
 		.gpio		= PB42_GPIO_BTN_SW4,
 		.active_low	= 1,
-	} , {
+	}, {
 		.desc		= "sw5",
 		.type		= EV_KEY,
 		.code		= BTN_1,
@@ -51,9 +51,11 @@ static void __init pb42_init(void)
 
 	ar71xx_add_device_mdio(~PB42_MDIO_PHYMASK);
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, ar71xx_mac_base, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.phy_mask = PB42_WAN_PHYMASK;
 
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, ar71xx_mac_base, 1);
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth1_data.speed = SPEED_100;
 	ar71xx_eth1_data.duplex = DUPLEX_FULL;
@@ -62,8 +64,8 @@ static void __init pb42_init(void)
 	ar71xx_add_device_eth(1);
 
 	ar71xx_add_device_gpio_buttons(-1, PB42_BUTTONS_POLL_INTERVAL,
-				       ARRAY_SIZE(pb42_gpio_buttons),
-				       pb42_gpio_buttons);
+					ARRAY_SIZE(pb42_gpio_buttons),
+					pb42_gpio_buttons);
 
 	pb42_pci_init();
 }

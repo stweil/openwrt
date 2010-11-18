@@ -11,7 +11,7 @@ BOARD:=ar7
 BOARDNAME:=TI AR7
 FEATURES:=squashfs jffs2 atm
 
-LINUX_VERSION:=2.6.32.16
+LINUX_VERSION:=2.6.32.25
 
 #~ LINUX_VERSION:=2.4.37.9
 #~ LINUX_VERSION:=2.6.27.49
@@ -24,7 +24,7 @@ LINUX_VERSION:=2.6.35
 include $(INCLUDE_DIR)/target.mk
 
 DEFAULT_PACKAGES+= kmod-pppoa ppp-mod-pppoa linux-atm atm-tools br2684ctl \
-		kmod-acx
+		kmod-acx swconfig
 
 define Target/Description
 	Build firmware images for TI AR7 based routers.

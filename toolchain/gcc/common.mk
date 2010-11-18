@@ -36,12 +36,18 @@ ifdef CONFIG_GCC_VERSION_LLVM
   PKG_SOURCE_SUBDIR:=$(GCC_DIR)
   HOST_BUILD_DIR:=$(BUILD_DIR_TOOLCHAIN)/$(GCC_DIR)
 else
+ifdef CONFIG_GCC_VERSION_4_5_1_LINARO
+    PKG_REV:=4.5-2010.11-1
+    PKG_VERSION:=4.5.2
+    PKG_SOURCE_URL:=http://launchpad.net/gcc-linaro/4.5/4.5-2010.11-0/+download/
+    PKG_SOURCE:=$(PKG_NAME)-linaro-$(PKG_REV).tar.bz2
+    PKG_MD5SUM:=9e18a60d2c5ae4f3338814aabf80bb90
+    GCC_DIR:=gcc-linaro-$(PKG_REV)
+    HOST_BUILD_DIR:=$(BUILD_DIR_TOOLCHAIN)/$(GCC_DIR)
+else
   PKG_SOURCE_URL:=@GNU/gcc/gcc-$(PKG_VERSION)
   PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 
-  ifeq ($(PKG_VERSION),3.4.6)
-    PKG_MD5SUM:=4a21ac777d4b5617283ce488b808da7b
-  endif
   ifeq ($(PKG_VERSION),4.1.2)
     PKG_MD5SUM:=a4a3eb15c96030906d8494959eeda23c
   endif
@@ -51,30 +57,19 @@ else
   ifeq ($(PKG_VERSION),4.3.3)
     PKG_MD5SUM:=cc3c5565fdb9ab87a05ddb106ba0bd1f
   endif
-  ifeq ($(PKG_VERSION),4.3.4)
-    PKG_MD5SUM:=60df63222dbffd53ca11492a2545044f
-  endif
   ifeq ($(PKG_VERSION),4.3.5)
     PKG_MD5SUM:=e588cfde3bf323f82918589b94f14a15
   endif
-  ifeq ($(PKG_VERSION),4,4,1)
+  ifeq ($(PKG_VERSION),4.4.1)
     PKG_MD5SUM:=927eaac3d44b22f31f9c83df82f26436
   endif
-  ifeq ($(PKG_VERSION),4.4.2)
-    PKG_MD5SUM:=70f5ac588a79e3c9901d5b34f58d896d
-  endif
-  ifeq ($(PKG_VERSION),4.4.3)
-    PKG_MD5SUM:=fe1ca818fc6d2caeffc9051fe67ff103
-  endif
-  ifeq ($(PKG_VERSION),4.4.4)
-    PKG_MD5SUM:=7ff5ce9e5f0b088ab48720bbd7203530
-  endif
-  ifeq ($(PKG_VERSION),4.5.0)
-  PKG_MD5SUM:=ff27b7c4a5d5060c8a8543a44abca31f
+  ifeq ($(PKG_VERSION),4.4.5)
+    PKG_MD5SUM:=44b3192c4c584b9be5243d9e8e7e0ed1
   endif
   ifeq ($(PKG_VERSION),4.5.1)
   PKG_MD5SUM:=48231a8e33ed6e058a341c53b819de1a
   endif
+endif
 endif
 
 PATCH_DIR=../patches/$(GCC_VERSION)
@@ -104,7 +99,7 @@ export libgcc_cv_fixed_point=no
 GCC_CONFIGURE:= \
 	SHELL="$(BASH)" \
 	$(HOST_SOURCE_DIR)/configure \
-		--prefix=$(TOOLCHAIN_DIR)/usr \
+		--prefix=$(TOOLCHAIN_DIR) \
 		--build=$(GNU_HOST_NAME) \
 		--host=$(GNU_HOST_NAME) \
 		--target=$(REAL_GNU_TARGET_NAME) \
@@ -120,7 +115,13 @@ GCC_CONFIGURE:= \
 		$(call qstrip,$(CONFIG_EXTRA_GCC_CONFIG_OPTIONS)) \
 		$(if $(CONFIG_mips64)$(CONFIG_mips64el),--with-arch=mips64 --with-abi=64) \
 		$(if $(CONFIG_GCC_VERSION_LLVM),--enable-llvm=$(BUILD_DIR_BASE)/host/llvm) \
-		$(if $(CONFIG_GCC_VERSION_4_3_3_CS)$(CONFIG_GCC_VERSION_4_4_1_CS)$(CONFIG_GCC_VERSION_4_4_3_CS),--enable-poison-system-directories)
+		$(if $(CONFIG_GCC_VERSION_4_3_3_CS)$(CONFIG_GCC_VERSION_4_4_1_CS),--enable-poison-system-directories)
+
+ifneq ($(CONFIG_GCC_VERSION_4_4)$(CONFIG_GCC_VERSION_4_5),)
+  ifneq ($(CONFIG_mips)$(CONFIG_mipsel),)
+    GCC_CONFIGURE += --with-mips-plt
+  endif
+endif
 
 ifneq ($(CONFIG_GCC_VERSION_4_3)$(CONFIG_GCC_VERSION_4_4)$(CONFIG_GCC_VERSION_4_5),)
   GCC_BUILD_TARGET_LIBGCC:=y
@@ -167,7 +168,7 @@ endif
 
 GCC_MAKE:= \
 	export SHELL="$(BASH)"; \
-	$(MAKE) \
+	$(MAKE) $(TOOLCHAIN_JOBS) \
 		CFLAGS_FOR_TARGET="$(TARGET_CFLAGS)" \
 		CXXFLAGS_FOR_TARGET="$(TARGET_CFLAGS)"
 
@@ -187,7 +188,7 @@ define Host/Clean
 		$(STAGING_DIR_HOST)/stamp/.binutils_* \
 		$(GCC_BUILD_DIR) \
 		$(BUILD_DIR_TOOLCHAIN)/$(PKG_NAME) \
-		$(TOOLCHAIN_DIR)/usr/$(REAL_GNU_TARGET_NAME) \
-		$(TOOLCHAIN_DIR)/usr/bin/$(REAL_GNU_TARGET_NAME)-gc* \
-		$(TOOLCHAIN_DIR)/usr/bin/$(REAL_GNU_TARGET_NAME)-c*
+		$(TOOLCHAIN_DIR)/$(REAL_GNU_TARGET_NAME) \
+		$(TOOLCHAIN_DIR)/bin/$(REAL_GNU_TARGET_NAME)-gc* \
+		$(TOOLCHAIN_DIR)/bin/$(REAL_GNU_TARGET_NAME)-c*
 endef

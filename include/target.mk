@@ -67,10 +67,10 @@ define Profile
 		echo "Target-Profile-Kconfig: yes"; \
 	fi; \
 	echo "Target-Profile-Config: "; \
-	getvar "$(call shvar,Profile/$(1)/Config)"; \
+	$(SH_FUNC) getvar "$(call shvar,Profile/$(1)/Config)"; \
 	echo "@@"; \
 	echo "Target-Profile-Description:"; \
-	getvar "$(call shvar,Profile/$(1)/Description)"; \
+	$(SH_FUNC) getvar "$(call shvar,Profile/$(1)/Description)"; \
 	echo "@@"; \
 	echo;
   ifeq ($(CONFIG_TARGET_$(call target_conf,$(BOARD)_$(if $(SUBTARGET),$(SUBTARGET)_)$(1))),y)
@@ -178,6 +178,7 @@ define BuildTargets/DumpCurrent
 	 echo 'Target-Name: $(BOARDNAME)$(if $(SUBTARGETS),$(if $(SUBTARGET),))'; \
 	 echo 'Target-Path: $(subst $(TOPDIR)/,,$(PWD))'; \
 	 echo 'Target-Arch: $(ARCH)'; \
+	 echo 'Target-Arch-Packages: $(if $(ARCH_PACKAGES),$(ARCH_PACKAGES),$(BOARD))'; \
 	 echo 'Target-Features: $(FEATURES)'; \
 	 echo 'Target-Depends: $(DEPENDS)'; \
 	 echo 'Target-Optimization: $(if $(CFLAGS),$(CFLAGS),$(DEFAULT_CFLAGS))'; \
@@ -185,7 +186,7 @@ define BuildTargets/DumpCurrent
 	 echo 'Linux-Release: $(LINUX_RELEASE)'; \
 	 echo 'Linux-Kernel-Arch: $(LINUX_KARCH)'; \
 	 echo 'Target-Description:'; \
-	 getvar $(call shvar,Target/Description); \
+	 $(SH_FUNC) getvar $(call shvar,Target/Description); \
 	 echo '@@'; \
 	 echo 'Default-Packages: $(DEFAULT_PACKAGES)'; \
 	 $(DUMPINFO)

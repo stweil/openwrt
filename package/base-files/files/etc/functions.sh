@@ -97,6 +97,7 @@ list() {
 	local len
 
 	config_get len "$CONFIG_SECTION" "${varname}_LENGTH" 0
+	[ $len = 0 ] && append CONFIG_LIST_STATE "${CONFIG_SECTION}_${varname}"
 	len=$(($len + 1))
 	config_set "$CONFIG_SECTION" "${varname}_ITEM$len" "$value"
 	config_set "$CONFIG_SECTION" "${varname}_LENGTH" "$len"
@@ -272,6 +273,44 @@ uci_apply_defaults() {
 		( . "./$(basename $file)" ) && rm -f "$file"
 	done
 	uci commit
+}
+
+service_kill() {
+	local name="${1}"
+	local pid="${2:-$(pidof "$name")}"
+	local grace="${3:-5}"
+
+	[ -f "$pid" ] && pid="$(head -n1 "$pid" 2>/dev/null)"
+
+	for pid in $pid; do
+		[ -d "/proc/$pid" ] || continue
+		local try=0
+		kill -TERM $pid 2>/dev/null && \
+			while grep -qs "$name" "/proc/$pid/cmdline" && [ $((try++)) -lt $grace ]; do sleep 1; done
+		kill -KILL $pid 2>/dev/null && \
+			while grep -qs "$name" "/proc/$pid/cmdline"; do sleep 1; done
+	done
+}
+
+
+pi_include() {
+	if [ -f "/tmp/overlay/$1" ]; then
+		. "/tmp/overlay/$1"
+	elif [ -f "$1" ]; then
+		. "$1"
+	elif [ -d "/tmp/overlay/$1" ]; then
+		for src_script in /tmp/overlay/$1/*.sh; do
+			. "$src_script"
+		done
+	elif [ -d "$1" ]; then
+		for src_script in $1/*.sh; do
+			. "$src_script"
+		done
+	else
+		echo "WARNING: $1 not found"
+		return 1
+	fi
+	return 0
 }
 
 [ -z "$IPKG_INSTROOT" -a -f /lib/config/uci.sh ] && . /lib/config/uci.sh

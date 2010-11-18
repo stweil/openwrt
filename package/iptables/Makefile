@@ -9,10 +9,10 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=iptables
-PKG_VERSION:=1.4.8
+PKG_VERSION:=1.4.9.1
 PKG_RELEASE:=1
 
-PKG_MD5SUM:=697ed89f37af4473a5f6349ba2700f2d
+PKG_MD5SUM:=fbadfb0b5f2dbda49e0ad06a798898e3
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.netfilter.org/projects/iptables/files \
 	ftp://ftp.be.netfilter.org/pub/netfilter/iptables/ \
@@ -20,12 +20,14 @@ PKG_SOURCE_URL:=http://www.netfilter.org/projects/iptables/files \
 	ftp://ftp.no.netfilter.org/pub/netfilter/iptables/
 
 PKG_FIXUP:=libtool
+PKG_INSTALL:=1
+PKG_BUILD_PARALLEL:=1
 
 include $(INCLUDE_DIR)/package.mk
 ifeq ($(DUMP),)
   -include $(LINUX_DIR)/.config
   include $(INCLUDE_DIR)/netfilter.mk
-  STAMP_CONFIGURED:=$(strip $(STAMP_CONFIGURED))_$(shell grep 'NETFILTER' $(LINUX_DIR)/.config | md5s)
+  STAMP_CONFIGURED:=$(strip $(STAMP_CONFIGURED))_$(shell $(SH_FUNC) grep 'NETFILTER' $(LINUX_DIR)/.config | md5s)
 endif
 
 
@@ -245,7 +247,7 @@ endef
 
 define Package/ip6tables
 $(call Package/iptables/Default)
-  DEPENDS:=+kmod-ip6tables
+  DEPENDS:=+kmod-ip6tables +libiptc +libxtables
   CATEGORY:=IPv6
   TITLE:=IPv6 firewall administration tool
   MENU:=1
@@ -292,25 +294,20 @@ CONFIGURE_ARGS += \
 	--enable-shared \
 	--enable-devel \
 	--enable-ipv6 \
+	--enable-libipq \
 	--with-kernel="$(LINUX_DIR)" \
 	--with-xtlibdir=/usr/lib/iptables
 
-IPTABLES_MAKEOPTS = \
-		$(TARGET_CONFIGURE_OPTS) \
-		COPT_FLAGS="$(TARGET_CFLAGS)" \
-		LDFLAGS="-rdynamic -static-libgcc" \
-		KERNEL_DIR="$(LINUX_DIR)" PREFIX=/usr \
-		KBUILD_OUTPUT="$(LINUX_DIR)" \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		$(MAKE_TARGETS)
+MAKE_FLAGS := \
+	$(TARGET_CONFIGURE_OPTS) \
+	COPT_FLAGS="$(TARGET_CFLAGS)" \
+	LDFLAGS="-rdynamic -static-libgcc" \
+	KERNEL_DIR="$(LINUX_DIR)" PREFIX=/usr \
+	KBUILD_OUTPUT="$(LINUX_DIR)" \
 
-define Build/Compile
-	$(INSTALL_DIR) $(PKG_INSTALL_DIR)
+define Build/Configure
 	(cd $(PKG_BUILD_DIR); ./autogen.sh)
-	$(MAKE) -C $(PKG_BUILD_DIR) $(IPTABLES_MAKEOPTS)
-	$(MAKE) -C $(PKG_BUILD_DIR) $(IPTABLES_MAKEOPTS) install
-	$(MAKE) -C $(PKG_BUILD_DIR)/libipq $(IPTABLES_MAKEOPTS)
-	$(MAKE) -C $(PKG_BUILD_DIR)/libipq $(IPTABLES_MAKEOPTS) install
+$(call Build/Configure/Default)
 endef
 
 define Build/InstallDev
@@ -328,9 +325,9 @@ define Build/InstallDev
 
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/* $(1)/usr/include/
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libxtables.so* $(1)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libip*tc.so* $(1)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libipq.so* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libxtables.{a,so*} $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libip*tc.{a,so*} $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libipq.{a,so*} $(1)/usr/lib/
 	$(INSTALL_DIR) $(1)/usr/lib/pkgconfig
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/xtables.pc $(1)/usr/lib/pkgconfig/
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/libiptc.pc $(1)/usr/lib/pkgconfig/

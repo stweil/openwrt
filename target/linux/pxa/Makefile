@@ -10,8 +10,9 @@ ARCH:=arm
 BOARD:=pxa
 BOARDNAME:=Marvell/Intel PXA2xx
 FEATURES:=squashfs
+MAINTAINER:=Imre Kaloz <kaloz@openwrt.org>
 
-LINUX_VERSION:=2.6.32.16
+LINUX_VERSION:=2.6.32.25
 
 include $(INCLUDE_DIR)/target.mk
 

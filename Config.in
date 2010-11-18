@@ -17,7 +17,6 @@ menu "Target Images"
 	menuconfig TARGET_ROOTFS_INITRAMFS
 		bool "ramdisk"
 		default y if USES_INITRAMFS
-		depends LINUX_2_6
 		help
 		  Embed the rootfs into the kernel (initramfs)
 
@@ -126,6 +125,10 @@ menu "Global build settings"
 
 	comment "General build options"
 
+	config DISPLAY_SUPPORT
+		bool "Show packages that require graphics support (local or remote)"
+		default n
+
 	config BUILD_PATENTED
 		default y
 		bool "Compile with support for patented functionality"
@@ -169,7 +172,6 @@ menu "Global build settings"
 	config KERNEL_DEBUG_FS
 		bool "Compile the kernel with Debug FileSystem enabled"
 		default y
-		depends LINUX_2_6
 		help
 		  debugfs is a virtual file system that kernel developers use to put
 		  debugging files into. Enable this option to be able to read and
@@ -199,6 +201,25 @@ menu "Global build settings"
 		help
 		  This will compile your kernel and modules with debug information.
 
+	config KERNEL_DEBUG_LL
+		bool
+		default n
+		depends on arm
+		help
+		  ARM low level debugging
+
+	config KERNEL_EARLY_PRINTK
+		bool "Compile the kernel with early printk"
+		default n
+		depends on arm
+		select KERNEL_DEBUG_KERNEL
+		select KERNEL_DEBUG_LL if arm
+		help
+		  Compile the kernel with early printk support.
+		  This is only useful for debugging purposes to send messages
+		  over the serial console in early boot.
+		  Enable this to debug early boot problems.
+
 	comment "Package build options"
 
 	config DEBUG
@@ -214,6 +235,66 @@ menu "Global build settings"
 		default y
 		help
 		  Enable IPV6 support in packages (passes --enable-ipv6 to configure scripts).
+
+	config PKG_BUILD_PARALLEL
+		bool
+		prompt "Compile certain packages parallelized"
+		default n
+		help
+		  This adds a -jX option to certain packages that are known to
+		  behave well for parallel build.
+
+		  Note that this may overcommit CPU resources depending on the
+		  -j level of the main make process, the number of package
+		  submake jobs selected below and the number of actual CPUs present.
+		  Example: If the main make is passed a -j4 and the submake -j
+		  is also set to 4, we may end up with 16 parallel make processes
+		  in the worst case.
+
+		  You get maximum build performance, if you set the package build
+		  jobs to the number of CPUs (cores) available and also start the main
+		  make process with -jX, where X is the number of CPUs (cores).
+		  However, make sure you have enough RAM available for
+		  NR_CPUS to the power of two (NR_CPUS^2) make jobs.
+
+		  If you are unsure, select N.
+
+	config PKG_BUILD_JOBS
+		int
+		prompt "Number of package submake jobs (2-512)"
+		range 2 512
+		default 2
+		depends on PKG_BUILD_PARALLEL
+		help
+		  The number of jobs (-jX) to pass to packages submake.
+
+	config PKG_DEFAULT_PARALLEL
+		bool
+		prompt "Parallelize the default package build rule (May break build)"
+		depends on PKG_BUILD_PARALLEL
+		default n
+		help
+		  Always set the default package build rules to parallel build.
+
+		  WARNING: This may break build or kill your cat, as it builds
+		  packages with multiple jobs that are probably not tested in
+		  a parallel build environment.
+
+		  Only say Y, if you don't mind fixing broken packages.
+		  Before reporting build bugs, set this to N and re-run the build.
+
+	config TOOLCHAIN_PARALLEL
+		bool
+		prompt "Parallelize the toolchain build (May break build)"
+		depends on PKG_BUILD_PARALLEL
+		default n
+		help
+		  Build the toolchain with parallel make jobs.
+		  This speeds up the toolchain build on SMP machines, but may
+		  break the build for certain toolchain versions.
+
+		  If you say Y, toolchain build might break.
+		  Before reporting build bugs, set this to N and re-run the build.
 
 	comment "Stripping options"
 
@@ -255,7 +336,6 @@ menu "Global build settings"
 		  Specifies arguments passed to the strip command when stripping binaries
 
 	config STRIP_KERNEL_EXPORTS
-		depends LINUX_2_6
 		bool "Strip unnecessary exports from the kernel image"
 		help
 		  Reduces kernel size by stripping unused kernel exports from the kernel image

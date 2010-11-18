@@ -37,20 +37,20 @@ static struct mtd_partition tl_wr841n_v1_partitions[] = {
 		.offset		= 0,
 		.size		= 0x020000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "kernel",
 		.offset		= 0x020000,
 		.size		= 0x140000,
-	} , {
+	}, {
 		.name		= "rootfs",
 		.offset		= 0x160000,
 		.size		= 0x280000,
-	} , {
+	}, {
 		.name		= "config",
 		.offset		= 0x3e0000,
 		.size		= 0x020000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "firmware",
 		.offset		= 0x020000,
 		.size		= 0x3c0000,
@@ -60,8 +60,8 @@ static struct mtd_partition tl_wr841n_v1_partitions[] = {
 
 static struct flash_platform_data tl_wr841n_v1_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-        .parts          = tl_wr841n_v1_partitions,
-        .nr_parts       = ARRAY_SIZE(tl_wr841n_v1_partitions),
+	.parts		= tl_wr841n_v1_partitions,
+	.nr_parts	= ARRAY_SIZE(tl_wr841n_v1_partitions),
 #endif
 };
 
@@ -115,10 +115,9 @@ static void __init tl_wr841n_v1_setup(void)
 {
 	u8 *mac = (u8 *) KSEG1ADDR(0x1f01fc00);
 
-	ar71xx_set_mac_base(mac);
-
 	ar71xx_add_device_mdio(0x0);
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth0_data.speed = SPEED_100;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;

@@ -10,22 +10,24 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mac80211
 
-PKG_VERSION:=2010-07-29
+PKG_VERSION:=2010-11-16
 PKG_RELEASE:=1
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources
 #	http://www.orbit-lab.org/kernel/compat-wireless-2.6/2010/11 \
 #	http://wireless.kernel.org/download/compat-wireless-2.6
-PKG_MD5SUM:=fcfb757939c4718efbf9c87ca59c6932
+PKG_MD5SUM:=eb996cb637326203544753d3a05a3979
 
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
+PKG_BUILD_PARALLEL:=1
 
 PKG_CONFIG_DEPENDS:= \
 	CONFIG_PACKAGE_kmod-mac80211 \
 	CONFIG_PACKAGE_MAC80211_DEBUGFS \
-	CONFIG_PACKAGE_ATH9K_USE_MINSTREL \
 	CONFIG_PACKAGE_ATH_DEBUG \
 	CONFIG_ATH_USER_REGD \
+
+CARL9170_FW_VERSION:=1.8.8.2
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -92,6 +94,8 @@ endef
 # Prism54 drivers
 P54PCIFW:=2.13.12.0.arm
 P54USBFW:=2.13.24.0.lm87.arm
+P54SPIFW:=2.13.0.0.a.13.14.arm
+CARL9170_FW:=carl9170-1.fw
 
 define Download/p54usb
   FILE:=$(P54USBFW)
@@ -107,6 +111,20 @@ define Download/p54pci
 endef
 $(eval $(call Download,p54pci))
 
+define Download/p54spi
+  FILE:=$(P54SPIFW)
+  URL:=http://daemonizer.de/prism54/prism54-fw/stlc4560
+  MD5SUM:=42661f8ecbadd88012807493f596081d
+endef
+$(eval $(call Download,p54spi))
+
+define Download/carl9170
+  FILE:=$(CARL9170_FW)
+  URL:=http://www.kernel.org/pub/linux/kernel/people/chr/carl9170/fw/$(CARL9170_FW_VERSION)
+  MD5SUM:=114c43846ed1d2f89cc92bd0e2ec0589
+endef
+$(eval $(call Download,carl9170))
+
 define KernelPackage/p54/Default
   $(call KernelPackage/mac80211/Default)
   TITLE:=Prism54 Drivers
@@ -118,7 +136,7 @@ endef
 
 define KernelPackage/p54-common
   $(call KernelPackage/p54/Default)
-  DEPENDS+= @PCI_SUPPORT||@USB_SUPPORT +kmod-mac80211
+  DEPENDS+= @PCI_SUPPORT||@USB_SUPPORT||@TARGET_omap24xx +kmod-mac80211 +kmod-crc-ccitt
   TITLE+= (COMMON)
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/p54/p54common.ko
   AUTOLOAD:=$(call AutoLoad,30,p54common)
@@ -138,6 +156,14 @@ define KernelPackage/p54-usb
   DEPENDS+= @USB_SUPPORT +kmod-usb-core +kmod-p54-common
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/p54/p54usb.ko
   AUTOLOAD:=$(call AutoLoad,31,p54usb)
+endef
+
+define KernelPackage/p54-spi
+  $(call KernelPackage/p54/Default)
+  TITLE+= (SPI)
+  DEPENDS+= @TARGET_omap24xx +kmod-p54-common
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/p54/p54spi.ko
+  AUTOLOAD:=$(call AutoLoad,31,p54spi)
 endef
 
 # Ralink rt2x00 drivers
@@ -419,16 +445,19 @@ This module adds support for wireless adapters based on
 Atheros IEEE 802.11n AR5008 and AR9001 family of chipsets.
 endef
 
-define KernelPackage/ath9k/config
-	menu "Configuration"
-		depends PACKAGE_kmod-ath9k
-
-	config PACKAGE_ATH9K_USE_MINSTREL
-		bool "use the new minstrel_ht rate control for ath9k"
-		default y
-
-	endmenu
+define KernelPackage/carl9170
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=Driver for Atheros AR9170 USB sticks
+  DEPENDS:=@USB_SUPPORT +kmod-mac80211 +kmod-ath +kmod-usb-core
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/ath/carl9170/carl9170.ko
+  AUTOLOAD:=$(call AutoLoad,60,carl9170)
 endef
+
+define KernelPackage/carl9170/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(DL_DIR)/$(CARL9170_FW) $(1)/lib/firmware/
+endef
+
 
 USB8388FW_NAME:=usb8388
 USB8388FW_VERSION:=5.110.22.p23
@@ -477,19 +506,6 @@ define KernelPackage/libertas-sd
 	$(PKG_BUILD_DIR)/drivers/net/wireless/libertas/libertas.ko \
 	$(PKG_BUILD_DIR)/drivers/net/wireless/libertas/libertas_sdio.ko
   AUTOLOAD:=$(call AutoLoad,27,libertas libertas_sdio)
-endef
-
-define KernelPackage/ar9170
-  $(call KernelPackage/mac80211/Default)
-  TITLE:=Atheros AR9170 802.11n USB support
-  URL:=http://wireless.kernel.org/en/users/Drivers/ar9170
-  DEPENDS+= @USB_SUPPORT @!LINUX_2_6_25 +kmod-ath +kmod-usb-core
-  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/ath/ar9170/ar9170usb.ko
-  AUTOLOAD:=$(call AutoLoad,27,ar9170usb)
-endef
-
-define KernelPackage/ar9170/description
- This is a driver for the Atheros "otus" 802.11n USB devices.
 endef
 
 define KernelPackage/mac80211-hwsim
@@ -558,6 +574,55 @@ define KernelPackage/net-ipw2200/description
  Kernel support for Intel IPW2200
  Includes:
  - ipw2200
+endef
+
+
+define KernelPackage/net-hermes
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=Hermes 802.11b chipset support
+  DEPENDS:=@PCI_SUPPORT||PCMCIA_SUPPORT +kmod-cfg80211
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/orinoco/orinoco.ko
+  AUTOLOAD:=$(call AutoLoad,50,orinoco)
+endef
+
+define KernelPackage/net-hermes/description
+ Kernel support for Hermes 802.11b chipsets
+endef
+
+define KernelPackage/net-hermes-pci
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=Intersil Prism 2.5 PCI support
+  DEPENDS:=@PCI_SUPPORT +kmod-net-hermes +kmod-cfg80211
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/orinoco/orinoco_pci.ko
+  AUTOLOAD:=$(call AutoLoad,55,orinoco_pci)
+endef
+
+define KernelPackage/net-hermes-pci/description
+ Kernel modules for Intersil Prism 2.5 PCI support
+endef
+
+define KernelPackage/net-hermes-plx
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=PLX9052 based PCI adaptor
+  DEPENDS:=@PCI_SUPPORT +kmod-net-hermes +kmod-cfg80211
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/orinoco/orinoco_plx.ko
+  AUTOLOAD:=$(call AutoLoad,55,orinoco_plx)
+endef
+
+define KernelPackage/net-hermes-plx/description
+ Kernel modules for Hermes in PLX9052 based PCI adaptors
+endef
+
+define KernelPackage/net-hermes-pcmcia
+  $(call KernelPackage/mac80211/Default)
+  TITLE:=Hermes based PCMCIA adaptors
+  DEPENDS:=@PCMCIA_SUPPORT +kmod-net-hermes +kmod-cfg80211 @BROKEN
+  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/orinoco/orinoco_cs.ko
+  AUTOLOAD:=$(call AutoLoad,55,orinoco_cs)
+endef
+
+define KernelPackage/net-hermes-pcmcia/description
+ Kernel modules for Hermes based PCMCIA adaptors
 endef
 
 
@@ -804,12 +869,11 @@ BUILDFLAGS:= \
 	$(if $(CONFIG_PCI),-DCONFIG_B43_PCI_AUTOSELECT -DCONFIG_B43_PCICORE_AUTOSELECT) \
 	$(if $(CONFIG_LEDS_TRIGGERS), -DCONFIG_MAC80211_LEDS -DCONFIG_LEDS_TRIGGERS -DCONFIG_B43_LEDS -DCONFIG_B43LEGACY_LEDS -DCONFIG_AR9170_LEDS) \
 	-DCONFIG_B43_HWRNG -DCONFIG_B43LEGACY_HWRNG \
-	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS -DCONFIG_ATH9K_DEBUGFS) \
+	$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),-DCONFIG_MAC80211_DEBUGFS -DCONFIG_ATH9K_DEBUGFS -DCONFIG_CARL9170_DEBUGFS) \
 	$(if $(CONFIG_PACKAGE_ATH_DEBUG),-DCONFIG_ATH_DEBUG -DCONFIG_ATH9K_PKTLOG) \
 	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
 	-DCONFIG_MAC80211_RC_MINSTREL_HT \
 	$(if $(CONFIG_ATH_USER_REGD),-DATH_USER_REGD=1) \
-	$(if $(CONFIG_PACKAGE_ATH9K_USE_MINSTREL),-DATH9K_USE_MINSTREL) \
 	$(if $(CONFIG_PACKAGE_RT2X00_LIB_DEBUGFS),-DCONFIG_RT2X00_LIB_DEBUGFS) \
 	$(if $(CONFIG_PACKAGE_RT2X00_DEBUG),-DCONFIG_RT2X00_DEBUG) \
 	$(if $(NEED_RT2X00_LIB_HT),-DCONFIG_RT2X00_LIB_HT) \
@@ -821,6 +885,7 @@ BUILDFLAGS:= \
 	$(if $(CONFIG_PACKAGE_kmod-rt2x00-soc),-DCONFIG_RT2X00_LIB_SOC) \
 	$(if $(CONFIG_PCI_SUPPORT),-DCONFIG_RT2800PCI_PCI) \
 	$(if $(CONFIG_TARGET_ramips),-DCONFIG_RT2800PCI_SOC) \
+	-DCONFIG_P54_SPI_DEFAULT_EEPROM
 
 MAKE_OPTS:= \
 	CROSS_COMPILE="$(KERNEL_CROSS)" \
@@ -845,12 +910,17 @@ MAKE_OPTS:= \
 	CONFIG_ATH9K_PKTLOG=$(if $(CONFIG_PACKAGE_ATH_DEBUG),y) \
 	CONFIG_ATH5K=$(if $(CONFIG_PACKAGE_kmod-ath5k),m) \
 	CONFIG_ATH9K=$(if $(CONFIG_PACKAGE_kmod-ath9k),m) \
+	CONFIG_ATH9K_HW=$(if $(CONFIG_PACKAGE_kmod-ath9k),m) \
+	CONFIG_ATH9K_COMMON=$(if $(CONFIG_PACKAGE_kmod-ath9k),m) \
 	CONFIG_ATH9K_DEBUGFS=$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),y) \
+	CONFIG_CARL9170=$(if $(CONFIG_PACKAGE_kmod-carl9170),m) \
+	CONFIG_CARL9170_DEBUGFS=$(if $(CONFIG_PACKAGE_MAC80211_DEBUGFS),y) \
 	CONFIG_ZD1211RW=$(if $(CONFIG_PACKAGE_kmod-zd1211rw),m) \
 	CONFIG_P54_COMMON=$(if $(CONFIG_PACKAGE_kmod-p54-common),m) \
 	CONFIG_P54_PCI=$(if $(CONFIG_PACKAGE_kmod-p54-pci),m) \
 	CONFIG_P54_USB=$(if $(CONFIG_PACKAGE_kmod-p54-usb),m) \
-	CONFIG_P54_SPI= \
+	CONFIG_P54_SPI=$(if $(CONFIG_PACKAGE_kmod-p54-spi),m) \
+	CONFIG_P54_SPI_DEFAULT_EEPROM=y \
 	CONFIG_RT2X00=$(if $(CONFIG_PACKAGE_kmod-rt2x00-lib),m) \
 	CONFIG_RT2X00_LIB=$(if $(CONFIG_PACKAGE_kmod-rt2x00-lib),m) \
 	CONFIG_RT2X00_LIB_PCI=$(if $(CONFIG_PACKAGE_kmod-rt2x00-pci),m) \
@@ -890,6 +960,7 @@ MAKE_OPTS:= \
 	CONFIG_LIB80211_CRYPT_CCMP= \
 	CONFIG_LIB80211_CRYPT_TKIP= \
 	CONFIG_IWLWIFI= \
+	CONFIG_COMPAT_IWLWIFI= \
 	CONFIG_IWLAGN= \
 	CONFIG_MWL8K=$(if $(CONFIG_PACKAGE_kmod-mwl8k),m) \
 	CONFIG_ATMEL= \
@@ -902,7 +973,17 @@ MAKE_OPTS:= \
 	CONFIG_AT76C50X_USB= \
 	CONFIG_WL12XX= \
 	CONFIG_EEPROM_93CX6= \
-	CONFIG_HERMES= \
+	CONFIG_HERMES=$(if $(CONFIG_PACKAGE_kmod-net-hermes),m) \
+	CONFIG_HERMES_CACHE_FW_ON_INIT= \
+	CONFIG_PCI_HERMES=$(if $(CONFIG_PACKAGE_kmod-net-hermes-pci),m) \
+	CONFIG_PLX_HERMES=$(if $(CONFIG_PACKAGE_kmod-net-hermes-plx),m) \
+	CONFIG_PCMCIA_HERMES=$(if $(CONFIG_PACKAGE_kmod-net-hermes-pcmcia),m) \
+	CONFIG_HERMES_PRISM= \
+	CONFIG_APPLE_AIRPORT= \
+	CONFIG_TMD_HERMES= \
+	CONFIG_NORTEL_HERMES= \
+	CONFIG_PCMCIA_SPECTRUM= \
+	CONFIG_ORINOCO_USB= \
 	CONFIG_AR9170_USB=$(if $(CONFIG_PACKAGE_kmod-ar9170),m) \
 	CONFIG_AR9170_LEDS=$(CONFIG_LEDS_TRIGGERS) \
 	CONFIG_IWM= \
@@ -935,7 +1016,7 @@ endef
 ifneq ($(CONFIG_PACKAGE_kmod-cfg80211),)
  define Build/Compile/kmod
 	rm -rf $(PKG_BUILD_DIR)/modules
-	$(MAKE) -C "$(PKG_BUILD_DIR)" $(MAKE_OPTS) all
+	$(MAKE) $(PKG_JOBS) -C "$(PKG_BUILD_DIR)" $(MAKE_OPTS) all
  endef
 endif
 
@@ -978,6 +1059,11 @@ endef
 define KernelPackage/p54-usb/install
 	$(INSTALL_DIR) $(1)/lib/firmware
 	$(INSTALL_DATA) $(DL_DIR)/$(P54USBFW) $(1)/lib/firmware/isl3887usb
+endef
+
+define KernelPackage/p54-spi/install
+	$(INSTALL_DIR) $(1)/lib/firmware
+	$(INSTALL_DATA) $(DL_DIR)/$(P54SPIFW) $(1)/lib/firmware/3826.arm
 endef
 
 define KernelPackage/rt61-pci/install
@@ -1076,6 +1162,7 @@ $(eval $(call KernelPackage,mac80211))
 $(eval $(call KernelPackage,p54-common))
 $(eval $(call KernelPackage,p54-pci))
 $(eval $(call KernelPackage,p54-usb))
+$(eval $(call KernelPackage,p54-spi))
 $(eval $(call KernelPackage,rt2x00-lib))
 $(eval $(call KernelPackage,rt2x00-pci))
 $(eval $(call KernelPackage,rt2x00-usb))
@@ -1094,10 +1181,14 @@ $(eval $(call KernelPackage,zd1211rw))
 $(eval $(call KernelPackage,mac80211-hwsim))
 $(eval $(call KernelPackage,ath9k))
 $(eval $(call KernelPackage,ath))
-$(eval $(call KernelPackage,ar9170))
+$(eval $(call KernelPackage,carl9170))
 $(eval $(call KernelPackage,b43))
 $(eval $(call KernelPackage,b43legacy))
 $(eval $(call KernelPackage,net-libipw))
 $(eval $(call KernelPackage,net-ipw2100))
 $(eval $(call KernelPackage,net-ipw2200))
 $(eval $(call KernelPackage,mwl8k))
+$(eval $(call KernelPackage,net-hermes))
+$(eval $(call KernelPackage,net-hermes-pci))
+$(eval $(call KernelPackage,net-hermes-plx))
+$(eval $(call KernelPackage,net-hermes-pcmcia))

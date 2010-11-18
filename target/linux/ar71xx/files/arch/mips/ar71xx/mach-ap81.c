@@ -39,19 +39,19 @@ static struct mtd_partition ap81_partitions[] = {
 		.offset		= 0,
 		.size		= 0x040000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "u-boot-env",
 		.offset		= 0x040000,
 		.size		= 0x010000,
-	} , {
+	}, {
 		.name		= "rootfs",
 		.offset		= 0x050000,
 		.size		= 0x500000,
-	} , {
+	}, {
 		.name		= "uImage",
 		.offset		= 0x550000,
 		.size		= 0x100000,
-	} , {
+	}, {
 		.name		= "ART",
 		.offset		= 0x650000,
 		.size		= 0x1b0000,
@@ -62,8 +62,8 @@ static struct mtd_partition ap81_partitions[] = {
 
 static struct flash_platform_data ap81_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-        .parts          = ap81_partitions,
-        .nr_parts       = ARRAY_SIZE(ap81_partitions),
+	.parts		= ap81_partitions,
+	.nr_parts	= ARRAY_SIZE(ap81_partitions),
 #endif
 };
 
@@ -95,7 +95,7 @@ static struct gpio_button ap81_gpio_buttons[] __initdata = {
 		.threshold	= 3,
 		.gpio		= AP81_GPIO_BTN_SW1,
 		.active_low	= 1,
-	} , {
+	}, {
 		.desc		= "sw4",
 		.type		= EV_KEY,
 		.code		= BTN_1,
@@ -109,14 +109,15 @@ static void __init ap81_setup(void)
 {
 	u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff1000);
 
-	ar71xx_set_mac_base(eeprom);
 	ar71xx_add_device_mdio(0x0);
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, eeprom, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth0_data.speed = SPEED_100;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 	ar71xx_eth0_data.has_ar8216 = 1;
 
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, eeprom, 1);
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth1_data.phy_mask = 0x10;
 

@@ -54,21 +54,21 @@ static struct mtd_partition dir825b1_partitions[] = {
 		.offset		= 0,
 		.size		= 0x040000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "config",
 		.offset		= 0x040000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "firmware",
 		.offset		= 0x050000,
 		.size		= 0x610000,
-	} , {
+	}, {
 		.name		= "caldata",
 		.offset		= 0x660000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "unknown",
 		.offset		= 0x670000,
 		.size		= 0x190000,
@@ -79,8 +79,8 @@ static struct mtd_partition dir825b1_partitions[] = {
 
 static struct flash_platform_data dir825b1_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-        .parts          = dir825b1_partitions,
-        .nr_parts       = ARRAY_SIZE(dir825b1_partitions),
+	.parts          = dir825b1_partitions,
+	.nr_parts       = ARRAY_SIZE(dir825b1_partitions),
 #endif
 };
 
@@ -120,7 +120,7 @@ static struct gpio_button dir825b1_gpio_buttons[] __initdata = {
 		.threshold	= 3,
 		.gpio		= DIR825B1_GPIO_BTN_RESET,
 		.active_low	= 1,
-	} , {
+	}, {
 		.desc		= "powersave",
 		.type		= EV_KEY,
 		.code		= BTN_1,
@@ -145,22 +145,18 @@ static struct platform_device dir825b1_rtl8366s_device = {
 
 static void __init dir825b1_setup(void)
 {
-        u8 mac[6], i;
-
-	memcpy(mac, (u8*)KSEG1ADDR(DIR825B1_MAC_LOCATION_1), 6);
-	for(i = 5; i >= 3; i--)
-		if(++mac[i] != 0x00) break;
-
-	ar71xx_set_mac_base(mac);
+	u8 *mac = (u8 *) KSEG1ADDR(DIR825B1_MAC_LOCATION_1);
 
 	ar71xx_add_device_mdio(0x0);
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 1);
 	ar71xx_eth0_data.mii_bus_dev = &dir825b1_rtl8366s_device.dev;
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth0_data.speed = SPEED_1000;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 	ar71xx_eth0_pll_data.pll_1000 = 0x11110000;
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 2);
 	ar71xx_eth1_data.mii_bus_dev = &dir825b1_rtl8366s_device.dev;
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth1_data.phy_mask = 0x10;

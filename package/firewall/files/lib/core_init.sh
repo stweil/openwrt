@@ -42,7 +42,7 @@ fw_load_defaults() {
 		boolean disable_ipv6 0 \
 	} || return
 	[ -n "$FW_DEFAULTS_APPLIED" ] && {
-		echo "Error: multiple defaults sections detected"
+		fw_log error "duplicate defaults section detected, skipping"
 		return 1
 	}
 	FW_DEFAULTS_APPLIED=1
@@ -84,13 +84,16 @@ fw_load_defaults() {
 	[ $defaults_syn_flood == 1 ] && \
 		defaults_synflood_protect=1
 
+	[ "${defaults_synflood_rate%/*}" == "$defaults_synflood_rate" ] && \
+		defaults_synflood_rate="$defaults_synflood_rate/second"
+
 	[ $defaults_synflood_protect == 1 ] && {
 		echo "Loading synflood protection"
 		fw_callback pre synflood
 		fw add i f syn_flood
 		fw add i f syn_flood RETURN { \
 			-p tcp --syn \
-			-m limit --limit "${defaults_synflood_rate}/second" --limit-burst "${defaults_synflood_burst}" \
+			-m limit --limit "${defaults_synflood_rate}" --limit-burst "${defaults_synflood_burst}" \
 		}
 		fw add i f syn_flood DROP
 		fw add i f INPUT syn_flood { -p tcp --syn }
@@ -139,9 +142,13 @@ fw_config_get_zone() {
 		string output "$FW_DEFAULT_OUTPUT_POLICY" \
 		string forward "$FW_DEFAULT_FORWARD_POLICY" \
 		boolean masq 0 \
+		string masq_src "" \
+		string masq_dest "" \
 		boolean conntrack 0 \
 		boolean mtu_fix 0 \
 		boolean custom_chains "$FW_ADD_CUSTOM_CHAINS" \
+		boolean log 0 \
+		string log_limit 10 \
 		string family "" \
 	} || return
 	[ -n "$zone_name" ] || zone_name=$zone_NAME
@@ -152,7 +159,8 @@ fw_load_zone() {
 	fw_config_get_zone "$1"
 
 	list_contains FW_ZONES $zone_name && {
-		fw_die "zone ${zone_name}: duplicated zone"
+		fw_log error "zone ${zone_name}: duplicated zone, skipping"
+		return 0
 	}
 	append FW_ZONES $zone_name
 
@@ -204,8 +212,6 @@ fw_load_zone() {
 	fw add $mode n ${chain}_prerouting
 
 	fw add $mode r ${chain}_notrack
-	[ $zone_masq == 1 ] && \
-		fw add $mode n POSTROUTING ${chain}_nat $
 
 	[ $zone_mtu_fix == 1 ] && \
 		fw add $mode f FORWARD ${chain}_MSSFIX ^
@@ -223,6 +229,29 @@ fw_load_zone() {
 		fw add $mode n prerouting_${zone_name}
 		fw add $mode n ${chain}_prerouting prerouting_${zone_name} ^
 	}
+
+	[ "$zone_log" == 1 ] && {
+		[ "${zone_log_limit%/*}" == "$zone_log_limit" ] && \
+			zone_log_limit="$zone_log_limit/minute"
+
+		local t
+		for t in REJECT DROP MSSFIX; do
+			fw add $mode f ${chain}_${t} LOG ^ \
+				{ -m limit --limit $zone_log_limit --log-prefix "$t($zone_name): "  }
+		done
+	}
+
+	# NB: if MASQUERADING for IPv6 becomes available we'll need a family check here
+	if [ "$zone_masq" == 1 ]; then
+		local msrc mdst
+		for msrc in ${zone_masq_src:-0.0.0.0/0}; do
+			fw_get_negation msrc '-s' "$msrc"
+			for mdst in ${zone_masq_dest:-0.0.0.0/0}; do
+				fw_get_negation mdst '-d' "$mdst"
+				fw add $mode n ${chain}_nat MASQUERADE $ { $msrc $mdst }
+			done
+		done
+	fi
 
 	fw_callback post zone
 }

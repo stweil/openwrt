@@ -228,16 +228,17 @@ setup_interface_static() {
 	config_get ip6addr "$config" ip6addr
 	[ -z "$ipaddr" -o -z "$netmask" ] && [ -z "$ip6addr" ] && return 1
 
-	local gateway ip6gw dns bcast
+	local gateway ip6gw dns bcast metric
 	config_get gateway "$config" gateway
 	config_get ip6gw "$config" ip6gw
 	config_get dns "$config" dns
 	config_get bcast "$config" broadcast
+	config_get metric "$config" metric
 
 	[ -z "$ipaddr" ] || $DEBUG ifconfig "$iface" "$ipaddr" netmask "$netmask" broadcast "${bcast:-+}"
 	[ -z "$ip6addr" ] || $DEBUG ifconfig "$iface" add "$ip6addr"
-	[ -z "$gateway" ] || $DEBUG route add default gw "$gateway" dev "$iface"
-	[ -z "$ip6gw" ] || $DEBUG route -A inet6 add default gw "$ip6gw" dev "$iface"
+	[ -z "$gateway" ] || $DEBUG route add default gw "$gateway" ${metric:+metric $metric} dev "$iface"
+	[ -z "$ip6gw" ] || $DEBUG route -A inet6 add default gw "$ip6gw" ${metric:+metric $metric} dev "$iface"
 	[ -z "$dns" ] || add_dns "$config" $dns
 
 	config_get type "$config" TYPE
@@ -340,40 +341,34 @@ setup_interface() {
 			setup_interface_static "$iface" "$config"
 		;;
 		dhcp)
-			local lockfile="/var/lock/dhcp-$iface"
-			lock "$lockfile"
-
-			# prevent udhcpc from starting more than once
+			# kill running udhcpc instance
 			local pidfile="/var/run/dhcp-${iface}.pid"
-			local pid="$(cat "$pidfile" 2>/dev/null)"
-			if [ -d "/proc/$pid" ] && grep -qs udhcpc "/proc/${pid}/cmdline"; then
-				lock -u "$lockfile"
-			else
-				local ipaddr netmask hostname proto1 clientid broadcast
-				config_get ipaddr "$config" ipaddr
-				config_get netmask "$config" netmask
-				config_get hostname "$config" hostname
-				config_get proto1 "$config" proto
-				config_get clientid "$config" clientid
-				config_get_bool broadcast "$config" broadcast 0
+			service_kill udhcpc "$pidfile"
 
-				[ -z "$ipaddr" ] || \
-					$DEBUG ifconfig "$iface" "$ipaddr" ${netmask:+netmask "$netmask"}
+			local ipaddr netmask hostname proto1 clientid vendorid broadcast
+			config_get ipaddr "$config" ipaddr
+			config_get netmask "$config" netmask
+			config_get hostname "$config" hostname
+			config_get proto1 "$config" proto
+			config_get clientid "$config" clientid
+			config_get vendorid "$config" vendorid
+			config_get_bool broadcast "$config" broadcast 0
 
-				# don't stay running in background if dhcp is not the main proto on the interface (e.g. when using pptp)
-				local dhcpopts
-				[ ."$proto1" != ."$proto" ] && dhcpopts="-n -q"
-				[ "$broadcast" = 1 ] && broadcast="-O broadcast" || broadcast=
+			[ -z "$ipaddr" ] || \
+				$DEBUG ifconfig "$iface" "$ipaddr" ${netmask:+netmask "$netmask"}
 
-				$DEBUG eval udhcpc -t 0 -i "$iface" \
-					${ipaddr:+-r $ipaddr} \
-					${hostname:+-H $hostname} \
-					${clientid:+-c $clientid} \
-					-b -p "$pidfile" $broadcast \
-					${dhcpopts:- -O rootpath -R &}
+			# don't stay running in background if dhcp is not the main proto on the interface (e.g. when using pptp)
+			local dhcpopts
+			[ ."$proto1" != ."$proto" ] && dhcpopts="-n -q"
+			[ "$broadcast" = 1 ] && broadcast="-O broadcast" || broadcast=
 
-				lock -u "$lockfile"
-			fi
+			$DEBUG eval udhcpc -t 0 -i "$iface" \
+				${ipaddr:+-r $ipaddr} \
+				${hostname:+-H $hostname} \
+				${clientid:+-c $clientid} \
+				${vendorid:+-V $vendorid} \
+				-b -p "$pidfile" $broadcast \
+				${dhcpopts:- -O rootpath -R &}
 		;;
 		none)
 			setup_interface_none "$iface" "$config"
@@ -401,12 +396,7 @@ stop_interface_dhcp() {
 	remove_dns "$config"
 
 	local pidfile="/var/run/dhcp-${ifname}.pid"
-	local pid="$(cat "$pidfile" 2>/dev/null)"
-	[ -d "/proc/$pid" ] && {
-		grep -qs udhcpc "/proc/$pid/cmdline" && kill -TERM $pid && \
-			while grep -qs udhcpc "/proc/$pid/cmdline"; do sleep 1; done
-		rm -f "$pidfile"
-	}
+	service_kill udhcpc "$pidfile"
 
 	uci -P /var/state revert "network.$config"
 }

@@ -55,28 +55,28 @@ static struct mtd_partition nbg460n_partitions[] = {
 		.offset		= 0,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "U-Boot Config",
 		.offset		= 0x010000,
 		.size		= 0x030000,
-	} , {
+	}, {
 		.name		= "U-Boot",
 		.offset		= 0x040000,
 		.size		= 0x030000,
-	} , {
+	}, {
 		.name		= "linux",
 		.offset		= 0x070000,
 		.size		= 0x0e0000,
-	} , {
+	}, {
 		.name		= "rootfs",
 		.offset		= 0x150000,
 		.size		= 0x2a0000,
-	} , {
+	}, {
 		.name		= "CalibData",
 		.offset		= 0x3f0000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "firmware",
 		.offset		= 0x070000,
 		.size		= 0x380000,
@@ -86,8 +86,8 @@ static struct mtd_partition nbg460n_partitions[] = {
 
 static struct flash_platform_data nbg460n_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-        .parts          = nbg460n_partitions,
-        .nr_parts       = ARRAY_SIZE(nbg460n_partitions),
+	.parts		= nbg460n_partitions,
+	.nr_parts       = ARRAY_SIZE(nbg460n_partitions),
 #endif
 };
 
@@ -165,8 +165,8 @@ static void __devinit nbg460n_i2c_init(void)
 
 
 static struct rtl8366s_platform_data nbg460n_rtl8366s_data = {
-	.gpio_sda        = NBG460N_GPIO_RTL8366_SDA,
-	.gpio_sck        = NBG460N_GPIO_RTL8366_SCK,
+	.gpio_sda	= NBG460N_GPIO_RTL8366_SDA,
+	.gpio_sck	= NBG460N_GPIO_RTL8366_SCK,
 };
 
 static struct platform_device nbg460n_rtl8366s_device = {
@@ -179,20 +179,20 @@ static struct platform_device nbg460n_rtl8366s_device = {
 
 static void __init nbg460n_setup(void)
 {
-	/* end of bootloader sector contains mac address*/
+	/* end of bootloader sector contains mac address */
 	u8 *mac = (u8 *) KSEG1ADDR(0x1fc0fff8);
 	/* last sector contains wlan calib data */
 	u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff1000);
 
-	ar71xx_set_mac_base(mac);
-
 	/* LAN Port */
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 0);
 	ar71xx_eth0_data.mii_bus_dev = &nbg460n_rtl8366s_device.dev;
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth0_data.speed = SPEED_1000;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 
 	/* WAN Port */
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, mac, 1);
 	ar71xx_eth1_data.mii_bus_dev = &nbg460n_rtl8366s_device.dev;
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth1_data.phy_mask = 0x10;
@@ -219,4 +219,5 @@ static void __init nbg460n_setup(void)
 					nbg460n_gpio_buttons);
 }
 
-MIPS_MACHINE(AR71XX_MACH_NBG460N, "NBG460N", "Zyxel NBG460N/550N/550NH", nbg460n_setup);
+MIPS_MACHINE(AR71XX_MACH_NBG460N, "NBG460N", "Zyxel NBG460N/550N/550NH",
+	     nbg460n_setup);

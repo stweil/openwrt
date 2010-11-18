@@ -33,6 +33,41 @@ define AddDepends/usb
 endef
 
 
+define KernelPackage/usb-gadget
+  TITLE:=USB Gadget support
+  KCONFIG:=CONFIG_USB_GADGET
+  FILES:=
+  AUTOLOAD:=
+  DEPENDS:=@USB_GADGET_SUPPORT
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-gadget/description
+  Kernel support for USB Gadget mode.
+endef
+
+$(eval $(call KernelPackage,usb-gadget))
+
+
+define KernelPackage/usb-eth-gadget
+  TITLE:=USB Ethernet Gadget support
+  KCONFIG:= \
+	CONFIG_USB_ETH \
+	CONFIG_USB_ETH_RNDIS=y \
+	CONFIG_USB_ETH_EEM=y
+  DEPENDS:=+kmod-usb-gadget
+  FILES:=$(LINUX_DIR)/drivers/usb/gadget/g_ether.ko
+  AUTOLOAD:=$(call AutoLoad,52,usb-eth-gadget)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-eth-gadget/description
+  Kernel support for USB Ethernet Gadget.
+endef
+
+$(eval $(call KernelPackage,usb-eth-gadget))
+
+
 define KernelPackage/usb-uhci
   TITLE:=Support for UHCI controllers
   KCONFIG:= \
@@ -66,6 +101,48 @@ define KernelPackage/usb-ohci/description
 endef
 
 $(eval $(call KernelPackage,usb-ohci,1))
+
+
+define KernelPackage/musb-hdrc
+  TITLE:=Support for Mentor Graphics silicon dual role USB
+  KCONFIG:= \
+	CONFIG_USB_MUSB_HDRC \
+	CONFIG_NOP_USB_XCEIV \
+	CONFIG_USB_TUSB6010=y \
+	CONFIG_MUSB_PIO_ONLY=n \
+	CONFIG_USB_MUSB_OTG=y \
+	CONFIG_USB_MUSB_DEBUG=y
+  DEPENDS:=@TARGET_omap24xx
+  FILES:=$(LINUX_DIR)/drivers/usb/otg/nop-usb-xceiv.ko $(LINUX_DIR)/drivers/usb/musb/musb_hdrc.ko
+  AUTOLOAD:=$(call AutoLoad,54,nop-usb-xceiv musb_hdrc)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/musb-hdrc/description
+  Kernel support for Mentor Graphics silicon dual role USB device.
+endef
+
+$(eval $(call KernelPackage,musb-hdrc))
+
+
+define KernelPackage/usb-tahvo
+  TITLE:=Support for Tahvo (Nokia n810) USB
+  KCONFIG:= \
+	CONFIG_CBUS_TAHVO_USB \
+	CONFIG_CBUS_TAHVO_USB_HOST_BY_DEFAULT=n \
+	CONFIG_USB_OHCI_HCD_OMAP1=y \
+	CONFIG_USB_GADGET_DEBUG_FS=n
+  DEPENDS:=@TARGET_omap24xx +kmod-usb-ohci +kmod-musb-hdrc +kmod-usb-gadget
+  FILES:=$(LINUX_DIR)/drivers/cbus/tahvo-usb.ko
+  AUTOLOAD:=$(call AutoLoad,55,tahvo-usb)
+  $(call AddDepends/usb)
+endef
+
+define KernelPackage/usb-tahvo/description
+  Kernel support for Nokia n810 USB OHCI controller.
+endef
+
+$(eval $(call KernelPackage,usb-tahvo))
 
 
 define KernelPackage/usb-isp116x-hcd
@@ -125,7 +202,8 @@ define KernelPackage/usb-audio
 	CONFIG_SND_USB_AUDIO
   $(call AddDepends/usb)
   $(call AddDepends/sound)
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.35)),1)
+# For Linux 2.6.35+
+ifneq ($(wildcard $(LINUX_DIR)/sound/usb/snd-usbmidi-lib.ko),)
   FILES:= \
 	$(LINUX_DIR)/sound/usb/snd-usbmidi-lib.ko \
 	$(LINUX_DIR)/sound/usb/snd-usb-audio.ko
@@ -219,7 +297,7 @@ define KernelPackage/usb-serial-ch341
   $(call AddDepends/usb-serial)
 endef
 
-define KernelPackage/usb-serial-belkin/description
+define KernelPackage/usb-serial-ch341/description
  Kernel support for Winchiphead CH341 USB-to-Serial converters
 endef
 
@@ -239,6 +317,17 @@ define KernelPackage/usb-serial-ftdi/description
 endef
 
 $(eval $(call KernelPackage,usb-serial-ftdi))
+
+
+define KernelPackage/usb-serial-ipw
+  TITLE:=Support for IPWireless 3G devices
+  KCONFIG:=CONFIG_USB_SERIAL_IPW
+  FILES:=$(LINUX_DIR)/drivers/usb/serial/ipw.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,65,ipw)
+  $(call AddDepends/usb-serial)
+endef
+
+$(eval $(call KernelPackage,usb-serial-ipw))
 
 
 define KernelPackage/usb-serial-mct
@@ -703,7 +792,7 @@ $(eval $(call KernelPackage,usb-net-rndis))
 
 define KernelPackage/usb-hid
   TITLE:=Support for USB Human Input Devices
-  KCONFIG:=CONFIG_HID_SUPPORT=y CONFIG_USB_HID
+  KCONFIG:=CONFIG_HID_SUPPORT=y CONFIG_USB_HID CONFIG_USB_HIDDEV=y
   FILES:=$(LINUX_DIR)/drivers/$(USBHID_DIR)/usbhid.ko
   AUTOLOAD:=$(call AutoLoad,70,usbhid)
   $(call AddDepends/usb)

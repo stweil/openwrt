@@ -16,7 +16,6 @@
 #include "machtype.h"
 #include "devices.h"
 #include "dev-m25p80.h"
-#include "dev-ap91-eth.h"
 #include "dev-ap91-pci.h"
 #include "dev-gpio-buttons.h"
 #include "dev-leds-gpio.h"
@@ -36,20 +35,20 @@ static struct mtd_partition tl_wr741nd_partitions[] = {
 		.offset		= 0,
 		.size		= 0x020000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "kernel",
 		.offset		= 0x020000,
 		.size		= 0x140000,
-	} , {
+	}, {
 		.name		= "rootfs",
 		.offset		= 0x160000,
 		.size		= 0x290000,
-	} , {
+	}, {
 		.name		= "art",
 		.offset		= 0x3f0000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	} , {
+	}, {
 		.name		= "firmware",
 		.offset		= 0x020000,
 		.size		= 0x3d0000,
@@ -59,8 +58,8 @@ static struct mtd_partition tl_wr741nd_partitions[] = {
 
 static struct flash_platform_data tl_wr741nd_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-        .parts          = tl_wr741nd_partitions,
-        .nr_parts       = ARRAY_SIZE(tl_wr741nd_partitions),
+	.parts		= tl_wr741nd_partitions,
+	.nr_parts	= ARRAY_SIZE(tl_wr741nd_partitions),
 #endif
 };
 
@@ -108,7 +107,24 @@ static void __init tl_wr741nd_setup(void)
 					ARRAY_SIZE(tl_wr741nd_gpio_buttons),
 					tl_wr741nd_gpio_buttons);
 
-	ap91_eth_init(mac, NULL);
+	ar71xx_eth1_data.has_ar7240_switch = 1;
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 0);
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, mac, 1);
+
+	/* WAN port */
+	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth0_data.speed = SPEED_100;
+	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+
+	/* LAN ports */
+	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth1_data.speed = SPEED_1000;
+	ar71xx_eth1_data.duplex = DUPLEX_FULL;
+
+	ar71xx_add_device_mdio(0x0);
+	ar71xx_add_device_eth(1);
+	ar71xx_add_device_eth(0);
+
 	ap91_pci_init(ee, mac);
 }
 MIPS_MACHINE(AR71XX_MACH_TL_WR741ND, "TL-WR741ND", "TP-LINK TL-WR741ND",

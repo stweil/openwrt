@@ -381,6 +381,20 @@ define Image/Build/WNDR3700/initramfs
 		$(call imgname,$(1),$(2))-uImage.bin
 endef
 
+define Image/Build/Zcomax
+	$(call PatchKernelLzma,$(2),$(3))
+	$(call MkImageLzma,$(KDIR)/vmlinux-$(2).bin.lzma,$(KDIR)/vmlinux-$(2).uImage.bin)
+	-$(STAGING_DIR_HOST)/bin/mkzcfw \
+		-B $(2) \
+		-k $(KDIR)/vmlinux-$(2).uImage.bin \
+		-r $(BIN_DIR)/$(IMG_PREFIX)-root.$(1) \
+		-o $(call imgname,$(1),$(2))-factory.img
+	( \
+		dd if=$(BIN_DIR)/$(IMG_PREFIX)-root.$(1) bs=6208k count=1 conv=sync; \
+		dd if=$(KDIR)/vmlinux-$(2).uImage.bin bs=1472k count=1; \
+	) > $(call imgname,$(1),$(2))-sysupgrade.bin
+endef
+
 define Image/Build/Template/initramfs/initramfs
 	$(call Image/Build/$(1)/initramfs,initramfs,$(2),$(3),$(4),$(5),$(6),$(7))
 endef
@@ -456,6 +470,10 @@ define Image/Build/Profile/EAP7660D
 	$(call Image/Build/Template/$(fs_128k)/$(1),PB4X,eap7660d,board=EAP7660D)
 endef
 
+define Image/Build/Profile/JWAP003
+	$(call Image/Build/Template/$(fs_64k)/$(1),PB4X,jwap003,board=JWAP003)
+endef
+
 define Image/Build/Profile/FR54RTR
 	$(call Image/Build/Template/$(fs_64k)/$(1),Cameo7240,fr-54rtr,board=DIR-600-A1,"AP91-AR7240-RT-090223-01")
 endef
@@ -500,6 +518,10 @@ define Image/Build/Profile/UBNTNANOM
 	$(call Image/Build/Template/$(fs_64k)/$(1),UBNTXM,ubnt-nano-m,board=UBNT-NM,XM,UBNTXM,ar7240)
 endef
 
+define Image/Build/Profile/UBNTUNIFI
+	$(call Image/Build/Template/$(fs_64k)/$(1),UBNTXM,ubnt-unifi,board=UBNT-XM,XM,UBNTXM,ar7240)
+endef
+
 define Image/Build/Profile/UBNT
 	$(call Image/Build/Profile/UBNTRS,$(1))
 	$(call Image/Build/Profile/UBNTRSPRO,$(1))
@@ -507,6 +529,7 @@ define Image/Build/Profile/UBNT
 	$(call Image/Build/Profile/UBNTBULLETM,$(1))
 	$(call Image/Build/Profile/UBNTROCKETM,$(1))
 	$(call Image/Build/Profile/UBNTNANOM,$(1))
+	$(call Image/Build/Profile/UBNTUNIFI,$(1))
 endef
 
 define Image/Build/Profile/MZKW04NU
@@ -515,6 +538,10 @@ endef
 
 define Image/Build/Profile/MZKW300NH
 	$(call Image/Build/Template/$(fs_64k)/$(1),Planex,mzk-w300nh,board=MZK-W300NH)
+endef
+
+define Image/Build/Profile/TLMR3420V1
+	$(call Image/Build/Template/$(fs_4k)/$(1),TPLINK,tl-mr3420-v1,board=TL-MR3420,TL-MR3420v1)
 endef
 
 define Image/Build/Profile/TLWA901NDV1
@@ -537,6 +564,10 @@ define Image/Build/Profile/TLWR841NDV5
 	$(call Image/Build/Template/$(fs_4k)/$(1),TPLINK,tl-wr841nd-v5,board=TL-WR741ND,TL-WR841NDv5)
 endef
 
+define Image/Build/Profile/TLWR841NDV7
+	$(call Image/Build/Template/$(fs_4k)/$(1),TPLINK,tl-wr841nd-v7,board=TL-WR741ND,TL-WR841NDv7)
+endef
+
 define Image/Build/Profile/TLWR941NDV2
 	$(call Image/Build/Template/$(fs_squash)/$(1),TPLINK,tl-wr941nd-v2,board=TL-WR941ND,TL-WR941NDv2)
 endef
@@ -557,6 +588,10 @@ define Image/Build/Profile/WNDR3700
 	$(call Image/Build/Template/$(fs_64k)/$(1),WNDR3700,wndr3700,board=WNDR3700)
 endef
 
+define Image/Build/Profile/AP96
+	$(call Image/Build/Template/$(fs_64k)/$(1),AP83,ap96,board=AP96)
+endef
+
 define Image/Build/Profile/WRT400N
 	$(call Image/Build/Template/$(fs_64k)/$(1),WRT400N,wrt400n,board=WRT400N)
 endef
@@ -573,6 +608,14 @@ define Image/Build/Profile/WZRHPG300NH
 	$(call Image/Build/Template/$(fs_128k)/$(1),WZRHPG300NH,wzr-hp-g300nh,board=WZR-HP-G300NH)
 endef
 
+define Image/Build/Profile/ZCN1523H28
+	$(call Image/Build/Template/$(fs_64k)/$(1),Zcomax,zcn-1523h-2-8,board=ZCN-1523H-2)
+endef
+
+define Image/Build/Profile/ZCN1523H516
+	$(call Image/Build/Template/$(fs_64k)/$(1),Zcomax,zcn-1523h-5-16,board=ZCN-1523H-5)
+endef
+
 define Image/Build/Profile/Default
 	$(call Image/Build/Profile/AP81,$(1))
 	$(call Image/Build/Profile/AP83,$(1))
@@ -582,6 +625,7 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/DIR825B1,$(1))
 	$(call Image/Build/Profile/EAP7660D,$(1))
 	$(call Image/Build/Profile/FR54RTR,$(1))
+	$(call Image/Build/Profile/JWAP003,$(1))
 	$(call Image/Build/Profile/MZKW04NU,$(1))
 	$(call Image/Build/Profile/MZKW300NH,$(1))
 	$(call Image/Build/Profile/PB42,$(1))
@@ -589,11 +633,13 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/PB92,$(1))
 	$(call Image/Build/Profile/TEW632BRP,$(1))
 	$(call Image/Build/Profile/TEW652BRP,$(1))
+	$(call Image/Build/Profile/TLMR3420V1,$(1))
 	$(call Image/Build/Profile/TLWA901NDV1,$(1))
 	$(call Image/Build/Profile/TLWR741NDV1,$(1))
 	$(call Image/Build/Profile/TLWR841NV15,$(1))
 	$(call Image/Build/Profile/TLWR841NDV3,$(1))
 	$(call Image/Build/Profile/TLWR841NDV5,$(1))
+	$(call Image/Build/Profile/TLWR841NDV7,$(1))
 	$(call Image/Build/Profile/TLWR941NDV2,$(1))
 	$(call Image/Build/Profile/TLWR941NDV3,$(1))
 	$(call Image/Build/Profile/TLWR941NDV4,$(1))
@@ -601,9 +647,12 @@ define Image/Build/Profile/Default
 	$(call Image/Build/Profile/UBNT,$(1))
 	$(call Image/Build/Profile/WP543,$(1))
 	$(call Image/Build/Profile/WNDR3700,$(1))
+	$(call Image/Build/Profile/AP96,$(1))
 	$(call Image/Build/Profile/WRT400N,$(1))
 	$(call Image/Build/Profile/WRT160NL,$(1))
 	$(call Image/Build/Profile/WZRHPG300NH,$(1))
+	$(call Image/Build/Profile/ZCN1523H28,$(1))
+	$(call Image/Build/Profile/ZCN1523H516,$(1))
 endef
 
 define Image/Build/Profile/Minimal

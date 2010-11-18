@@ -21,8 +21,11 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <pwd.h>
-#include <shadow.h>
 #include <sys/stat.h>
+
+#ifdef HAVE_SHADOW
+#include <shadow.h>
+#endif
 
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 #define max(x, y) (((x) > (y)) ? (x) : (y))
@@ -36,12 +39,20 @@
 #define fd_cloexec(fd) \
 	fcntl(fd, F_SETFD, fcntl(fd, F_GETFD) | FD_CLOEXEC)
 
+#define ensure_out(x) \
+	do { if((x) < 0) goto out; } while(0)
+
+#define ensure_ret(x) \
+	do { if((x) < 0) return -1; } while(0)
+
+
 struct path_info {
 	char *root;
 	char *phys;
 	char *name;
 	char *info;
 	char *query;
+	int redirected;
 	struct stat stat;
 };
 
@@ -49,6 +60,7 @@ struct path_info {
 const char * sa_straddr(void *sa);
 const char * sa_strport(void *sa);
 int sa_port(void *sa);
+int sa_rfc1918(void *sa);
 
 char *strfind(char *haystack, int hslen, const char *needle, int ndlen);
 
@@ -99,5 +111,10 @@ struct listener * uh_listener_lookup(int sock);
 struct client * uh_client_add(int sock, struct listener *serv);
 struct client * uh_client_lookup(int sock);
 void uh_client_remove(int sock);
+
+#ifdef HAVE_CGI
+struct interpreter * uh_interpreter_add(const char *extn, const char *path);
+struct interpreter * uh_interpreter_lookup(const char *path);
+#endif
 
 #endif

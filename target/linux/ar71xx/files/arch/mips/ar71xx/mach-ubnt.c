@@ -142,9 +142,11 @@ static void __init ubnt_rs_setup(void)
 
 	ar71xx_add_device_mdio(~(UBNT_RS_WAN_PHYMASK | UBNT_RS_LAN_PHYMASK));
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, ar71xx_mac_base, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.phy_mask = UBNT_RS_WAN_PHYMASK;
 
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, ar71xx_mac_base, 1);
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth1_data.speed = SPEED_100;
 	ar71xx_eth1_data.duplex = DUPLEX_FULL;
@@ -168,11 +170,14 @@ static void __init ubnt_rspro_setup(void)
 {
 	ubnt_generic_setup();
 
-	ar71xx_add_device_mdio(~(UBNT_RSPRO_WAN_PHYMASK | UBNT_RSPRO_LAN_PHYMASK));
+	ar71xx_add_device_mdio(~(UBNT_RSPRO_WAN_PHYMASK |
+				 UBNT_RSPRO_LAN_PHYMASK));
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, ar71xx_mac_base, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth0_data.phy_mask = UBNT_RSPRO_WAN_PHYMASK;
 
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, ar71xx_mac_base, 1);
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth1_data.phy_mask = UBNT_RSPRO_LAN_PHYMASK;
 	ar71xx_eth1_data.speed = SPEED_1000;
@@ -205,6 +210,7 @@ static void __init ubnt_lssr71_setup(void)
 
 	ar71xx_add_device_mdio(~UBNT_LSSR71_PHY_MASK);
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, ar71xx_mac_base, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.phy_mask = UBNT_LSSR71_PHY_MASK;
 
@@ -222,12 +228,12 @@ static void __init ubnt_m_setup(void)
 	u8 *mac = (u8 *) KSEG1ADDR(0x1fff0000);
 	u8 *ee = (u8 *) KSEG1ADDR(0x1fff1000);
 
-	ar71xx_set_mac_base(mac);
-
 	ar71xx_add_device_m25p80(NULL);
 
 	ar71xx_add_device_mdio(~0);
 
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 0);
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, mac, 1);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.speed = SPEED_100;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
@@ -276,3 +282,40 @@ static void __init ubnt_nano_m_setup(void)
 
 MIPS_MACHINE(AR71XX_MACH_UBNT_NANO_M, "UBNT-NM", "Ubiquiti Nanostation M",
 	     ubnt_nano_m_setup);
+
+static struct gpio_led ubnt_unifi_leds_gpio[] __initdata = {
+	{
+		.name		= "ubnt:orange:dome",
+		.gpio		= 1,
+		.active_low	= 0,
+	}, {
+		.name		= "ubnt:green:dome",
+		.gpio		= 0,
+		.active_low	= 0,
+	}
+};
+
+static void __init ubnt_unifi_setup(void)
+{
+	u8 *mac = (u8 *) KSEG1ADDR(0x1fff0000);
+	u8 *ee = (u8 *) KSEG1ADDR(0x1fff1000);
+
+	ar71xx_add_device_m25p80(NULL);
+
+	ar71xx_add_device_mdio(~0);
+
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 0);
+	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
+	ar71xx_eth0_data.speed = SPEED_100;
+	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+
+	ar71xx_add_device_eth(0);
+
+	ap91_pci_init(ee, NULL);
+
+	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(ubnt_unifi_leds_gpio),
+					ubnt_unifi_leds_gpio);
+}
+
+MIPS_MACHINE(AR71XX_MACH_UBNT_UNIFI, "UBNT-XM", "Ubiquiti UniFi",
+	     ubnt_unifi_setup);

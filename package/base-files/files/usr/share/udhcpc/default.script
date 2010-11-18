@@ -19,11 +19,12 @@ setup_interface () {
 	local old_dns
 	local user_dns
 	local user_router
+	local user_metric
 
 	[ -n "$ifc" ] && {
-		config_get old_ip        "$ifc" ipaddr
-		config_get old_broadcast "$ifc" broadcast
-		config_get old_subnet    "$ifc" netmask
+		old_ip="$(uci_get_state network "$ifc" ipaddr)"
+		old_broadcast="$(uci_get_state network "$ifc" broadcast)"
+		old_subnet="$(uci_get_state network "$ifc" netmask)"
 	}
 
 	[ "$ip" != "$old_ip" ] \
@@ -41,8 +42,9 @@ setup_interface () {
 	# Default Route
 	[ -n "$ifc" ] && {
 		change_state network "$ifc" lease_gateway "$router"
-		config_get old_router "$ifc" gateway
-		user_router=$(uci_get "network.$ifc.gateway")
+		old_router="$(uci_get_state network "$ifc" gateway)"
+		user_router="$(uci_get network "$ifc" gateway)"
+		user_metric="$(uci_get network "$ifc" metric)"
 		[ -n "$user_router" ] && router="$user_router"
 	}
 
@@ -51,7 +53,7 @@ setup_interface () {
 
 		local valid_gw=""
 		for i in $router ; do
-			route add default gw $i dev $interface
+			route add default gw $i ${user_metric:+metric $user_metric} dev $interface
 			valid_gw="${valid_gw:+$valid_gw|}$i"
 		done
 		

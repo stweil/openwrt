@@ -13,7 +13,7 @@
 #include <asm/mach-ar71xx/mach-rb750.h>
 
 #include "machtype.h"
-#include "dev-ap91-eth.h"
+#include "devices.h"
 
 static struct rb750_led_data rb750_leds[] = {
 	{
@@ -53,13 +53,6 @@ static struct platform_device rb750_leds_device = {
 	.dev	= {
 		.platform_data = &rb750_leds_data,
 	}
-};
-
-static const char *rb750_port_names[AP91_ETH_NUM_PORT_NAMES] __initdata = {
-	"port5",
-	"port4",
-	"port3",
-	"port2",
 };
 
 static struct platform_device rb750_nand_device = {
@@ -110,7 +103,7 @@ int rb750_latch_change(u32 mask_clr, u32 mask_set)
 
 	ret = 1;
 
- unlock:
+unlock:
 	spin_unlock_irqrestore(&lock, flags);
 	return ret;
 }
@@ -124,7 +117,24 @@ static void __init rb750_setup(void)
 				     AR724X_GPIO_FUNC_ETH_SWITCH_LED3_EN |
 				     AR724X_GPIO_FUNC_ETH_SWITCH_LED4_EN);
 
-	ap91_eth_init(NULL, rb750_port_names);
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, ar71xx_mac_base, 0);
+	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, ar71xx_mac_base, 1);
+
+	/* WAN port */
+	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth0_data.speed = SPEED_100;
+	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+
+	/* LAN ports */
+	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth1_data.speed = SPEED_1000;
+	ar71xx_eth1_data.duplex = DUPLEX_FULL;
+	ar71xx_eth1_data.has_ar7240_switch = 1;
+
+	ar71xx_add_device_mdio(0x0);
+	ar71xx_add_device_eth(1);
+	ar71xx_add_device_eth(0);
+
 	platform_device_register(&rb750_leds_device);
 	platform_device_register(&rb750_nand_device);
 }

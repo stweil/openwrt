@@ -77,7 +77,6 @@ hostapd_set_bss_options() {
 			append "$var" "eapol_key_index_workaround=1" "$N"
 			append "$var" "radius_acct_interim_interval=300" "$N"
 			append "$var" "ieee8021x=1" "$N"
-			append "$var" "auth_algs=1" "$N"
 			append "$var" "wpa_key_mgmt=WPA-EAP" "$N"
 			append "$var" "wpa_group_rekey=300" "$N"
 			append "$var" "wpa_gmk_rekey=640" "$N"
@@ -101,6 +100,14 @@ hostapd_set_bss_options() {
 					append "$var" "wep_default_key=0" "$N"
 				;;
 			esac
+			case "$enc" in
+				*shared*)
+					auth_algs=2
+				;;
+				*mixed*)
+					auth_algs=3
+				;;
+			esac
 			wpa=0
 			crypto=
 		;;
@@ -109,6 +116,7 @@ hostapd_set_bss_options() {
 			crypto=
 		;;
 	esac
+	append "$var" "auth_algs=${auth_algs:-1}" "$N"
 	append "$var" "wpa=$wpa" "$N"
 	[ -n "$crypto" ] && append "$var" "wpa_pairwise=$crypto" "$N"
 	[ -n "$wpa_group_rekey" ] && append "$var" "wpa_group_rekey=$wpa_group_rekey" "$N"
@@ -116,6 +124,7 @@ hostapd_set_bss_options() {
 	config_get ssid "$vif" ssid
 	config_get bridge "$vif" bridge
 	config_get ieee80211d "$vif" ieee80211d
+	config_get iapp_interface "$vif" iapp_interface
 
 	config_get_bool wps_pbc "$vif" wps_pushbutton 0
 	[ -n "$wps_possible" -a "$wps_pbc" -gt 0 ] && {
@@ -128,6 +137,7 @@ hostapd_set_bss_options() {
 	append "$var" "ssid=$ssid" "$N"
 	[ -n "$bridge" ] && append "$var" "bridge=$bridge" "$N"
 	[ -n "$ieee80211d" ] && append "$var" "ieee80211d=$ieee80211d" "$N"
+	[ -n "$iapp_interface" ] && append "$var" $(uci_get_state network "$iapp_interface" ifname "$iapp_interface") "$N"
 
 	[ "$wpa" -ge "2" ] && config_get ieee80211w "$vif" ieee80211w
 	case "$ieee80211w" in

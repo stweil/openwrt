@@ -6,9 +6,9 @@
  obj-$(CONFIG_COMPAT_NETWORK_MODULES) += drivers/net/
 -obj-$(CONFIG_COMPAT_VAR_MODULES) +=  drivers/ssb/ drivers/misc/eeprom/
 +obj-$(CONFIG_COMPAT_VAR_MODULES) +=  drivers/misc/eeprom/
- endif
  
- obj-$(CONFIG_COMPAT_BLUETOOTH) += net/bluetooth/
+ ifeq ($(CONFIG_STAGING_EXCLUDE_BUILD),)
+ obj-$(CONFIG_COMPAT_STAGING) += drivers/staging/ath6kl/
 --- a/config.mk
 +++ b/config.mk
 @@ -9,7 +9,6 @@ ifeq ($(wildcard $(KLIB_BUILD)/.config),
@@ -19,11 +19,11 @@
  else
  include $(KLIB_BUILD)/.config
  endif
-@@ -251,21 +250,6 @@ CONFIG_IPW2200_QOS=y
- #
+@@ -283,21 +282,6 @@ CONFIG_IPW2200_QOS=y
  # % echo 1 > /sys/bus/pci/drivers/ipw2200/*/rtap_iface
+ endif #CONFIG_WIRELESS_EXT
  
--ifneq ($(CONFIG_SSB),)
+-ifdef CONFIG_SSB
 -# Sonics Silicon Backplane
 -CONFIG_SSB_SPROM=y
 -# CONFIG_SSB_DEBUG=y
@@ -31,21 +31,21 @@
 -CONFIG_SSB_BLOCKIO=y
 -CONFIG_SSB_PCIHOST=y
 -CONFIG_SSB_B43_PCI_BRIDGE=y
--ifneq ($(CONFIG_PCMCIA),)
+-ifdef CONFIG_PCMCIA
 -CONFIG_SSB_PCMCIAHOST=y
--endif
+-endif #CONFIG_PCMCIA
 -# CONFIG_SSB_DEBUG=y
 -CONFIG_SSB_DRIVER_PCICORE=y
--endif
+-endif #CONFIG_SSB
 -
  CONFIG_P54_PCI=m
  
  # CONFIG_B44=m
-@@ -429,7 +413,6 @@ endif # end of SPI driver list
+@@ -485,7 +469,6 @@ endif #CONFIG_SPI_MASTER end of SPI driv
  
- ifneq ($(CONFIG_MMC),)
+ ifdef CONFIG_MMC
  
 -CONFIG_SSB_SDIOHOST=y
  CONFIG_B43_SDIO=y
- CONFIG_WL1251_SDIO=m
  
+ ifdef CONFIG_CRC7

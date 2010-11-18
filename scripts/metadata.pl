@@ -49,6 +49,7 @@ sub parse_target_metadata() {
 		/^Target-Name:\s*(.+)\s*$/ and $target->{name} = $1;
 		/^Target-Path:\s*(.+)\s*$/ and $target->{path} = $1;
 		/^Target-Arch:\s*(.+)\s*$/ and $target->{arch} = $1;
+		/^Target-Arch-Packages:\s*(.+)\s*$/ and $target->{arch_packages} = $1;
 		/^Target-Features:\s*(.+)\s*$/ and $target->{features} = [ split(/\s+/, $1) ];
 		/^Target-Depends:\s*(.+)\s*$/ and $target->{depends} = [ split(/\s+/, $1) ];
 		/^Target-Description:/ and $target->{desc} = get_multiline(*FILE);
@@ -158,6 +159,7 @@ sub target_config_features(@) {
 		/pci/ and $ret .= "\tselect PCI_SUPPORT\n";
 		/pcie/ and $ret .= "\tselect PCIE_SUPPORT\n";
 		/usb/ and $ret .= "\tselect USB_SUPPORT\n";
+		/usbgadget/ and $ret .= "\tselect USB_GADGET_SUPPORT\n";
 		/pcmcia/ and $ret .= "\tselect PCMCIA_SUPPORT\n";
 		/squashfs/ and $ret .= "\tselect USES_SQUASHFS\n";
 		/jffs2/ and $ret .= "\tselect USES_JFFS2\n";
@@ -194,9 +196,7 @@ sub print_target($) {
 	my $target = shift;
 	my $features = target_config_features(@{$target->{features}});
 	my $help = $target->{desc};
-	my $kernel = $target->{kernel};
 	my $confstr;
-	$kernel =~ tr/./_/;
 
 	chomp $features;
 	$features .= "\n";
@@ -212,7 +212,6 @@ sub print_target($) {
 	$confstr = <<EOF;
 config TARGET_$target->{conf}
 	bool "$target->{name}"
-	select LINUX_$kernel
 	select LINUX_$v
 EOF
 	}
@@ -332,6 +331,15 @@ config TARGET_BOARD
 EOF
 	foreach my $target (@target) {
 		$target->{subtarget} or	print "\t\tdefault \"".$target->{board}."\" if TARGET_".$target->{conf}."\n";
+	}
+	print <<EOF;
+config TARGET_ARCH_PACKAGES
+	string
+	
+EOF
+	foreach my $target (@target) {
+		next if @{$target->{subtargets}} > 0;
+		print "\t\tdefault \"".($target->{arch_packages} || $target->{board})."\" if TARGET_".$target->{conf}."\n";
 	}
 	print <<EOF;
 
@@ -629,6 +637,9 @@ sub gen_package_mk() {
 			$pkg->{buildonly} and $config = "";
 			print "package-$config += $pkg->{subdir}$pkg->{src}\n";
 			if ($pkg->{variant}) {
+				if (!defined($done{$pkg->{src}})) {
+					print "\$(curdir)/$pkg->{subdir}$pkg->{src}/default-variant := $pkg->{variant}\n";
+				}
 				print "\$(curdir)/$pkg->{subdir}$pkg->{src}/variants += \$(if $config,$pkg->{variant})\n"
 			}
 			$pkg->{prereq} and print "prereq-$config += $pkg->{subdir}$pkg->{src}\n";
@@ -666,14 +677,15 @@ sub gen_package_mk() {
 					$dep = $1;
 					$suffix = $2;
 				}
-				my $pkg_dep = $package{$dep};
-				next unless $pkg_dep;
 
 				my $idx = "";
-				if (defined $pkg_dep->{src}) {
+				my $pkg_dep = $package{$dep};
+				if (defined($pkg_dep) && defined($pkg_dep->{src})) {
 					$idx = $pkg_dep->{subdir}.$pkg_dep->{src};
 				} elsif (defined($srcpackage{$dep})) {
 					$idx = $subdir{$dep}.$dep;
+				} else {
+					next;
 				}
 				my $depstr = "\$(curdir)/$idx$suffix/compile";
 				my $depline = get_conditional_dep($condition, $depstr);
@@ -762,6 +774,7 @@ sub gen_package_mk() {
 		next unless $cmds;
 		print <<EOF
 
+ifndef DUMP_TARGET_DB
 \$(TARGET_DIR)/etc/uci-defaults/$preconfig: FORCE
 	( \\
 $cmds \\
@@ -770,6 +783,8 @@ $cmds \\
 ifneq (\$(IMAGEOPT)\$(CONFIG_IMAGEOPT),)
   package/preconfig: \$(TARGET_DIR)/etc/uci-defaults/$preconfig
 endif
+endif
+
 EOF
 	}
 }

@@ -2,7 +2,7 @@
 
 . /etc/functions.sh
 
-if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ]; then
+if [ "$ACTION" = "add" ] && [ "$INTERFACE" = "wan" ]; then
 	local wanip=$(uci -P/var/state get network.wan.ipaddr)
 
 	iptables -t nat -F nat_reflection_in 2>/dev/null || {
@@ -13,6 +13,11 @@ if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ]; then
 	iptables -t nat -F nat_reflection_out 2>/dev/null || {
 		iptables -t nat -N nat_reflection_out
 		iptables -t nat -A postrouting_rule -j nat_reflection_out
+	}
+
+	iptables -t filter -F nat_reflection_fwd 2>/dev/null || {
+		iptables -t filter -N nat_reflection_fwd
+		iptables -t filter -A forwarding_rule -j nat_reflection_fwd
 	}
 
 	find_networks() {
@@ -34,14 +39,21 @@ if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ]; then
 
 		config_foreach find_networks_cb zone "$1"
 	}
-	
+
 	setup_fwd() {
 		local cfg="$1"
+
+		local reflection
+		config_get_bool reflection "$cfg" reflection 1
+		[ "$reflection" == 1 ] || return
 
 		local src
 		config_get src "$cfg" src
 
-		[ "$src" = wan ] && {
+		local target
+		config_get target "$cfg" target DNAT
+
+		[ "$src" = wan ] && [ "$target" = DNAT ] && {
 			local dest
 			config_get dest "$cfg" dest "lan"
 
@@ -75,6 +87,9 @@ if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ]; then
 
 				[ "$proto" = tcpudp ] && proto="tcp udp"
 
+				[ "${inthost#!}" = "$inthost" ] || return 0
+				[ "${exthost#!}" = "$exthost" ] || return 0
+
 				local p
 				for p in ${proto:-tcp udp}; do
 					case "$p" in
@@ -88,6 +103,11 @@ if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ]; then
 								-s $lanip/$lanmk -d $inthost \
 								-p $p --dport $ipmin${ipmax:+:$ipmax} \
 								-j SNAT --to-source $lanip
+
+							iptables -t filter -A nat_reflection_fwd \
+								-s $lanip/$lanmk -d $inthost \
+								-p $p --dport $ipmin${ipmax:+:$ipmax} \
+								-j ACCEPT
 						;;
 					esac
 				done
@@ -98,4 +118,3 @@ if [ "$ACTION" = "ifup" ] && [ "$INTERFACE" = "wan" ]; then
 	config_load firewall
 	config_foreach setup_fwd redirect
 fi
-

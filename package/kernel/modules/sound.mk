@@ -102,8 +102,10 @@ endef
 define KernelPackage/sound-i8x0
   TITLE:=Intel/SiS/nVidia/AMD/ALi AC97 Controller
   KCONFIG:=CONFIG_SND_INTEL8X0
-  FILES:=$(LINUX_DIR)/sound/pci/snd-intel8x0.ko
-  AUTOLOAD:=$(call AutoLoad,35,snd-i8x0)
+  FILES:=$(LINUX_DIR)/sound/pci/snd-intel8x0.ko \
+	$(LINUX_DIR)/sound/ac97_bus.ko \
+	$(LINUX_DIR)/sound/pci/ac97/snd-ac97-codec.ko 
+  AUTOLOAD:=$(call AutoLoad,35,ac97_bus snd-ac97-codec snd-intel8x0)
   $(call AddDepends/sound)
 endef
 
@@ -144,3 +146,44 @@ define KernelPackage/sound-soc-core
 endef
 
 $(eval $(call KernelPackage,sound-soc-core))
+
+
+define KernelPackage/sound-soc-omap
+  TITLE:=OMAP SoC sound support
+  KCONFIG:= \
+	CONFIG_SND_OMAP_SOC
+  FILES:=$(LINUX_DIR)/sound/soc/omap/snd-soc-omap.ko
+  AUTOLOAD:=$(call AutoLoad,60,snd-soc-omap)
+  DEPENDS:=@TARGET_omap24xx +kmod-sound-soc-core
+  $(call AddDepends/sound)
+endef
+
+$(eval $(call KernelPackage,sound-soc-omap))
+
+
+define KernelPackage/sound-soc-omap-mcbsp
+  TITLE:=OMAP SoC MCBSP support
+  KCONFIG:= \
+	CONFIG_SND_OMAP_SOC_MCBSP
+  FILES:=$(LINUX_DIR)/sound/soc/omap/snd-soc-omap-mcbsp.ko
+  AUTOLOAD:=$(call AutoLoad,61,snd-soc-omap-mcbsp)
+  DEPENDS:=@TARGET_omap24xx +kmod-sound-soc-omap
+  $(call AddDepends/sound)
+endef
+
+$(eval $(call KernelPackage,sound-soc-omap-mcbsp))
+
+
+define KernelPackage/sound-soc-n810
+  TITLE:=Nokia n810 SoC sound support
+  KCONFIG:= \
+	CONFIG_SND_OMAP_SOC_N810
+  FILES:= \
+	$(LINUX_DIR)/sound/soc/codecs/snd-soc-tlv320aic3x.ko \
+	$(LINUX_DIR)/sound/soc/omap/snd-soc-n810.ko
+  AUTOLOAD:=$(call AutoLoad,65,snd-soc-tlv320aic3x snd-soc-n810)
+  DEPENDS:=@TARGET_omap24xx +kmod-sound-soc-omap +kmod-sound-soc-omap-mcbsp
+  $(call AddDepends/sound)
+endef
+
+$(eval $(call KernelPackage,sound-soc-n810))

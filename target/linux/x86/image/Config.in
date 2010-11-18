@@ -8,20 +8,21 @@ config X86_GRUB_IMAGES
 config X86_GRUB_CONSOLE
 	bool "Use Console Terminal (in addition to Serial)"
 	depends X86_GRUB_IMAGES
-	default n if (TARGET_x86_generic_Soekris45xx || TARGET_x86_generic_Soekris48xx || TARGET_x86_net5501)
+	default n if (TARGET_x86_generic_Soekris45xx || TARGET_x86_generic_Soekris48xx || TARGET_x86_net5501 || TARGET_x86_geos)
 	default y
 
 config X86_GRUB_SERIAL
 	string "Serial port device"
 	depends X86_GRUB_IMAGES
-	default "hvc0" if TARGET_x86_xen_domu
-	default "ttyS0"
+	default "hvc0" if (TARGET_x86_kvm_guest || TARGET_x86_xen_domu)
+	default "ttyS0" if ! (TARGET_x86_kvm_guest || TARGET_x86_xen_domu)
 
 config X86_GRUB_BAUDRATE
 	int "Serial port baud rate"
 	depends X86_GRUB_IMAGES
 	default 19200 if TARGET_x86_generic_Soekris45xx || TARGET_x86_generic_Soekris48xx || TARGET_x86_net5501
 	default 38400
+	default 115200 if TARGET_x86_geos
 
 config X86_GRUB_BOOTOPTS
 	string "Extra kernel boot options"
@@ -36,8 +37,6 @@ config X86_VDI_IMAGES
 	depends TARGET_x86_generic
 	depends TARGET_ROOTFS_EXT2FS
 	select PACKAGE_kmod-pcnet32
-	help
-	  Requires VBoxManage installed on the build system.
 
 config X86_VMDK_IMAGES
 	bool "Build VMware image files (VMDK)"
@@ -45,8 +44,6 @@ config X86_VMDK_IMAGES
 	depends TARGET_x86_generic
 	depends TARGET_ROOTFS_EXT2FS
 	select PACKAGE_kmod-e1000
-	help
-	  Requires qemu-img installed on the build system.
 
 
 config OLPC_BOOTSCRIPT_IMAGES
@@ -67,8 +64,9 @@ config TARGET_KERNEL_PARTSIZE
 config TARGET_ROOTFS_PARTNAME
 	string "Root partition on target device"
 	depends OLPC_BOOTSCRIPT_IMAGES || X86_GRUB_IMAGES
+	default "/dev/vda2" if TARGET_x86_kvm_guest
 	default "/dev/xvda2" if TARGET_x86_xen_domu
-	default "/dev/sda2"
+	default "/dev/sda2" if ! (TARGET_x86_kvm_guest || TARGET_x86_xen_domu)
 	help
 	  The root partition on the final device.  If you don't know,
 	  you probably want the default (/dev/sda2).

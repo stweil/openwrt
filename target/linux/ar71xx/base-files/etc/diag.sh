@@ -36,10 +36,13 @@ get_status_led() {
 	ap83)
 		status_led="ap83:green:power"
 		;;
+	ap96)
+		status_led="ap96:green:led2"
+		;;
 	aw-nr580)
 		status_led="aw-nr580:green:ready"
 		;;
-	bullet-m | rocket-m | nano-m)
+	bullet-m | rocket-m | nano-m | nanostation-m)
 		status_led="ubnt:green:link4"
 		;;
 	dir-600-a1)
@@ -50,6 +53,9 @@ get_status_led() {
 		;;
 	dir-825-b1)
 		status_led="dir825b1:orange:power"
+		;;
+	eap7660d)
+		status_led="eap7660d:green:ds4"
 		;;
 	ls-sr71)
 		status_led="ubnt:green:d22"
@@ -71,6 +77,9 @@ get_status_led() {
 		;;
 	tew-632brp)
 		status_led="tew-632brp:green:status"
+		;;
+	tl-mr3420)
+		status_led="tl-mr3420:green:system"
 		;;
 	tl-wa901nd)
 		status_led="tl-wa901nd:green:system"
@@ -104,6 +113,9 @@ get_status_led() {
 		;;
 	wzr-hp-g300nh)
 		status_led="wzr-hp-g300nh:green:router"
+		;;
+	zcn-1523h-2 | zcn-1523h-5)
+		status_led="zcn-1523h:amber:init"
 		;;
 	esac;
 }

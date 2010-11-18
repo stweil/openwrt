@@ -31,6 +31,7 @@ define KernelPackage/bluetooth
 	CONFIG_BT_HCIBTUSB \
 	CONFIG_BT_HCIUSB \
 	CONFIG_BT_HCIUART \
+	CONFIG_BT_HCIUART_H4 \
 	CONFIG_BT_HIDP
   $(call AddDepends/crc16)
   $(call AddDepends/hid)
@@ -52,6 +53,22 @@ define KernelPackage/bluetooth/description
 endef
 
 $(eval $(call KernelPackage,bluetooth))
+
+
+define KernelPackage/cpu-msr
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=x86 CPU MSR support
+  DEPENDS:=@TARGET_x86
+  KCONFIG:=CONFIG_X86_MSR
+  FILES:=$(LINUX_DIR)/arch/x86/kernel/msr.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,20,msr)
+endef
+
+define KernelPackage/cpu-msr/description
+ Kernel module for Model Specific Registers support in x86 CPUs
+endef
+
+$(eval $(call KernelPackage,cpu-msr))
 
 
 define KernelPackage/crc-ccitt
@@ -115,6 +132,22 @@ endef
 $(eval $(call KernelPackage,crc16))
 
 
+define KernelPackage/libcrc32c
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=CRC32 library support
+  KCONFIG:=CONFIG_LIBCRC32C
+  DEPENDS:=+kmod-crypto-core +kmod-crypto-misc 
+  FILES:=$(LINUX_DIR)/lib/libcrc32c.ko
+  AUTOLOAD:=$(call AutoLoad,20,crc32c libcrc32c,1)
+endef
+
+define KernelPackage/libcrc32c/description
+ Kernel module for CRC32 support
+endef
+
+$(eval $(call KernelPackage,libcrc32c))
+
+
 define KernelPackage/eeprom-93cx6
   SUBMENU:=$(OTHER_MENU)
   TITLE:=EEPROM 93CX6 support
@@ -134,9 +167,15 @@ define KernelPackage/gpio-cs5535
   SUBMENU:=$(OTHER_MENU)
   TITLE:=AMD CS5535/CS5536 GPIO driver
   DEPENDS:=@TARGET_x86
-  KCONFIG:=CONFIG_CS5535_GPIO
+  KCONFIG:=CONFIG_CS5535_GPIO \
+	   CONFIG_GPIO_CS5535
+ifeq ($(CONFIG_LINUX_2_6_32),y)
   FILES:=$(LINUX_DIR)/drivers/char/cs5535_gpio.ko
   AUTOLOAD:=$(call AutoLoad,50,cs5535_gpio)
+else
+  FILES:=$(LINUX_DIR)/drivers/gpio/cs5535-gpio.ko
+  AUTOLOAD:=$(call AutoLoad,50,cs5535-gpio)
+endif
 endef
 
 define KernelPackage/gpio-cs5535/description
@@ -405,6 +444,21 @@ endef
 
 $(eval $(call KernelPackage,leds-net48xx))
 
+define KernelPackage/leds-net5501
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=Soekris Net5501 LED support
+  DEPENDS:=@TARGET_x86 +kmod-gpio-cs5535 +kmod-leds-gpio
+  KCONFIG:=CONFIG_LEDS_NET5501
+  FILES:=$(LINUX_DIR)/drivers/leds/leds-net5501.ko
+  AUTOLOAD:=$(call AutoLoad,50,leds-net5501)
+endef
+
+define KernelPackage/leds-net5501/description
+ Kernel module for Soekris Net5501 LEDs
+endef
+
+$(eval $(call KernelPackage,leds-net5501))
+
 
 define KernelPackage/leds-rb750
   SUBMENU:=$(OTHER_MENU)
@@ -454,6 +508,21 @@ endef
 $(eval $(call KernelPackage,leds-wrap))
 
 
+define KernelPackage/ledtrig-gpio
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=LED GPIO Trigger
+  KCONFIG:=CONFIG_LEDS_TRIGGER_GPIO
+  FILES:=$(LINUX_DIR)/drivers/leds/ledtrig-gpio.ko
+  AUTOLOAD:=$(call AutoLoad,50,ledtrig-gpio)
+endef
+
+define KernelPackage/ledtrig-gpio/description
+ Kernel module that allows LEDs to be controlled by gpio events.
+endef
+
+$(eval $(call KernelPackage,ledtrig-gpio))
+
+
 define KernelPackage/ledtrig-morse
   SUBMENU:=$(OTHER_MENU)
   TITLE:=LED Morse Trigger
@@ -482,6 +551,27 @@ define KernelPackage/ledtrig-netdev/description
 endef
 
 $(eval $(call KernelPackage,ledtrig-netdev))
+
+
+define KernelPackage/ledtrig-netfilter
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=LED NetFilter Trigger
+  DEPENDS:=kmod-ipt-core
+  KCONFIG:=CONFIG_NETFILTER_XT_TARGET_LED
+  FILES:=$(LINUX_DIR)/net/netfilter/xt_LED.ko
+  AUTOLOAD:=$(call AutoLoad,50,xt_LED)
+endef
+
+define KernelPackage/ledtrig-netfilter/description
+ Kernel module to flash LED when a particular packets passing through your machine.
+ 
+ For example to create an LED trigger for incoming SSH traffic:
+    iptables -A INPUT -p tcp --dport 22 -j LED --led-trigger-id ssh --led-delay 1000
+ Then attach the new trigger to an LED on your system:
+    echo netfilter-ssh > /sys/class/leds/<ledname>/trigger
+endef
+
+$(eval $(call KernelPackage,ledtrig-netfilter))
 
 
 define KernelPackage/lp
@@ -551,7 +641,7 @@ define KernelPackage/rfkill
     CONFIG_RFKILL \
     CONFIG_RFKILL_INPUT=y \
     CONFIG_RFKILL_LEDS=y
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.31)),1)
+ifeq ($(CONFIG_LINUX_2_6_30),)
   FILES:= \
     $(LINUX_DIR)/net/rfkill/rfkill.ko
   AUTOLOAD:=$(call AutoLoad,20,rfkill)
@@ -645,6 +735,22 @@ define KernelPackage/wdt-geode/description
 endef
 
 $(eval $(call KernelPackage,wdt-geode))
+
+
+define KernelPackage/wdt-omap
+  SUBMENU:=$(OTHER_MENU)
+  TITLE:=OMAP Watchdog timer
+  DEPENDS:=@(TARGET_omap24xx||TARGET_omap35xx)
+  KCONFIG:=CONFIG_OMAP_WATCHDOG
+  FILES:=$(LINUX_DIR)/drivers/$(WATCHDOG_DIR)/omap_wdt.ko
+  AUTOLOAD:=$(call AutoLoad,50,omap_wdt.ko)
+endef
+
+define KernelPackage/wdt-omap/description
+  Kernel module for TI omap watchdog timer.
+endef
+
+$(eval $(call KernelPackage,wdt-omap))
 
 
 define KernelPackage/wdt-sc520

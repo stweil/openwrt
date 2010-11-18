@@ -98,9 +98,9 @@
 +	return ret;
 +}
  
- int insmod_main(int argc, char **argv) MAIN_EXTERNALLY_VISIBLE;
- int insmod_main(int argc UNUSED_PARAM, char **argv)
-@@ -33,9 +126,15 @@ int insmod_main(int argc UNUSED_PARAM, c
+ /* 2.6 style insmod has no options and required filename
+  * (not module name - .ko can't be omitted) */
+@@ -55,9 +148,15 @@ int insmod_main(int argc UNUSED_PARAM, c
  	if (!filename)
  		bb_show_usage();
  
@@ -117,14 +117,14 @@
 +done:
  	return rc;
  }
---- a/modutils/Config.in
-+++ b/modutils/Config.in
-@@ -226,7 +226,7 @@ config FEATURE_MODUTILS_SYMBOLS
+--- a/modutils/Config.src
++++ b/modutils/Config.src
+@@ -228,7 +228,7 @@ config FEATURE_MODUTILS_SYMBOLS
  config DEFAULT_MODULES_DIR
  	string "Default directory containing modules"
  	default "/lib/modules"
--	depends on DEPMOD || MODPROBE || MODPROBE_SMALL
-+	depends on DEPMOD || INSMOD || MODPROBE || MODPROBE_SMALL
+-	depends on DEPMOD || MODPROBE || MODPROBE_SMALL || MODINFO
++	depends on DEPMOD || INSMOD || MODPROBE || MODPROBE_SMALL || MODINFO
  	help
  	  Directory that contains kernel modules.
  	  Defaults to "/lib/modules"

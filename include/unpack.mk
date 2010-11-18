@@ -32,7 +32,11 @@ ifeq ($(strip $(UNPACK_CMD)),)
       EXT:=$(call ext,$(PKG_SOURCE:.$(EXT)=))
       DECOMPRESS_CMD:=bzcat $(DL_DIR)/$(PKG_SOURCE) |
     endif
-    ifeq ($(filter tgz tbz tbz2,$(EXT1)),$(EXT1))
+    ifeq ($(filter xz txz,$(EXT)),$(EXT))
+      EXT:=$(call ext,$(PKG_SOURCE:.$(EXT)=))
+      DECOMPRESS_CMD:=xzcat $(DL_DIR)/$(PKG_SOURCE) |
+    endif
+    ifeq ($(filter tgz tbz tbz2 txz,$(EXT1)),$(EXT1))
       EXT:=tar
     endif
     DECOMPRESS_CMD ?= cat $(DL_DIR)/$(PKG_SOURCE) |
@@ -67,10 +71,10 @@ ifeq ($(strip $(UNPACK_CMD)),)
 endif
 
 ifdef PKG_BUILD_DIR
-  PKG_UNPACK ?= $(call UNPACK_CMD,$(PKG_BUILD_DIR)) $(call CRLF_CMD,$(PKG_BUILD_DIR))
+  PKG_UNPACK ?= $(SH_FUNC) $(call UNPACK_CMD,$(PKG_BUILD_DIR)) $(call CRLF_CMD,$(PKG_BUILD_DIR))
 endif
 ifdef HOST_BUILD_DIR
-  HOST_UNPACK ?= $(call UNPACK_CMD,$(HOST_BUILD_DIR)) $(call CRLF_CMD,$(HOST_BUILD_DIR))
+  HOST_UNPACK ?= $(SH_FUNC) $(call UNPACK_CMD,$(HOST_BUILD_DIR)) $(call CRLF_CMD,$(HOST_BUILD_DIR))
 endif
 
 endif # PKG_SOURCE

@@ -2,19 +2,10 @@ source "tmp/.config-target.in"
 
 # Kernel/Hardware features
 
-config LINUX_2_4
-	bool
-
-config LINUX_2_6
-	bool
-
 config HAS_FPU
 	bool
 
 config AUDIO_SUPPORT
-	bool
-
-config DISPLAY_SUPPORT
 	bool
 
 config GPIO_SUPPORT
@@ -32,6 +23,9 @@ config PCMCIA_SUPPORT
 
 config USB_SUPPORT
 	select AUDIO_SUPPORT
+	bool
+
+config USB_GADGET_SUPPORT
 	bool
 
 config BIG_ENDIAN

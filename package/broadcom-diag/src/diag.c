@@ -30,8 +30,8 @@
 #include <linux/workqueue.h>
 #include <linux/skbuff.h>
 #include <linux/netlink.h>
+#include <linux/kobject.h>
 #include <net/sock.h>
-extern struct sock *uevent_sock;
 extern u64 uevent_next_seqnum(void);
 
 #include "gpio.h"
@@ -110,6 +110,7 @@ enum {
 
 	/* Netgear */
 	WGT634U,
+	WNR834BV2,
 
 	/* Trendware */
 	TEW411BRPP,
@@ -754,6 +755,17 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "power",	.gpio = 1 << 3, .polarity = NORMAL },
 		},
 	},
+	[WNR834BV2] = {
+		.name		= "Netgear WNR834B V2",
+		.buttons	= {
+			{ .name = "reset",	.gpio = 1 << 6 },
+		},
+		.leds		= {
+			{ .name = "power",	.gpio = 1 << 2, .polarity = NORMAL },
+			{ .name = "diag",	.gpio = 1 << 3, .polarity = NORMAL },
+			{ .name = "connected",	.gpio = 1 << 7, .polarity = NORMAL },
+		},
+	},
 	/* Trendware */
 	[TEW411BRPP] = {
 		.name           = "Trendware TEW411BRP+",
@@ -770,8 +782,7 @@ static struct platform_t __initdata platforms[] = {
 	[STI_NAS] = {
 		.name	   = "SimpleTech SimpleShare NAS",
 		.buttons	= {
-			{ .name = "reset",      .gpio = 1 << 7 }, // on back, hardwired, always resets device regardless OS state
-			{ .name = "power",      .gpio = 1 << 0 }, // on back
+			{ .name = "reset",      .gpio = 1 << 0 }, // Power button on back, named reset to enable failsafe.
 		},
 		.leds	   = {
 			{ .name = "diag",       .gpio = 1 << 1, .polarity = REVERSE }, // actual name ready
@@ -1035,6 +1046,12 @@ static struct platform_t __init *platform_detect(void)
 			return &platforms[WDNetCenter];
 		}
 
+		if ((!strcmp(boardnum, "08") || !strcmp(boardnum, "01")) &&
+				!strcmp(boardtype,"0x0472") && !strcmp(getvar("cardbus"), "1")) { /* Netgear WNR834B  V1 and V2*/
+			/* TODO: Check for version. Default platform is V2 for now. */
+			return &platforms[WNR834BV2];
+		}
+
 	} else { /* PMON based - old stuff */
 		if ((simple_strtoul(getvar("GemtekPmonVer"), NULL, 0) == 9) &&
 			(simple_strtoul(getvar("et0phyaddr"), NULL, 0) == 30)) {
@@ -1151,9 +1168,6 @@ static void hotplug_button(struct work_struct *work)
 	struct event_t *event = container_of(work, struct event_t, wq);
 	char *s;
 
-	if (!uevent_sock)
-		return;
-
 	event->skb = alloc_skb(2048, GFP_KERNEL);
 
 	s = skb_put(event->skb, strlen(event->action) + 2);
@@ -1161,7 +1175,7 @@ static void hotplug_button(struct work_struct *work)
 	fill_event(event);
 
 	NETLINK_CB(event->skb).dst_group = 1;
-	netlink_broadcast(uevent_sock, event->skb, 0, 1, GFP_KERNEL);
+	broadcast_uevent(event->skb, 0, 1, GFP_KERNEL);
 
 	kfree(event);
 }

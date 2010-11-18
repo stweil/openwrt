@@ -75,7 +75,7 @@ platform_check_image() {
 		}
 		return 0
 		;;
-	tl-wa901nd | tl-wr741nd | tl-wr841n-v1 | tl-wr941nd | tl-wr1043nd)
+	tl-mr3420 | tl-wa901nd | tl-wr741nd | tl-wr841n-v1 | tl-wr941nd | tl-wr1043nd)
 		[ "$magic" != "0100" ] && {
 			echo "Invalid image type."
 			return 1
@@ -96,7 +96,14 @@ platform_check_image() {
 		}
 		return 0
 		;;
-	routerstation | routerstation-pro | ls-sr71 | pb42 | pb44)
+	zcn-1523h-2 | zcn-1523h-5)
+		[ "$magic" != "6873" -a "$magic" != "1985" ] && {
+			echo "Invalid image type."
+			return 1
+		}
+		return 0
+		;;
+	routerstation | routerstation-pro | ls-sr71 | pb42 | pb44 | eap7660d )
 		[ "$magic" != "4349" ] && {
 			echo "Invalid image. Use *-sysupgrade.bin files on this board"
 			return 1
@@ -123,7 +130,7 @@ platform_do_upgrade() {
 	local board=$(ar71xx_board_name)
 
 	case "$board" in
-	routerstation | routerstation-pro | ls-sr71)
+	routerstation | routerstation-pro | ls-sr71 | eap7660d )
 		platform_do_upgrade_combined "$ARGV"
 		;;
 	*)

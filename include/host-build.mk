@@ -7,6 +7,14 @@
 
 HOST_BUILD_DIR ?= $(BUILD_DIR_HOST)/$(PKG_NAME)$(if $(PKG_VERSION),-$(PKG_VERSION))
 HOST_INSTALL_DIR ?= $(HOST_BUILD_DIR)/host-install
+HOST_BUILD_PARALLEL ?=
+
+ifeq ($(strip $(HOST_BUILD_PARALLEL)),0)
+HOST_JOBS?=-j1
+else
+HOST_JOBS?=$(if $(HOST_BUILD_PARALLEL)$(CONFIG_PKG_DEFAULT_PARALLEL),\
+	$(if $(CONFIG_PKG_BUILD_PARALLEL),-j$(CONFIG_PKG_BUILD_JOBS),-j1),-j1)
+endif
 
 include $(INCLUDE_DIR)/host.mk
 include $(INCLUDE_DIR)/unpack.mk
@@ -72,7 +80,7 @@ define Host/Configure
 endef
 
 define Host/Compile/Default
-	$(MAKE) -C $(HOST_BUILD_DIR) $(1)
+	$(MAKE) $(HOST_JOBS) -C $(HOST_BUILD_DIR) $(1)
 endef
 
 define Host/Compile
@@ -145,12 +153,12 @@ ifndef DUMP
 		$(call Host/Compile)
 		touch $$@
 
-    $(HOST_STAMP_INSTALLED): $(HOST_STAMP_BUILT)
+    $(HOST_STAMP_INSTALLED): $(HOST_STAMP_BUILT) $(if $(FORCE_HOST_INSTALL),FORCE)
 		$(call Host/Install)
 		mkdir -p $$(shell dirname $$@)
 		touch $$@
   else
-    $(HOST_STAMP_BUILT): $(HOST_STAMP_CONFIGURED)
+    $(HOST_STAMP_BUILT): $(HOST_STAMP_CONFIGURED) $(if $(FORCE_HOST_INSTALL),FORCE)
 		$(call Host/Compile)
 		$(call Host/Install)
 		touch $$@

@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=nvram
-PKG_RELEASE:=8
+PKG_RELEASE:=9
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
@@ -18,6 +18,7 @@ define Package/nvram
   SECTION:=utils
   CATEGORY:=Base system
   TITLE:=Userspace port of the Broadcom NVRAM manipulation tool
+  MAINTAINER:=Jo-Philipp Wich <xm@subsignal.org>
   DEPENDS:=@TARGET_brcm47xx||@TARGET_ar71xx
 endef
 

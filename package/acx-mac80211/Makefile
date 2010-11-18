@@ -9,12 +9,12 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=acx-mac80211
-PKG_REV:=02c4f99b
-PKG_VERSION:=20100514
+PKG_REV:=6130cd9c7c07e1a5babf53f7f89e70e5844c2d08
+PKG_VERSION:=20100830
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=git://gitorious.org/~oli1417/acx-mac80211/oli1417-clone.git
+PKG_SOURCE_URL:=git://acx100.git.sourceforge.net/gitroot/acx100/acx-mac80211
 PKG_SOURCE_PROTO:=git
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
 PKG_SOURCE_VERSION:=$(PKG_REV)
@@ -75,7 +75,8 @@ define Build/Compile
 		EXTRA_CFLAGS="$(PKG_EXTRA_CFLAGS) -DCONFIG_ACX_MAC80211_VERSION=\"KERNEL_VERSION(2,6,34)\"" \
 		LINUXINCLUDE="-I$(STAGING_DIR)/usr/include/mac80211 -I$(LINUX_DIR)/include \
 			-Iarch/$(LINUX_KARCH)/include \
-			-include $(LINUX_AUTOCONF_FILE)" \
+			-include $(LINUX_AUTOCONF_FILE) \
+			-include linux/compat-2.6.h" \
 		V="$(V)" \
 		modules
 endef

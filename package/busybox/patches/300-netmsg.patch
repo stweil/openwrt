@@ -1,6 +1,6 @@
---- a/include/applets.h
-+++ b/include/applets.h
-@@ -282,6 +282,7 @@ IF_MT(APPLET(mt, _BB_DIR_BIN, _BB_SUID_D
+--- a/include/applets.src.h
++++ b/include/applets.src.h
+@@ -278,6 +278,7 @@ IF_MT(APPLET(mt, _BB_DIR_BIN, _BB_SUID_D
  IF_MV(APPLET(mv, _BB_DIR_BIN, _BB_SUID_DROP))
  IF_NAMEIF(APPLET(nameif, _BB_DIR_SBIN, _BB_SUID_DROP))
  IF_NC(APPLET(nc, _BB_DIR_USR_BIN, _BB_SUID_DROP))
@@ -8,23 +8,11 @@
  IF_NETSTAT(APPLET(netstat, _BB_DIR_BIN, _BB_SUID_DROP))
  IF_NICE(APPLET(nice, _BB_DIR_BIN, _BB_SUID_DROP))
  IF_NMETER(APPLET(nmeter, _BB_DIR_USR_BIN, _BB_SUID_DROP))
---- a/include/usage.h
-+++ b/include/usage.h
-@@ -3166,6 +3166,9 @@
- 
- #endif
- 
-+#define netmsg_trivial_usage NOUSAGE_STR
-+#define netmsg_full_usage ""
-+
- #define netstat_trivial_usage \
-        "[-laentuwxr"IF_FEATURE_NETSTAT_WIDE("W")IF_FEATURE_NETSTAT_PRG("p")"]"
- #define netstat_full_usage "\n\n" \
---- a/networking/Config.in
-+++ b/networking/Config.in
-@@ -628,6 +628,12 @@ config NC
- 	  A simple Unix utility which reads and writes data across network
- 	  connections.
+--- a/networking/Config.src
++++ b/networking/Config.src
+@@ -623,6 +623,12 @@ config FEATURE_NAMEIF_EXTENDED
+ 	    new_interface_name  mac=00:80:C8:38:91:B5
+ 	    new_interface_name  00:80:C8:38:91:B5
  
 +config NETMSG
 +	bool "netmsg"
@@ -32,12 +20,12 @@
 +	help
 +	  simple program for sending udp broadcast messages
 +
- config NC_SERVER
- 	bool "Netcat server options (-l)"
- 	default n
---- a/networking/Kbuild
-+++ b/networking/Kbuild
-@@ -25,6 +25,7 @@ lib-$(CONFIG_IP)           += ip.o
+ config NETSTAT
+ 	bool "netstat"
+ 	default y
+--- a/networking/Kbuild.src
++++ b/networking/Kbuild.src
+@@ -27,6 +27,7 @@ lib-$(CONFIG_IP)           += ip.o
  lib-$(CONFIG_IPCALC)       += ipcalc.o
  lib-$(CONFIG_NAMEIF)       += nameif.o
  lib-$(CONFIG_NC)           += nc.o
@@ -111,3 +99,20 @@
 +	close(s);
 +	exit(1);
 +}
+--- a/include/usage.src.h
++++ b/include/usage.src.h
+@@ -1,3 +1,4 @@
++
+ /* vi: set sw=8 ts=8: */
+ /*
+  * This file suffers from chronically incorrect tabification
+@@ -2961,6 +2962,9 @@ INSERT
+        " or\n" \
+        "$ nameif -c /etc/my_mactab_file\n" \
+ 
++#define netmsg_trivial_usage NOUSAGE_STR
++#define netmsg_full_usage ""
++
+ #define netstat_trivial_usage \
+        "[-laentuwxr"IF_FEATURE_NETSTAT_WIDE("W")IF_FEATURE_NETSTAT_PRG("p")"]"
+ #define netstat_full_usage "\n\n" \

@@ -44,9 +44,13 @@ static void ag71xx_phy_link_adjust(struct net_device *dev)
 
 void ag71xx_phy_start(struct ag71xx *ag)
 {
+	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
+
 	if (ag->phy_dev) {
 		phy_start(ag->phy_dev);
 	} else {
+		if (pdata->has_ar7240_switch)
+			ag71xx_ar7240_start(ag);
 		ag->link = 1;
 		ag71xx_link_adjust(ag);
 	}
@@ -54,9 +58,13 @@ void ag71xx_phy_start(struct ag71xx *ag)
 
 void ag71xx_phy_stop(struct ag71xx *ag)
 {
+	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
+
 	if (ag->phy_dev) {
 		phy_stop(ag->phy_dev);
 	} else {
+		if (pdata->has_ar7240_switch)
+			ag71xx_ar7240_stop(ag);
 		ag->link = 0;
 		ag71xx_link_adjust(ag);
 	}
@@ -182,7 +190,7 @@ static struct mii_bus *dev_to_mii_bus(struct device *dev)
 	return NULL;
 }
 
-int ag71xx_phy_connect(struct ag71xx *ag)
+int __devinit ag71xx_phy_connect(struct ag71xx *ag)
 {
 	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
 
@@ -200,14 +208,21 @@ int ag71xx_phy_connect(struct ag71xx *ag)
 		mutex_unlock(&ag->mii_bus->mdio_lock);
 	}
 
+	if (pdata->has_ar7240_switch)
+		return ag71xx_ar7240_init(ag);
+
 	if (pdata->phy_mask)
 		return ag71xx_phy_connect_multi(ag);
 
 	return ag71xx_phy_connect_fixed(ag);
 }
 
-void ag71xx_phy_disconnect(struct ag71xx *ag)
+void __devexit ag71xx_phy_disconnect(struct ag71xx *ag)
 {
-	if (ag->phy_dev)
+	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
+
+	if (pdata->has_ar7240_switch)
+		ag71xx_ar7240_cleanup(ag);
+	else if (ag->phy_dev)
 		phy_disconnect(ag->phy_dev);
 }

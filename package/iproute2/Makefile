@@ -8,12 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=iproute2
-PKG_VERSION:=2.6.31
+PKG_VERSION:=2.6.35
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://devresources.linux-foundation.org/dev/iproute2/download/
-PKG_MD5SUM:=230f35282a95451622f3e8394f9cd80a
+PKG_MD5SUM:=b0f281b3124bf04669e18f5fe16d4934
+PKG_BUILD_PARALLEL:=1
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/iproute2-$(PKG_VERSION)
 
@@ -28,6 +29,10 @@ endef
 define Package/ip
 $(call Package/iproute2/Default)
   TITLE:=Routing control utility
+endef
+
+define Package/ip/conffiles
+/etc/iproute2/rt_tables
 endef
 
 define Package/tc
@@ -50,17 +55,23 @@ define Build/Configure
 	# For now disable compiling of the misc directory because it seems to fail
 	rm -rf $(PKG_BUILD_DIR)/misc
 	$(SED) "s, misc,," $(PKG_BUILD_DIR)/Makefile
+	echo "static const char SNAPSHOT[] = \"$(PKG_VERSION)-$(PKG_RELEASE)-openwrt\";" \
+		> $(PKG_BUILD_DIR)/include/SNAPSHOT.h
 endef
 
 MAKE_FLAGS += \
 	EXTRA_CCOPTS="$(TARGET_CFLAGS)" \
 	KERNEL_INCLUDE="$(LINUX_DIR)/include" \
-	FPIC="$(FPIC)" \
-	all tc/tc ip/ip
+	FPIC="$(FPIC)"
 
 define Build/Compile
-	$(_SINGLE)$(MAKE) -C $(PKG_BUILD_DIR)/netem HOSTCC="$(HOSTCC)"  EXTRA_CCOPTS="$(TARGET_CFLAGS)" CFLAGS="-D_GNU_SOURCE -O2 -Wstrict-prototypes -Wall -I ../include -DRESOLVE_HOSTNAMES"
-	$(_SINGLE)$(Build/Compile/Default)
+	$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR)/netem \
+		HOSTCC="$(HOSTCC)"  EXTRA_CCOPTS="$(TARGET_CFLAGS)" \
+		CFLAGS="-D_GNU_SOURCE -O2 -Wstrict-prototypes -Wall \
+		-I../include -DRESOLVE_HOSTNAMES"
+	$(MAKE_VARS) $(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) $(MAKE_FLAGS) all
+	$(MAKE_VARS) $(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR)/tc $(MAKE_FLAGS) tc
+	$(MAKE_VARS) $(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR)/ip $(MAKE_FLAGS) ip
 endef
 
 define Build/InstallDev

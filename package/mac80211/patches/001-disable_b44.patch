@@ -1,6 +1,6 @@
 --- a/config.mk
 +++ b/config.mk
-@@ -268,8 +268,8 @@ endif
+@@ -300,8 +300,8 @@ endif #CONFIG_SSB
  
  CONFIG_P54_PCI=m
  

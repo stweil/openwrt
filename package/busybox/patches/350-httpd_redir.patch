@@ -1,14 +1,16 @@
---- a/include/usage.h
-+++ b/include/usage.h
-@@ -1727,6 +1727,7 @@
+--- a/include/usage.src.h
++++ b/include/usage.src.h
+@@ -1719,7 +1719,8 @@ INSERT
+ 	IF_FEATURE_HTTPD_SETUID(" [-u USER[:GRP]]") \
  	IF_FEATURE_HTTPD_BASIC_AUTH(" [-r REALM]") \
         " [-h HOME]\n" \
-        "or httpd -d/-e" IF_FEATURE_HTTPD_AUTH_MD5("/-m") " STRING"
+-       "or httpd -d/-e" IF_FEATURE_HTTPD_AUTH_MD5("/-m") " STRING"
++       "or httpd -d/-e" IF_FEATURE_HTTPD_AUTH_MD5("/-m") " STRING" \
 +       " [-R <path> [-H <host>]]"
  #define httpd_full_usage "\n\n" \
         "Listen for incoming HTTP requests\n" \
       "\nOptions:" \
-@@ -1744,6 +1745,8 @@
+@@ -1737,6 +1738,8 @@ INSERT
       "\n	-m STRING	MD5 crypt STRING") \
       "\n	-e STRING	HTML encode STRING" \
       "\n	-d STRING	URL decode STRING" \
@@ -50,7 +52,7 @@
  				(g_query ? "?" : ""),
  				(g_query ? g_query : ""));
  	}
-@@ -1941,8 +1948,12 @@ static void handle_incoming_and_exit(con
+@@ -1942,8 +1949,12 @@ static void handle_incoming_and_exit(con
  	} while (*++tptr);
  	*++urlp = '\0';       /* terminate after last character */
  

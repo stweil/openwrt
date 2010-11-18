@@ -391,7 +391,7 @@ detect_mac80211() {
 
 		mode_11n=""
 		mode_band="g"
-		channel="5"
+		channel="6"
 		ht_cap=0
 		for cap in $(iw phy "$dev" info | grep 'Capabilities:' | cut -d: -f2); do
 			ht_cap="$(($ht_cap | $cap))"
@@ -417,8 +417,11 @@ detect_mac80211() {
 config wifi-device  radio$devidx
 	option type     mac80211
 	option channel  ${channel}
-	option macaddr	$(cat /sys/class/ieee80211/${dev}/macaddress)
+	option macaddr	$(cat /sys/class/net/wlan0/address)
+	option phy	phy0
 	option hwmode	11${mode_11n}${mode_band}
+	option vifs	radio0
+	option ifname	wlan0
 $ht_capab
 	# REMOVE THIS LINE TO ENABLE WIFI:
 	option disabled 1
@@ -426,7 +429,7 @@ $ht_capab
 config wifi-iface
 	option device   radio$devidx
 	option network  lan
-	option mode     ap
+	option mode     sta
 	option ssid     OpenWrt
 	option encryption none
 

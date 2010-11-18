@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=uhttpd
-PKG_RELEASE:=12
+PKG_RELEASE:=19
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 PKG_BUILD_DEPENDS := libcyassl liblua
@@ -19,6 +19,7 @@ define Package/uhttpd/default
   SECTION:=net
   CATEGORY:=Network
   TITLE:=uHTTPd - tiny, single threaded HTTP server
+  MAINTAINER:=Jo-Philipp Wich <xm@subsignal.org>
 endef
 
 define Package/uhttpd
@@ -67,6 +68,8 @@ endef
 
 define Package/uhttpd/conffiles
 /etc/config/uhttpd
+/etc/uhttpd.crt
+/etc/uhttpd.key
 endef
 
 define Package/uhttpd/install

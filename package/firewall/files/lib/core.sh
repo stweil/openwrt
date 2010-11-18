@@ -49,6 +49,7 @@ fw_start() {
 
 	fw_callback post core
 
+	uci_set_state firewall core zones "$FW_ZONES"
 	uci_set_state firewall core loaded 1
 }
 
@@ -56,6 +57,17 @@ fw_stop() {
 	fw_init
 
 	fw_callback pre stop
+
+	local z n i
+	config_get z core zones
+	for z in $z; do
+		config_get n core "${z}_networks"
+		for n in $n; do
+			config_get i core "${n}_ifname"
+			[ -n "$i" ] && env -i ACTION=remove ZONE="$z" \
+				INTERFACE="$n" DEVICE="$i" /sbin/hotplug-call firewall
+		done
+	done
 
 	fw_clear ACCEPT
 
@@ -95,10 +107,8 @@ fw_die() {
 
 fw_log() {
 	local level="$1"
-	[ -n "$2" ] || {
-		shift
-		level=notice
-	}
+	[ -n "$2" ] && shift || level=notice
+	[ "$level" != error ] || echo "Error: $@" >&2
 	logger -t firewall -p user.$level "$@"
 }
 

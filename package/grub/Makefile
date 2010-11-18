@@ -49,6 +49,14 @@ ifeq ($(HOST_OS),Darwin)
   HOST_CFLAGS += $(call host-cc-option,-fnested-functions)
 endif
 
+ifeq ($(HOST_OS),FreeBSD)
+  ifeq ($(HOST_ARCH),amd64)
+    HOST_CFLAGS += $(call host-cc-option,-m32)
+    HOST_CFLAGS += $(call host-cc-option,-B/usr/lib32)
+    HOST_CFLAGS += $(call host-cc-option,-L/usr/lib32)
+  endif
+endif
+
 HOST_CFLAGS += $(call host-cc-option,-fno-stack-protector)
 HOST_CFLAGS += $(call host-cc-option,-U_FORTIFY_SOURCE)
 
@@ -87,6 +95,17 @@ define Package/grub/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/* $(1)/usr/sbin/
 endef
+
+ifeq ($(HOST_ARCH),x86_64)
+  define Require/working-gcc-m32
+	echo 'int main(int argc, char **argv) { return 0; }' | \
+		gcc -x c -o $(TMP_DIR)/a.out - -m32 -lc
+  endef
+endif
+
+$(eval $(call Require,working-gcc-m32, \
+	Please install 32 bits development files. (gcc-multilib on Debian/Ubuntu, gcc.i686 and libgcc.i686 on CentOS/Fedora/RHEL) \
+))
 
 $(eval $(call HostBuild))
 $(eval $(call BuildPackage,grub))

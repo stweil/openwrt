@@ -16,6 +16,9 @@ ar71xx_board_name() {
 	*AP83)
 		name="ap83"
 		;;
+	*AP96)
+		name="ap96"
+		;;
 	*AW-NR580)
 		name="aw-nr580"
 		;;
@@ -33,6 +36,9 @@ ar71xx_board_name() {
 		;;
 	*"Nanostation M")
 		name="nanostation-m"
+		;;
+	*JWAP003)
+		name="jwap003"
 		;;
 	*LS-SR71)
 		name="ls-sr71"
@@ -91,6 +97,9 @@ ar71xx_board_name() {
 	*"DIR-615 rev. C1")
 		name="dir-615-c1"
 		;;
+	*TL-MR3420)
+		name="tl-mr3420"
+		;;
 	*TL-WA901ND)
 		name="tl-wa901nd"
 		;;
@@ -120,6 +129,12 @@ ar71xx_board_name() {
 		;;
 	*WZR-HP-G300NH)
 		name="wzr-hp-g300nh"
+		;;
+	*ZCN-1523H-2)
+		name="zcn-1523h-2"
+		;;
+	*ZCN-1523H-5)
+		name="zcn-1523h-5"
 		;;
 	*)
 		name="generic"

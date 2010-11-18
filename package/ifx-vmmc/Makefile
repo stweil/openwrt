@@ -72,6 +72,7 @@ FW_DIR:=lib/firmware
 ifeq ($(CONFIG_VOICE_CPE_VMMC_WITH_DEVICE_DANUBE_extract),y)
   CONFIGURE_ARGS += --with-device=DANUBE
   FW_TARGET:=danube_firmware.bin
+  FW_SOURCE:=danube_firmware.bin
   FW_URL:=http://www.arcor.de/hilfe/files/pdf/
   FW_FILE=arcor_A800_452CPW_FW_1.02.206(20081201).bin
   FW_MD5SUM:=19d9af4e369287a0f0abaed415cdac10
@@ -82,6 +83,7 @@ endif
 
 ifeq ($(CONFIG_VOICE_CPE_VMMC_WITH_DEVICE_DANUBE),y)
   CONFIGURE_ARGS += --with-device=DANUBE
+  FW_SOURCE:=voip_R12.1.0.1.0-enc.bin
   FW_TARGET:=danube_firmware.bin
   FW_FILE=fw_voip_danube-12.1.0.1.0.tar.gz
   FW_MD5SUM:=51868b88dee9dbc65d3dbba355ded91c
@@ -102,9 +104,9 @@ endif
 
 ifeq ($(CONFIG_VOICE_CPE_VMMC_WITH_DEVICE_DANUBE_extract),y)
 define Download/decode
-  FILE:=ifxmips_fw_decode.tar.bz2
+  FILE:=ifxmips_fw_decodev2.tar.bz2
   URL:=http://downloads.openwrt.org/sources/
-  MD5SUM:=1197ff6cace6a7c86492a468f5fbfe07
+  MD5SUM:=9f4ebfae5cb9d9e8fca46057a653ae27
 endef
 $(eval $(call Download,decode))
 endif
@@ -152,7 +154,7 @@ endef
 define KernelPackage/ifx-vmmc/install
 	$(INSTALL_DIR) $(1)/etc/init.d $(1)/$(FW_DIR)
 	$(INSTALL_BIN) ./files/vmmc.init $(1)/etc/init.d/vmmc
-	$(CP) $(PKG_BUILD_DIR)/firmware/$(FW_TARGET) $(1)/$(FW_DIR)/$(FW_TARGET)
+	$(CP) $(PKG_BUILD_DIR)/firmware/$(FW_SOURCE) $(1)/$(FW_DIR)/$(FW_TARGET)
 	$(CP) $(PKG_BUILD_DIR)/coef/$(COEF_TARGET) $(1)/$(FW_DIR)/$(COEF_TARGET)
 endef
 

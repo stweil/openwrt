@@ -42,6 +42,7 @@ Building images:
 	make image PROFILE="<profilename>" # override the default target profile
 	make image PACKAGES="<pkg1> [<pkg2> [<pkg3> ...]]" # include extra packages
 	make image FILES="<path>" # include extra files from <path>
+	make image BIN_DIR="<path>" # alternative output directory for the images
 
 endef
 $(eval $(call shexport,Helptext))
@@ -52,12 +53,21 @@ help: FORCE
 
 # override variables from rules.mk
 PACKAGE_DIR:=$(TOPDIR)/packages
-IPKG:= \
+OPKG:= \
   IPKG_TMP="$(TOPDIR)/tmp/ipkgtmp" \
   IPKG_INSTROOT="$(TARGET_DIR)" \
   IPKG_CONF_DIR="$(TOPDIR)/tmp" \
   IPKG_OFFLINE_ROOT="$(TARGET_DIR)" \
-  $(SCRIPT_DIR)/ipkg -force-defaults
+  $(STAGING_DIR_HOST)/bin/opkg \
+	-f $(TOPDIR)/repositories.conf \
+	--force-depends \
+	--force-overwrite \
+	--force-postinstall \
+	--cache $(TOPDIR)/dl \
+	--offline-root $(TARGET_DIR) \
+	--add-dest root:/ \
+	--add-arch all:100 \
+	--add-arch $(ARCH_PACKAGES):200
 
 define Profile
   $(eval $(call Profile/Default))
@@ -79,14 +89,10 @@ _call_info: FORCE
 	echo 'Available Profiles:'
 	echo; $(PROFILE_LIST)
 
-$(TOPDIR)/tmp/ipkg.conf: FORCE
-	@mkdir -p $(TOPDIR)/tmp
-	@echo 'dest root /' > $@
-	@echo 'src packages file:$(PACKAGE_DIR)' >> $@
-
 BUILD_PACKAGES:=$(sort $(DEFAULT_PACKAGES) $(USER_PACKAGES) $($(USER_PROFILE)_PACKAGES) kernel)
 # "-pkgname" in the package list means remove "pkgname" from the package list
 BUILD_PACKAGES:=$(filter-out $(filter -%,$(BUILD_PACKAGES)) $(patsubst -%,%,$(filter -%,$(BUILD_PACKAGES))),$(BUILD_PACKAGES))
+PACKAGES:=
 
 _call_image:
 	echo 'Building images for $(BOARD)$(if $($(USER_PROFILE)_NAME), - $($(USER_PROFILE)_NAME))'
@@ -102,18 +108,19 @@ endif
 	$(MAKE) package_postinst
 	$(MAKE) build_image
 	
-package_index: $(TOPDIR)/tmp/ipkg.conf FORCE
+package_index: FORCE
 	@echo
 	@echo Building package index...
+	@mkdir -p $(TOPDIR)/tmp $(TOPDIR)/dl $(TARGET_DIR)/tmp
 	(cd $(PACKAGE_DIR); $(SCRIPT_DIR)/ipkg-make-index.sh . > Packages && \
 		gzip -9c Packages > Packages.gz \
 	) >/dev/null 2>/dev/null
-	$(IPKG) update
+	$(OPKG) update
 
 package_install: FORCE
 	@echo
 	@echo Installing packages...
-	$(IPKG) install $(BUILD_PACKAGES)
+	$(OPKG) install $(BUILD_PACKAGES)
 
 copy_files: FORCE
 	@echo
@@ -121,6 +128,9 @@ copy_files: FORCE
 	$(CP) $(USER_FILES)/* $(TARGET_DIR)/
 
 package_postinst: FORCE
+	@echo
+	@echo Cleaning up
+	@rm -f $(TARGET_DIR)/tmp/opkg.lock
 	@echo
 	@echo Activating init scripts
 	@( \
@@ -137,7 +147,7 @@ build_image: FORCE
 	$(NO_TRACE_MAKE) -C target/linux/$(BOARD)/image install TARGET_BUILD=1 IB=1
 	
 clean:
-	rm -rf tmp $(TARGET_DIR) $(BIN_DIR)
+	rm -rf $(TOPDIR)/tmp $(TOPDIR)/dl $(TARGET_DIR) $(BIN_DIR)
 
 
 info:
@@ -148,7 +158,8 @@ image:
 	$(MAKE) _call_image \
 		$(if $(PROFILE),USER_PROFILE="$(PROFILE)") \
 		$(if $(FILES),USER_FILES="$(FILES)") \
-		$(if $(PACKAGES),USER_PACKAGES="$(PACKAGES)"))
+		$(if $(PACKAGES),USER_PACKAGES="$(PACKAGES)") \
+		$(if $(BIN_DIR),BIN_DIR="$(BIN_DIR)"))
 
 .SILENT: help info image
 

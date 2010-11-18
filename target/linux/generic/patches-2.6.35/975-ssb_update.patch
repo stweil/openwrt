@@ -1,3 +1,11 @@
+---
+ drivers/net/b44.c                   |  146 +++++++++++++++------------------
+ drivers/ssb/driver_chipcommon.c     |   24 +++++
+ drivers/ssb/driver_chipcommon_pmu.c |   17 +--
+ drivers/ssb/main.c                  |   76 -----------------
+ include/linux/ssb/ssb.h             |  159 ------------------------------------
+ 5 files changed, 104 insertions(+), 318 deletions(-)
+
 --- a/drivers/net/b44.c
 +++ b/drivers/net/b44.c
 @@ -135,7 +135,6 @@ static void b44_init_rings(struct b44 *)
@@ -355,14 +363,6 @@
  	if (!(cc->capabilities & SSB_CHIPCO_CAP_PCTL))
  		return;
  
-@@ -235,6 +259,7 @@ void ssb_chipcommon_init(struct ssb_chip
- 		return; /* We don't have a ChipCommon */
- 	if (cc->dev->id.revision >= 11)
- 		cc->status = chipco_read32(cc, SSB_CHIPCO_CHIPSTAT);
-+	ssb_dprintk(KERN_INFO PFX "chipcommon status is 0x%x\n", cc->status);
- 	ssb_pmu_init(cc);
- 	chipco_powercontrol_init(cc);
- 	ssb_chipco_set_clockmode(cc, SSB_CLKMODE_FAST);
 --- a/drivers/ssb/driver_chipcommon_pmu.c
 +++ b/drivers/ssb/driver_chipcommon_pmu.c
 @@ -502,9 +502,9 @@ static void ssb_pmu_resources_init(struc
@@ -376,7 +376,7 @@
  	u32 pmucap;
  
  	if (!(cc->capabilities & SSB_CHIPCO_CAP_PMU))
-@@ -516,15 +516,12 @@ void ssb_pmu_init(struct ssb_chipcommon 
+@@ -516,15 +516,12 @@ void ssb_pmu_init(struct ssb_chipcommon
  	ssb_dprintk(KERN_DEBUG PFX "Found rev %u PMU (capabilities 0x%08X)\n",
  		    cc->pmu.rev, pmucap);
  
@@ -497,33 +497,6 @@
  int ssb_bus_may_powerdown(struct ssb_bus *bus)
  {
  	struct ssb_chipcommon *cc;
---- a/drivers/ssb/pci.c
-+++ b/drivers/ssb/pci.c
-@@ -626,11 +626,22 @@ static int ssb_pci_sprom_get(struct ssb_
- 		return -ENODEV;
- 	}
- 	if (bus->chipco.dev) {	/* can be unavailible! */
--		bus->sprom_offset = (bus->chipco.dev->id.revision < 31) ?
--			SSB_SPROM_BASE1 : SSB_SPROM_BASE31;
-+		/*
-+		 * get SPROM offset: SSB_SPROM_BASE1 except for
-+		 * chipcommon rev >= 31 or chip ID is 0x4312 and
-+		 * chipcommon status & 3 == 2
-+		 */
-+		if (bus->chipco.dev->id.revision >= 31)
-+			bus->sprom_offset = SSB_SPROM_BASE31;
-+		else if (bus->chip_id == 0x4312 &&
-+			 (bus->chipco.status & 0x03) == 2)
-+			bus->sprom_offset = SSB_SPROM_BASE31;
-+		else
-+			bus->sprom_offset = SSB_SPROM_BASE1;
- 	} else {
- 		bus->sprom_offset = SSB_SPROM_BASE1;
- 	}
-+	ssb_dprintk(KERN_INFO PFX "SPROM offset is 0x%x\n", bus->sprom_offset);
- 
- 	buf = kcalloc(SSB_SPROMSIZE_WORDS_R123, sizeof(u16), GFP_KERNEL);
- 	if (!buf)
 --- a/include/linux/ssb/ssb.h
 +++ b/include/linux/ssb/ssb.h
 @@ -167,7 +167,7 @@ struct ssb_device {

@@ -51,20 +51,20 @@ endef
 
 $(eval $(call KernelPackage,mvswitch))
 
-define KernelPackage/switch-ip175c
+define KernelPackage/switch-ip17xx
   SUBMENU:=$(NETWORK_DEVICES_MENU)
-  TITLE:=IC+ IP175C/IP178C switch support
+  TITLE:=IC+ IP17XX switch support
   DEPENDS:=+kmod-swconfig
-  KCONFIG:=CONFIG_IP175C_PHY
-  FILES:=$(LINUX_DIR)/drivers/net/phy/ip175c.ko
-  AUTOLOAD:=$(call AutoLoad,42,ip175c)
+  KCONFIG:=CONFIG_IP17XX_PHY
+  FILES:=$(LINUX_DIR)/drivers/net/phy/ip17xx.ko
+  AUTOLOAD:=$(call AutoLoad,42,ip17xx)
 endef
 
-define KernelPackage/switch-ip175c/description
+define KernelPackage/switch-ip17xx/description
   IC+ IP175C/IP178C switch support
 endef
 
-$(eval $(call KernelPackage,switch-ip175c))
+$(eval $(call KernelPackage,switch-ip17xx))
 
 define KernelPackage/natsemi
   SUBMENU:=$(NETWORK_DEVICES_MENU)
@@ -203,6 +203,22 @@ define KernelPackage/8139too/description
 endef
 
 $(eval $(call KernelPackage,8139too))
+
+
+define KernelPackage/8139cp
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=RealTek RTL-8139C+ PCI Fast Ethernet Adapter kernel support
+  DEPENDS:=@TARGET_x86
+  KCONFIG:=CONFIG_8139CP
+  FILES:=$(LINUX_DIR)/drivers/net/8139cp.ko
+  AUTOLOAD:=$(call AutoLoad,50,8139cp)
+endef
+
+define KernelPackage/8139cp/description
+ Kernel module for RealTek RTL-8139C+ PCI Fast Ethernet adapters.
+endef
+
+$(eval $(call KernelPackage,8139cp))
 
 
 define KernelPackage/r8169
@@ -468,3 +484,20 @@ define KernelPackage/tulip/description
 endef
 
 $(eval $(call KernelPackage,tulip))
+
+
+define KernelPackage/solos-pci
+  SUBMENU:=$(NETWORK_DEVICES_MENU)
+  TITLE:=Solos ADSL2+ multiport modem
+  DEPENDS:=@TARGET_x86 +kmod-atm
+  KCONFIG:=CONFIG_ATM_SOLOS
+  FILES:=$(LINUX_DIR)/drivers/atm/solos-pci.ko
+  AUTOLOAD:=$(call AutoLoad,50,solos-pci)
+endef
+
+define KernelPackage/solos-pci/description
+ Kernel module for Traverse Technologies' Solos PCI cards
+ and Geos ADSL2+ x86 motherboard.
+endef
+
+$(eval $(call KernelPackage,solos-pci))

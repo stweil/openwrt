@@ -448,11 +448,52 @@ static int rtl8366_set_pvid(struct rtl8366_smi *smi, unsigned port,
 	return -ENOSPC;
 }
 
+static int rtl8366_enable_vlan(struct rtl8366_smi *smi, int enable)
+{
+	int err;
+
+	err = smi->ops->enable_vlan(smi, enable);
+	if (err)
+		return err;
+
+	smi->vlan_enabled = enable;
+
+	if (!enable) {
+		smi->vlan4k_enabled = 0;
+		err = smi->ops->enable_vlan4k(smi, enable);
+	}
+
+	return err;
+}
+
+static int rtl8366_enable_vlan4k(struct rtl8366_smi *smi, int enable)
+{
+	int err;
+
+	if (enable) {
+		err = smi->ops->enable_vlan(smi, enable);
+		if (err)
+			return err;
+
+		smi->vlan_enabled = enable;
+	}
+
+	err = smi->ops->enable_vlan4k(smi, enable);
+	if (err)
+		return err;
+
+	smi->vlan4k_enabled = enable;
+	return 0;
+}
+
 int rtl8366_reset_vlan(struct rtl8366_smi *smi)
 {
 	struct rtl8366_vlan_mc vlanmc;
 	int err;
 	int i;
+
+	rtl8366_enable_vlan(smi, 0);
+	rtl8366_enable_vlan4k(smi, 0);
 
 	/* clear VLAN member configurations */
 	vlanmc.vid = 0;
@@ -905,6 +946,7 @@ int rtl8366_sw_set_vlan_ports(struct switch_dev *dev, struct switch_val *val)
 	struct switch_port *port;
 	u32 member = 0;
 	u32 untag = 0;
+	int err;
 	int i;
 
 	if (!smi->ops->is_vlan_valid(smi, val->port_vlan))
@@ -916,11 +958,56 @@ int rtl8366_sw_set_vlan_ports(struct switch_dev *dev, struct switch_val *val)
 
 		if (!(port->flags & BIT(SWITCH_PORT_FLAG_TAGGED)))
 			untag |= BIT(port->id);
+
+		/*
+		 * To ensure that we have a valid MC entry for this VLAN,
+		 * initialize the port VLAN ID here.
+		 */
+		err = rtl8366_set_pvid(smi, port->id, val->port_vlan);
+		if (err < 0)
+			return err;
 	}
 
 	return rtl8366_set_vlan(smi, val->port_vlan, member, untag, 0);
 }
 EXPORT_SYMBOL_GPL(rtl8366_sw_set_vlan_ports);
+
+int rtl8366_sw_get_vlan_enable(struct switch_dev *dev,
+			       const struct switch_attr *attr,
+			       struct switch_val *val)
+{
+	struct rtl8366_smi *smi = sw_to_rtl8366_smi(dev);
+
+	if (attr->ofs > 2)
+		return -EINVAL;
+
+	if (attr->ofs == 1)
+		val->value.i = smi->vlan_enabled;
+	else
+		val->value.i = smi->vlan4k_enabled;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(rtl8366_sw_get_vlan_enable);
+
+int rtl8366_sw_set_vlan_enable(struct switch_dev *dev,
+			       const struct switch_attr *attr,
+			       struct switch_val *val)
+{
+	struct rtl8366_smi *smi = sw_to_rtl8366_smi(dev);
+	int err;
+
+	if (attr->ofs > 2)
+		return -EINVAL;
+
+	if (attr->ofs == 1)
+		err = rtl8366_enable_vlan(smi, val->value.i);
+	else
+		err = rtl8366_enable_vlan4k(smi, val->value.i);
+
+	return err;
+}
+EXPORT_SYMBOL_GPL(rtl8366_sw_set_vlan_enable);
 
 struct rtl8366_smi *rtl8366_smi_alloc(struct device *parent)
 {

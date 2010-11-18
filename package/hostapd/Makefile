@@ -8,9 +8,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=hostapd
-PKG_VERSION:=20100705
+PKG_VERSION:=20101111
 PKG_RELEASE:=1
-PKG_REV:=2f1ce78bf78cecd7021385b04a4f55f22e76ab97
+PKG_REV:=5db8cf314ef169cd256483e32dcc49e31e605121
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=git://w1.fi/srv/git/hostap.git
@@ -239,7 +239,7 @@ endef
 define Build/Compile/wpad
 	echo ` \
 		$(call Build/RunMake,hostapd,-s MULTICALL=1 dump_cflags); \
-		$(call Build/RunMake,wpa_supplicant,-s dump_cflags) | \
+		$(call Build/RunMake,wpa_supplicant,-s MULTICALL=1 dump_cflags) | \
 		sed -e 's,-n ,,g' -e 's,$(TARGET_CFLAGS),,' \
 	` > $(PKG_BUILD_DIR)/.cflags
 	$(call Build/RunMake,hostapd, \

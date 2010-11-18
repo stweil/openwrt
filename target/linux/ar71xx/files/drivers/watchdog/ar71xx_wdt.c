@@ -54,19 +54,19 @@ static int wdt_timeout = WDT_TIMEOUT;
 static int boot_status;
 static int max_timeout;
 
-static void inline ar71xx_wdt_keepalive(void)
+static inline void ar71xx_wdt_keepalive(void)
 {
 	ar71xx_reset_wr(AR71XX_RESET_REG_WDOG, ar71xx_ahb_freq * wdt_timeout);
 }
 
-static void inline ar71xx_wdt_enable(void)
+static inline void ar71xx_wdt_enable(void)
 {
 	printk(KERN_DEBUG DRV_NAME ": enabling watchdog timer\n");
 	ar71xx_wdt_keepalive();
 	ar71xx_reset_wr(AR71XX_RESET_REG_WDOG_CTRL, WDOG_CTRL_ACTION_FCR);
 }
 
-static void inline ar71xx_wdt_disable(void)
+static inline void ar71xx_wdt_disable(void)
 {
 	printk(KERN_DEBUG DRV_NAME ": disabling watchdog timer\n");
 	ar71xx_reset_wr(AR71XX_RESET_REG_WDOG_CTRL, WDOG_CTRL_ACTION_NONE);
@@ -115,7 +115,7 @@ static int ar71xx_wdt_release(struct inode *inode, struct file *file)
 static ssize_t ar71xx_wdt_write(struct file *file, const char *data,
 				size_t len, loff_t *ppos)
 {
-        if (len) {
+	if (len) {
 		if (!nowayout) {
 			size_t i;
 
@@ -142,11 +142,11 @@ static ssize_t ar71xx_wdt_write(struct file *file, const char *data,
 static struct watchdog_info ar71xx_wdt_info = {
 	.options		= WDIOF_SETTIMEOUT | WDIOF_KEEPALIVEPING |
 				  WDIOF_MAGICCLOSE | WDIOF_CARDRESET,
-	.firmware_version 	= 0,
+	.firmware_version	= 0,
 	.identity		= "AR71XX watchdog",
 };
 
-static int ar71xx_wdt_ioctl(struct inode *inode, struct file *file,
+static long ar71xx_wdt_ioctl(struct file *file,
 			    unsigned int cmd, unsigned long arg)
 {
 	int t;
@@ -156,7 +156,7 @@ static int ar71xx_wdt_ioctl(struct inode *inode, struct file *file,
 	case WDIOC_GETSUPPORT:
 		ret = copy_to_user((struct watchdog_info *)arg,
 				   &ar71xx_wdt_info,
-				   sizeof(&ar71xx_wdt_info)) ? -EFAULT : 0;
+				   sizeof(ar71xx_wdt_info)) ? -EFAULT : 0;
 		break;
 
 	case WDIOC_GETSTATUS:
@@ -197,7 +197,7 @@ static int ar71xx_wdt_ioctl(struct inode *inode, struct file *file,
 static const struct file_operations ar71xx_wdt_fops = {
 	.owner		= THIS_MODULE,
 	.write		= ar71xx_wdt_write,
-	.ioctl		= ar71xx_wdt_ioctl,
+	.unlocked_ioctl	= ar71xx_wdt_ioctl,
 	.open		= ar71xx_wdt_open,
 	.release	= ar71xx_wdt_release,
 };
@@ -215,9 +215,8 @@ static int __devinit ar71xx_wdt_probe(struct platform_device *pdev)
 	max_timeout = (0xfffffffful / ar71xx_ahb_freq);
 	wdt_timeout = (max_timeout < WDT_TIMEOUT) ? max_timeout : WDT_TIMEOUT;
 
-	boot_status =
-		(ar71xx_reset_rr(AR71XX_RESET_REG_WDOG_CTRL) & WDOG_CTRL_LAST_RESET) ?
-		WDIOF_CARDRESET : 0;
+	if (ar71xx_reset_rr(AR71XX_RESET_REG_WDOG_CTRL) & WDOG_CTRL_LAST_RESET)
+		boot_status = WDIOF_CARDRESET;
 
 	ret = misc_register(&ar71xx_wdt_miscdev);
 	if (ret)
@@ -226,7 +225,7 @@ static int __devinit ar71xx_wdt_probe(struct platform_device *pdev)
 	printk(KERN_INFO DRV_DESC " version " DRV_VERSION "\n");
 
 	printk(KERN_DEBUG DRV_NAME ": timeout=%d secs (max=%d)\n",
-				 	wdt_timeout, max_timeout);
+					wdt_timeout, max_timeout);
 
 	return 0;
 

@@ -337,8 +337,9 @@ $(eval $(call KernelPackage,ipv6))
 define KernelPackage/sit
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   DEPENDS:=+kmod-ipv6 +kmod-iptunnel4
-  TITLE:=IPv6-in-IPv4 tunnelling
-  KCONFIG:=CONFIG_IPV6 CONFIG_IPV6_SIT
+  TITLE:=IPv6-in-IPv4 tunnel
+  KCONFIG:=CONFIG_IPV6_SIT \
+	CONFIG_IPV6_SIT_6RD=y
   FILES:=$(LINUX_DIR)/net/ipv6/sit.ko
   AUTOLOAD:=$(call AutoLoad,32,sit)
 endef
@@ -355,9 +356,7 @@ define KernelPackage/ip6-tunnel
   TITLE:=IP-in-IPv6 tunnelling
   DEPENDS:= +kmod-ipv6 +kmod-iptunnel6
   KCONFIG:= CONFIG_IPV6_TUNNEL
-  FILES:= $(foreach mod,ip6_tunnel, \
-	$(LINUX_DIR)/net/ipv6/$(mod).ko \
-  )
+  FILES:=$(LINUX_DIR)/net/ipv6/ip6_tunnel.ko
   AUTOLOAD:=$(call AutoLoad,32,ip6_tunnel)
 endef
 
@@ -471,10 +470,15 @@ $(eval $(call KernelPackage,pppoa))
 define KernelPackage/pppol2tp
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=PPPoL2TP support
-  DEPENDS:=kmod-ppp +kmod-pppoe
+  DEPENDS:=kmod-ppp +kmod-pppoe +LINUX_2_6_35||LINUX_2_6_36||LINUX_2_6_37:kmod-l2tp
   KCONFIG:=CONFIG_PPPOL2TP
-  FILES:=$(LINUX_DIR)/drivers/net/pppol2tp.ko
-  AUTOLOAD:=$(call AutoLoad,40,pppol2tp)
+  ifneq ($(CONFIG_LINUX_2_6_35)$(CONFIG_LINUX_2_6_36)$(CONFIG_LINUX_2_6_37),)
+    FILES:=$(LINUX_DIR)/net/l2tp/l2tp_ppp.ko
+    AUTOLOAD:=$(call AutoLoad,40,l2tp_ppp)
+  else
+    FILES:=$(LINUX_DIR)/drivers/net/pppol2tp.ko
+    AUTOLOAD:=$(call AutoLoad,40,pppol2tp)
+  endif
 endef
 
 define KernelPackage/pppol2tp/description
@@ -623,4 +627,76 @@ define KernelPackage/pktgen/description
 endef
 
 $(eval $(call KernelPackage,pktgen))
+
+define KernelPackage/l2tp
+  SUBMENU:=$(NETWORK_SUPPORT_MENU)
+  DEPENDS:=@LINUX_2_6_35||LINUX_2_6_36||LINUX_2_6_37
+  TITLE:=Layer Two Tunneling Protocol (L2TP)
+  KCONFIG:=CONFIG_L2TP \
+	CONFIG_L2TP_V3=y \
+	CONFIG_L2TP_DEBUGFS=n
+  FILES:=$(LINUX_DIR)/net/l2tp/l2tp_core.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/net/l2tp/l2tp_netlink.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,32,l2tp_core l2tp_netlink)
+endef
+
+define KernelPackage/l2tp/description
+ Kernel modules for L2TP V3 Support
+endef
+
+$(eval $(call KernelPackage,l2tp))
+
+
+define KernelPackage/l2tp-eth
+  SUBMENU:=$(NETWORK_SUPPORT_MENU)
+  TITLE:=L2TP ethernet pseudowire support for L2TPv3
+  DEPENDS:=+kmod-l2tp
+  KCONFIG:=CONFIG_L2TP_ETH
+  FILES:=$(LINUX_DIR)/net/l2tp/l2tp_eth.$(LINUX_KMOD_SUFFIX) 
+  AUTOLOAD:=$(call AutoLoad,33,l2tp_eth)
+endef
+
+define KernelPackage/l2tp-eth/description
+ Kernel modules for L2TP ethernet pseudowire support for L2TPv3
+endef
+
+$(eval $(call KernelPackage,l2tp-eth))
+
+define KernelPackage/l2tp-ip
+  SUBMENU:=$(NETWORK_SUPPORT_MENU)
+  TITLE:=L2TP IP encapsulation for L2TPv3
+  DEPENDS:=+kmod-l2tp
+  KCONFIG:=CONFIG_L2TP_IP
+  FILES:=$(LINUX_DIR)/net/l2tp/l2tp_ip.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,33,l2tp_ip)
+endef
+
+define KernelPackage/l2tp-ip/description
+ Kernel modules for L2TP IP encapsulation for L2TPv3
+endef
+
+$(eval $(call KernelPackage,l2tp-ip))
+
+
+define KernelPackage/sctp
+  SUBMENU:=$(NETWORK_SUPPORT_MENU)
+  TITLE:=SCTP protocol kernel support
+  KCONFIG:=\
+     CONFIG_IP_SCTP \
+     CONFIG_SCTP_DBG_MSG=n \
+     CONFIG_SCTP_DBG_OBJCNT=n \
+     CONFIG_SCTP_HMAC_NONE=n \
+     CONFIG_SCTP_HMAC_SHA1=n \
+     CONFIG_SCTP_HMAC_MD5=y
+  FILES:= $(LINUX_DIR)/net/sctp/sctp.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:= $(call AutoLoad,32,sctp)
+  DEPENDS:=+kmod-libcrc32c +kmod-crypto-md5 +kmod-crypto-hmac
+endef
+
+define KernelPackage/sctp/description
+ Kernel modules for SCTP protocol support
+endef
+
+$(eval $(call KernelPackage,sctp))
+
 

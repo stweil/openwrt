@@ -45,20 +45,20 @@ static u16 eap7660d_wmac0_eeprom[ATH5K_PLAT_EEP_MAX_WORDS];
 static u16 eap7660d_wmac1_eeprom[ATH5K_PLAT_EEP_MAX_WORDS];
 
 static struct ar71xx_pci_irq eap7660d_pci_irqs[] __initdata = {
-        {
-                .slot   = 0,
-                .pin    = 1,
-                .irq    = AR71XX_PCI_IRQ_DEV0,
-        }, {
-                .slot   = 1,
-                .pin    = 1,
-                .irq    = AR71XX_PCI_IRQ_DEV1,
-        }
+	{
+		.slot   = 0,
+		.pin    = 1,
+		.irq    = AR71XX_PCI_IRQ_DEV0,
+	}, {
+		.slot   = 1,
+		.pin    = 1,
+		.irq    = AR71XX_PCI_IRQ_DEV1,
+	}
 };
 
 static int eap7660d_pci_plat_dev_init(struct pci_dev *dev)
 {
-	switch(PCI_SLOT(dev->devfn)) {
+	switch (PCI_SLOT(dev->devfn)) {
 	case 17:
 		dev->dev.platform_data = &eap7660d_wmac0_data;
 		break;
@@ -72,7 +72,7 @@ static int eap7660d_pci_plat_dev_init(struct pci_dev *dev)
 }
 
 void __init eap7660d_pci_init(u8 *cal_data0, u8 *mac_addr0,
-			  u8 *cal_data1, u8 *mac_addr1)
+			      u8 *cal_data1, u8 *mac_addr1)
 {
 	if (cal_data0 && *cal_data0 == 0xa55a) {
 		memcpy(eap7660d_wmac0_eeprom, cal_data0,
@@ -87,12 +87,14 @@ void __init eap7660d_pci_init(u8 *cal_data0, u8 *mac_addr0,
 	}
 
 	if (mac_addr0) {
-		memcpy(eap7660d_wmac0_mac, mac_addr0, sizeof(eap7660d_wmac0_mac));
+		memcpy(eap7660d_wmac0_mac, mac_addr0,
+			sizeof(eap7660d_wmac0_mac));
 		eap7660d_wmac0_data.macaddr = eap7660d_wmac0_mac;
 	}
 
 	if (mac_addr1) {
-		memcpy(eap7660d_wmac1_mac, mac_addr1, sizeof(eap7660d_wmac1_mac));
+		memcpy(eap7660d_wmac1_mac, mac_addr1,
+			sizeof(eap7660d_wmac1_mac));
 		eap7660d_wmac1_data.macaddr = eap7660d_wmac1_mac;
 	}
 
@@ -145,8 +147,11 @@ static struct gpio_button eap7660d_gpio_buttons[] __initdata = {
 static void __init eap7660d_setup(void)
 {
 	u8 *boardconfig = (u8 *) KSEG1ADDR(EAP7660D_BOARDCONFIG);
-	ar71xx_set_mac_base(boardconfig + EAP7660D_GBIC_MAC_OFFSET);
+
 	ar71xx_add_device_mdio(~EAP7660D_PHYMASK);
+
+	ar71xx_init_mac(ar71xx_eth0_data.mac_addr,
+			boardconfig + EAP7660D_GBIC_MAC_OFFSET, 0);
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth0_data.phy_mask = EAP7660D_PHYMASK;
 	ar71xx_add_device_eth(0);

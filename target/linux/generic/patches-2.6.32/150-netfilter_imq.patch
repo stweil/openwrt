@@ -1109,7 +1109,7 @@
  	new->csum		= old->csum;
  	new->local_df		= old->local_df;
  	new->pkt_type		= old->pkt_type;
-@@ -2776,6 +2879,13 @@ void __init skb_init(void)
+@@ -2781,6 +2884,13 @@ void __init skb_init(void)
  						0,
  						SLAB_HWCACHE_ALIGN|SLAB_PANIC,
  						NULL);
