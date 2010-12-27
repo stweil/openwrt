@@ -27,13 +27,27 @@ define trxalign/squashfs
 -a 1024
 endef
 
+define Image/LimitName16
+$(shell expr substr "$(1)" 1 16)
+endef
+
 define Image/Build/CFE
 	# Generate the tagged image
 	$(STAGING_DIR_HOST)/bin/imagetag -i $(KDIR)/vmlinux.lzma.cfe -f $(KDIR)/root.$(1) \
 		--output $(BIN_DIR)/openwrt-$(4)-$(1)-cfe.bin \
 		--boardid $(2) --chipid $(3) --entry $(KERNEL_ENTRY) \
 		--load-addr $(LOADADDR) --rsa-signature "$(5)" \
-		--info1 "$(4) $(REVISION)" --info2 $(1) \
+		--info1 "-$(call Image/LimitName16,$(4))" --info2 $(1) \
+		$(6) $(7) $(8) $(9)
+endef
+
+define Image/Build/CFEFIXUP
+	# Generate the tagged image
+	$(STAGING_DIR_HOST)/bin/imagetag -i $(KDIR)/vmlinux.lzma.cfe -f $(KDIR)/root.$(1) \
+		--output $(BIN_DIR)/openwrt-$(4)-$(1)-cfe.bin \
+		--boardid $(2) --chipid $(3) --entry $(KERNEL_ENTRY) \
+		--load-addr $(LOADADDR) --rsa-signature "$(5)" \
+		--info1 "+$(call Image/LimitName16,$(4))" --info2 $(1) \
 		$(6) $(7) $(8) $(9)
 endef
 
@@ -44,7 +58,7 @@ define Image/Build/CFEAGPF
 		--boardid $(2) --chipid $(3) --entry $(LOADADDR) \
 		--load-addr $(LOADADDR) --tag-version 8 \
 		--signature2 IMAGE --block-size 0x20000 \
-		--image-offset $(4) --info1 "$(5) $(REVISION)" --info2 $(1)
+		--image-offset $(4) --info1 "-$(call Image/LimitName16,$(5))" --info2 $(1)
 endef
 
 define Image/Build/RG100A
@@ -53,7 +67,7 @@ define Image/Build/RG100A
 		--output $(BIN_DIR)/openwrt-$(5)-$(1)-cfe.bin \
 		--boardid $(2) --chipid $(3) --entry $(LOADADDR) \
 		--load-addr $(LOADADDR) --block-size 0x20000 \
-		--image-offset $(4) --info1 "$(5) $(REVISION)" --info2 $(1)
+		--image-offset $(4) --info1 "-$(call Image/LimitName16,$(5))" --info2 $(1)
 endef
 
 define Image/Build/RedBoot
@@ -109,11 +123,13 @@ define Image/Build
 	# Various routers
 	$(call Image/Build/CFE,$(1),96345GW2,6345,96345GW2-generic)
 	$(call Image/Build/CFE,$(1),96345GW2,6345,96348GW2-bc221,,--layoutver 5)
-	$(call Image/Build/CFE,$(1),96345GW2,6345,92345GW2-revision,OpenWRT-$(REVISION))
+	$(call Image/Build/CFE,$(1),96345GW2,6345,92345GW2-rev,OpenWRT-$(REVISION))
 	$(call Image/Build/CFE,$(1),96348GW,6348,96348GW-generic,,)
 	$(call Image/Build/CFE,$(1),96348GW,6348,96348GW-bc221,,--layoutver 5)
 	$(call Image/Build/CFE,$(1),6338GW,6338,6338GW-generic,,)
 	$(call Image/Build/CFE,$(1),6338W,6338,6338W-generic,,)
+	$(call Image/Build/CFE,$(1),96348GW-11,6348,96348GW-11-gen)
+	$(call Image/Build/CFE,$(1),96348GW-10,6348,96348GW-10-gen)
 
 	# BT Voyager V210_BTR
 	$(call Image/Build/CFE,$(1),V210_BB,6348,BTV210_BTR,,--layoutver 5)
@@ -132,13 +148,13 @@ define Image/Build
 	# RTA1025W_16 (numerous routers)
 	$(call Image/Build/CFE,$(1),RTA1025W_16,6348,RTA1025W_16,,--layoutver 5)
 	# Tecom GW6000
-	$(call Image/Build/CFE,$(1),96348GW,6348,GW6000)
+	$(call Image/Build/CFEFIXUP,$(1),96348GW,6348,GW6000)
 	# Tecom GW6200
-	$(call Image/Build/CFE,$(1),96348GW,6348,GW6200,$(shell printf '\x99'))
+	$(call Image/Build/CFEFIXUP,$(1),96348GW,6348,GW6200,$(shell printf '\x99'))
 	# Neufbox4
 	$(call Image/Build/CFE,$(1),96358VW,6358,NEUFBOX4,OpenWRT-$(REVISION))
 	# Comtrend 536, 5621
-	$(call Image/Build/CFE,$(1),96348GW-11,6348,CT536_CT5621)
+	$(call Image/Build/CFEFIXUP,$(1),96348GW-11,6348,CT536_CT5621)
 	# Davolink DV201AMR
 	$(call Image/Build/CFEOLD,$(1),DV201AMR,6348)
 	# USR 9108
@@ -149,8 +165,8 @@ define Image/Build
 	$(call Image/Build/CFE,$(1),96348GW-10,6348,F5D7633)
 	# D-Link DSL-2640B
 	$(call Image/Build/CFE,$(1),D-4P-W,6348,DSL2640B)
-	# D-Link DSL-2740B
-	$(call Image/Build/CFE,$(1),96358GW,6358,DSL2740B)
+	# D-Link DSL-2740B/DSL-2741B, rev C2
+	$(call Image/Build/CFE,$(1),96358GW,6358,DSL274XB-C2)
 
 	# TP-Link TD-8810A, TD-8810B, TD-8811A, TD-8811B
 	$(call Image/Build/CFE,$(1),8L-2M-8M,6338,TP8810_8811)
@@ -172,6 +188,11 @@ define Image/Build
 	# RG100A,DB120 etc.
 	$(call Image/Build/RG100A,$(1),96358VW2,6358,0x20000,RG100A_DB120)
 
+	# Telsey CPVA642-type (e.g. CPA-ZNTE60T)
+	$(call Image/Build/CFE,$(1),CPVA642,6358,CPA-ZNTE60T,,--signature "Telsey Tlc",--signature2 "99.99.999",--second-image-flag "0")
+
+	# T-Com Speedport W 500V
+	$(call Image/Build/CFEFIXUP,$(1),96348GW,6348,SPW500V)
 endef
 
 $(eval $(call BuildImage))

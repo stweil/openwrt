@@ -19,10 +19,8 @@ IMG_PREFIX:=openwrt-$(BOARD)$(if $(SUBTARGET),-$(SUBTARGET))
 
 ifneq ($(CONFIG_BIG_ENDIAN),)
   JFFS2OPTS     :=  --pad --big-endian --squash -v
-  SQUASHFS_OPTS :=  -be
 else
   JFFS2OPTS     :=  --pad --little-endian --squash -v
-  SQUASHFS_OPTS :=  -le
 endif
 
 ifeq ($(CONFIG_JFFS2_RTIME),y)
@@ -42,17 +40,6 @@ ifneq ($(CONFIG_JFFS2_ZLIB),y)
 endif
 ifneq ($(CONFIG_JFFS2_LZMA),y)
   JFFS2OPTS += -x lzma
-endif
-
-ifneq ($(CONFIG_LINUX_2_6_25),)
-  USE_SQUASHFS3 := y
-endif
-
-ifneq ($(USE_SQUASHFS3),)
-  MKSQUASHFS_CMD := $(STAGING_DIR_HOST)/bin/mksquashfs-lzma
-else
-  MKSQUASHFS_CMD := $(STAGING_DIR_HOST)/bin/mksquashfs4
-  SQUASHFS_OPTS  := -comp lzma -processors 1
 endif
 
 JFFS2_BLOCKSIZE ?= 64k 128k
@@ -99,7 +86,7 @@ else
   ifneq ($(CONFIG_TARGET_ROOTFS_SQUASHFS),)
     define Image/mkfs/squashfs
 		@mkdir -p $(TARGET_DIR)/overlay
-		$(MKSQUASHFS_CMD) $(TARGET_DIR) $(KDIR)/root.squashfs -nopad -noappend -root-owned $(SQUASHFS_OPTS)
+		$(STAGING_DIR_HOST)/bin/mksquashfs4 $(TARGET_DIR) $(KDIR)/root.squashfs -nopad -noappend -root-owned -comp lzma -processors 1
 		$(call Image/Build,squashfs)
     endef
   endif
@@ -128,12 +115,17 @@ ifneq ($(CONFIG_TARGET_ROOTFS_TARGZ),)
   endef
 endif
 
-ifneq ($(CONFIG_TARGET_ROOTFS_EXT2FS),)
+ifneq ($(CONFIG_TARGET_ROOTFS_EXT4FS),)
   E2SIZE=$(shell echo $$(($(CONFIG_TARGET_ROOTFS_PARTSIZE)*1024)))
 
-  define Image/mkfs/ext2
-		$(STAGING_DIR_HOST)/bin/genext2fs -U -b $(E2SIZE) -N $(CONFIG_TARGET_ROOTFS_MAXINODE) -d $(TARGET_DIR)/ $(KDIR)/root.ext2
-		$(call Image/Build,ext2)
+  define Image/mkfs/ext4
+# generate an ext2 fs
+	$(STAGING_DIR_HOST)/bin/genext2fs -U -b $(E2SIZE) -N $(CONFIG_TARGET_ROOTFS_MAXINODE) -d $(TARGET_DIR)/ $(KDIR)/root.ext4
+# convert it to ext4
+	$(STAGING_DIR_HOST)/bin/tune2fs -O extents,uninit_bg,dir_index $(KDIR)/root.ext4
+# fix it up
+	$(STAGING_DIR_HOST)/bin/e2fsck -fy $(KDIR)/root.ext4
+	$(call Image/Build,ext4)
   endef
 endif
 
@@ -184,7 +176,7 @@ define BuildImage
 		$(call Image/BuildKernel)
 		$(call Image/mkfs/cpiogz)
 		$(call Image/mkfs/targz)
-		$(call Image/mkfs/ext2)
+		$(call Image/mkfs/ext4)
 		$(call Image/mkfs/iso)
 		$(call Image/mkfs/jffs2)
 		$(call Image/mkfs/squashfs)
@@ -195,7 +187,7 @@ define BuildImage
 		$(call Image/BuildKernel)
 		$(call Image/mkfs/cpiogz)
 		$(call Image/mkfs/targz)
-		$(call Image/mkfs/ext2)
+		$(call Image/mkfs/ext4)
 		$(call Image/mkfs/iso)
 		$(call Image/mkfs/jffs2)
 		$(call Image/mkfs/squashfs)

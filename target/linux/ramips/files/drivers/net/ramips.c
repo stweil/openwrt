@@ -33,6 +33,9 @@
 
 #ifdef CONFIG_RALINK_RT305X
 #include "ramips_esw.c"
+#else
+static inline int rt305x_esw_init(void) { return 0; }
+static inline void rt305x_esw_exit(void) { }
 #endif
 
 #define phys_to_bus(a)  (a & 0x1FFFFFFF)
@@ -169,15 +172,16 @@ ramips_alloc_dma(struct raeth_priv *re)
 
 	memset(re->rx, 0, sizeof(struct ramips_rx_dma) * NUM_RX_DESC);
 	for (i = 0; i < NUM_RX_DESC; i++) {
-		struct sk_buff *new_skb = dev_alloc_skb(MAX_RX_LENGTH + 2);
+		struct sk_buff *new_skb = dev_alloc_skb(MAX_RX_LENGTH +
+							NET_IP_ALIGN);
 
 		if (!new_skb)
 			goto err_cleanup;
 
-		skb_reserve(new_skb, 2);
+		skb_reserve(new_skb, NET_IP_ALIGN);
 		re->rx[i].rxd1 = dma_map_single(NULL,
-						skb_put(new_skb, 2),
-						MAX_RX_LENGTH + 2,
+						new_skb->data,
+						MAX_RX_LENGTH,
 						DMA_FROM_DEVICE);
 		re->rx[i].rxd2 |= RX_DMA_LSO;
 		re->rx_skb[i] = new_skb;
@@ -272,23 +276,26 @@ ramips_eth_rx_hw(unsigned long ptr)
 			break;
 		max_rx--;
 
-		rx_skb = priv->rx_skb[rx];
-		skb_put(rx_skb, RX_DMA_PLEN0(priv->rx[rx].rxd2));
-		rx_skb->dev = dev;
-		rx_skb->protocol = eth_type_trans(rx_skb, dev);
-		rx_skb->ip_summed = CHECKSUM_NONE;
-		dev->stats.rx_packets++;
-		dev->stats.rx_bytes += rx_skb->len;
-		netif_rx(rx_skb);
+		new_skb = netdev_alloc_skb(dev, MAX_RX_LENGTH + NET_IP_ALIGN);
+		/* Reuse the buffer on allocation failures */
+		if (new_skb) {
+			rx_skb = priv->rx_skb[rx];
+			skb_put(rx_skb, RX_DMA_PLEN0(priv->rx[rx].rxd2));
+			rx_skb->dev = dev;
+			rx_skb->protocol = eth_type_trans(rx_skb, dev);
+			rx_skb->ip_summed = CHECKSUM_NONE;
+			dev->stats.rx_packets++;
+			dev->stats.rx_bytes += rx_skb->len;
+			netif_rx(rx_skb);
 
-		new_skb = netdev_alloc_skb(dev, MAX_RX_LENGTH + 2);
-		priv->rx_skb[rx] = new_skb;
-		BUG_ON(!new_skb);
-		skb_reserve(new_skb, 2);
-		priv->rx[rx].rxd1 = dma_map_single(NULL,
-						   new_skb->data,
-						   MAX_RX_LENGTH + 2,
-						   DMA_FROM_DEVICE);
+			priv->rx_skb[rx] = new_skb;
+			skb_reserve(new_skb, NET_IP_ALIGN);
+			priv->rx[rx].rxd1 = dma_map_single(NULL,
+							   new_skb->data,
+							   MAX_RX_LENGTH,
+							   DMA_FROM_DEVICE);
+		}
+
 		priv->rx[rx].rxd2 &= ~RX_DMA_DONE;
 		wmb();
 		ramips_fe_wr(rx, RAMIPS_RX_CALC_IDX0);
@@ -503,9 +510,6 @@ ramips_eth_plat_probe(struct platform_device *plat)
 		goto err_free_dev;
 	}
 
-#ifdef CONFIG_RALINK_RT305X
-	rt305x_esw_init();
-#endif
 	printk(KERN_DEBUG "ramips_eth: loaded\n");
 	return 0;
 
@@ -537,10 +541,23 @@ static struct platform_driver ramips_eth_driver = {
 static int __init
 ramips_eth_init(void)
 {
-	int ret = platform_driver_register(&ramips_eth_driver);
+	int ret;
+
+	ret = rt305x_esw_init();
 	if (ret)
+		return ret;
+
+	ret = platform_driver_register(&ramips_eth_driver);
+	if (ret) {
 		printk(KERN_ERR
 		       "ramips_eth: Error registering platfom driver!\n");
+		goto esw_cleanup;
+	}
+
+	return 0;
+
+esw_cleanup:
+	rt305x_esw_exit();
 	return ret;
 }
 
@@ -548,6 +565,7 @@ static void __exit
 ramips_eth_cleanup(void)
 {
 	platform_driver_unregister(&ramips_eth_driver);
+	rt305x_esw_exit();
 }
 
 module_init(ramips_eth_init);

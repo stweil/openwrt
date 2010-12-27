@@ -9,8 +9,8 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=acx-mac80211
-PKG_REV:=6130cd9c7c07e1a5babf53f7f89e70e5844c2d08
-PKG_VERSION:=20100830
+PKG_REV:=06f0acf66d53ea422e9c1bd6b475f13818d94f20
+PKG_VERSION:=20101030
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
@@ -60,7 +60,7 @@ PKG_EXTRA_CFLAGS:= \
 	$(patsubst CONFIG_%, -DCONFIG_%=1, $(patsubst %=m,%,$(filter %=m,$(PKG_EXTRA_KCONFIG)))) \
 	$(patsubst CONFIG_%, -DCONFIG_%=1, $(patsubst %=y,%,$(filter %=y,$(PKG_EXTRA_KCONFIG)))) \
 
-ifneq ($(CONFIG_LINUX_2_6_25)$(CONFIG_LINUX_2_6_30)$(CONFIG_LINUX_2_6_31)$(CONFIG_LINUX_2_6_32),)
+ifneq ($(CONFIG_LINUX_2_6_30)$(CONFIG_LINUX_2_6_31)$(CONFIG_LINUX_2_6_32),)
   LINUX_AUTOCONF_FILE:= linux/autoconf.h
 else
   LINUX_AUTOCONF_FILE:= generated/autoconf.h
@@ -72,7 +72,7 @@ define Build/Compile
 		CROSS_COMPILE="$(TARGET_CROSS)" \
 		SUBDIRS="$(PKG_BUILD_DIR)" \
 		$(PKG_EXTRA_KCONFIG) \
-		EXTRA_CFLAGS="$(PKG_EXTRA_CFLAGS) -DCONFIG_ACX_MAC80211_VERSION=\"KERNEL_VERSION(2,6,34)\"" \
+		EXTRA_CFLAGS="$(PKG_EXTRA_CFLAGS) -DCONFIG_ACX_MAC80211_VERSION=\"KERNEL_VERSION(2,6,37)\"" \
 		LINUXINCLUDE="-I$(STAGING_DIR)/usr/include/mac80211 -I$(LINUX_DIR)/include \
 			-Iarch/$(LINUX_KARCH)/include \
 			-include $(LINUX_AUTOCONF_FILE) \

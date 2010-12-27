@@ -31,6 +31,9 @@ ar71xx_board_name() {
 	*EAP7660D)
 		name="eap7660d"
 		;;
+	*JA76PF)
+		name="ja76pf"
+		;;
 	*"Bullet M")
 		name="bullet-m"
 		;;
@@ -48,6 +51,9 @@ ar71xx_board_name() {
 		;;
 	*MZK-W300NH)
 		name="mzk-w300nh"
+		;;
+	*"NBG460N/550N/550NH")
+		name="nbg460n_550n_550nh"
 		;;
 	*PB42)
 		name="pb42"
@@ -97,6 +103,9 @@ ar71xx_board_name() {
 	*"DIR-615 rev. C1")
 		name="dir-615-c1"
 		;;
+	*TL-MR3220)
+		name="tl-mr3220"
+		;;
 	*TL-MR3420)
 		name="tl-mr3420"
 		;;
@@ -111,6 +120,9 @@ ar71xx_board_name() {
 		;;
 	*TL-WR941ND)
 		name="tl-wr941nd"
+		;;
+	*UniFi)
+		name="unifi"
 		;;
 	*WP543)
 		name="wp543"

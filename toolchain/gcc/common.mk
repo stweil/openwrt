@@ -37,11 +37,11 @@ ifdef CONFIG_GCC_VERSION_LLVM
   HOST_BUILD_DIR:=$(BUILD_DIR_TOOLCHAIN)/$(GCC_DIR)
 else
 ifdef CONFIG_GCC_VERSION_4_5_1_LINARO
-    PKG_REV:=4.5-2010.11-1
+    PKG_REV:=4.5-2010.12-0
     PKG_VERSION:=4.5.2
-    PKG_SOURCE_URL:=http://launchpad.net/gcc-linaro/4.5/4.5-2010.11-0/+download/
+    PKG_SOURCE_URL:=http://launchpad.net/gcc-linaro/4.5/4.5-2010.12-0/+download/
     PKG_SOURCE:=$(PKG_NAME)-linaro-$(PKG_REV).tar.bz2
-    PKG_MD5SUM:=9e18a60d2c5ae4f3338814aabf80bb90
+    PKG_MD5SUM:=a01e511fd1a3b42b54d239b393f740fe
     GCC_DIR:=gcc-linaro-$(PKG_REV)
     HOST_BUILD_DIR:=$(BUILD_DIR_TOOLCHAIN)/$(GCC_DIR)
 else
@@ -66,8 +66,8 @@ else
   ifeq ($(PKG_VERSION),4.4.5)
     PKG_MD5SUM:=44b3192c4c584b9be5243d9e8e7e0ed1
   endif
-  ifeq ($(PKG_VERSION),4.5.1)
-  PKG_MD5SUM:=48231a8e33ed6e058a341c53b819de1a
+  ifeq ($(PKG_VERSION),4.5.2)
+  PKG_MD5SUM:=d6559145853fbaaa0fd7556ed93bce9a
   endif
 endif
 endif
@@ -95,6 +95,9 @@ SEP:=,
 TARGET_LANGUAGES:="c$(if $(CONFIG_INSTALL_LIBSTDCPP),$(SEP)c++)$(if $(CONFIG_INSTALL_LIBGCJ),$(SEP)java)"
 
 export libgcc_cv_fixed_point=no
+ifdef CONFIG_USE_UCLIBC
+  export glibcxx_cv_c99_math_tr1=no
+endif
 
 GCC_CONFIGURE:= \
 	SHELL="$(BASH)" \
@@ -152,6 +155,10 @@ ifneq ($(CONFIG_EXTRA_TARGET_ARCH),)
   GCC_CONFIGURE+= \
 		--enable-biarch \
 		--enable-targets=$(call qstrip,$(CONFIG_EXTRA_TARGET_ARCH_NAME))-linux-$(TARGET_SUFFIX)
+endif
+
+ifdef CONFIG_sparc
+  GCC_CONFIGURE+= --enable-targets=all
 endif
 
 ifeq ($(LIBC),uClibc)

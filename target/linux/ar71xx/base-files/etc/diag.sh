@@ -57,6 +57,9 @@ get_status_led() {
 	eap7660d)
 		status_led="eap7660d:green:ds4"
 		;;
+	ja76pf)
+		status_led="ja76pf:green:led1"
+		;;
 	ls-sr71)
 		status_led="ubnt:green:d22"
 		;;
@@ -65,6 +68,9 @@ get_status_led() {
 		;;
 	mzk-w300nh)
 		status_led="mzk-w300nh:green:status"
+		;;
+	nbg460n_550n_550nh)
+		status_led="nbg460n:green:power"
 		;;
 	pb44)
 		status_led="pb44:amber:jump1"
@@ -78,8 +84,8 @@ get_status_led() {
 	tew-632brp)
 		status_led="tew-632brp:green:status"
 		;;
-	tl-mr3420)
-		status_led="tl-mr3420:green:system"
+	tl-mr3220 | tl-mr3420)
+		status_led="tl-mr3x20:green:system"
 		;;
 	tl-wa901nd)
 		status_led="tl-wa901nd:green:system"
@@ -95,6 +101,9 @@ get_status_led() {
 		;;
 	tl-wr941nd)
 		status_led="tl-wr941nd:green:system"
+		;;
+	unifi)
+		status_led="ubnt:green:dome"
 		;;
 	wndr3700)
 		status_led="wndr3700:green:power"

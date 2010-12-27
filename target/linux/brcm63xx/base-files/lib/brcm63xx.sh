@@ -15,8 +15,17 @@ brcm63xx_detect() {
 
 	case "$board_name" in
 	"bcm63xx/96348GW "*)
-		status_led="tel"
-		status_led2="line1"
+		status_led="power"
+		brcm63xx_has_reset_button="true"
+		ifname=eth1
+		;;
+	"bcm63xx/GW6000 "*)
+		brcm63xx_has_reset_button="true"
+		ifname=eth1
+		;;
+	"bcm63xx/GW6200 "*)
+		status_led="line1"
+		status_led2="tel"
 		brcm63xx_has_reset_button="true"
 		ifname=eth1
 		;;
@@ -24,6 +33,21 @@ brcm63xx_detect() {
 		status_led="power"
 		brcm63xx_has_reset_button="true"
 		ifname=eth1
+		;;
+	"bcm63xx/CT536_CT5621 "*)
+		status_led="power"
+		brcm63xx_has_reset_button="true"
+		ifname=eth0
+		;;
+	"bcm63xx/96358GW "* | "bcm63xx/SPW500V "*)
+		status_led="power:green"
+		brcm63xx_has_reset_button="true"
+		ifname=eth0
+		;;
+	"bcm63xx/CPVA642 "* )
+		status_led="power:green"
+		brcm63xx_has_reset_button="true"
+		ifname=eth0
 		;;
 	*)
 		;;

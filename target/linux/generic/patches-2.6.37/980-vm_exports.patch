@@ -48,7 +48,7 @@
  {
 --- a/kernel/exit.c
 +++ b/kernel/exit.c
-@@ -505,6 +505,7 @@ struct files_struct *get_files_struct(st
+@@ -513,6 +513,7 @@ struct files_struct *get_files_struct(st
  
  	return files;
  }
@@ -56,7 +56,7 @@
  
  void put_files_struct(struct files_struct *files)
  {
-@@ -526,6 +527,7 @@ void put_files_struct(struct files_struc
+@@ -534,6 +535,7 @@ void put_files_struct(struct files_struc
  		rcu_read_unlock();
  	}
  }
@@ -76,7 +76,7 @@
   * macro override instead of weak attribute alias, to workaround
 --- a/kernel/sched.c
 +++ b/kernel/sched.c
-@@ -4573,6 +4573,7 @@ int can_nice(const struct task_struct *p
+@@ -4773,6 +4773,7 @@ int can_nice(const struct task_struct *p
  	return (nice_rlim <= task_rlimit(p, RLIMIT_NICE) ||
  		capable(CAP_SYS_NICE));
  }
@@ -104,7 +104,7 @@
   * We enter with non-exclusive mmap_sem (to exclude vma changes,
 --- a/mm/vmalloc.c
 +++ b/mm/vmalloc.c
-@@ -1186,6 +1186,7 @@ void unmap_kernel_range(unsigned long ad
+@@ -1192,6 +1192,7 @@ void unmap_kernel_range(unsigned long ad
  	vunmap_page_range(addr, end);
  	flush_tlb_kernel_range(addr, end);
  }
@@ -112,7 +112,7 @@
  
  int map_vm_area(struct vm_struct *area, pgprot_t prot, struct page ***pages)
  {
-@@ -1301,6 +1302,7 @@ struct vm_struct *get_vm_area(unsigned l
+@@ -1307,6 +1308,7 @@ struct vm_struct *get_vm_area(unsigned l
  	return __get_vm_area_node(size, 1, flags, VMALLOC_START, VMALLOC_END,
  				-1, GFP_KERNEL, __builtin_return_address(0));
  }

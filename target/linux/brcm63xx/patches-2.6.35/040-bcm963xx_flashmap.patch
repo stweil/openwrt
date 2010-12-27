@@ -73,7 +73,7 @@ Signed-off-by: Axel Gembe <ago@bastart.eu.org>
 +obj-$(CONFIG_MTD_BCM963XX)	+= bcm963xx-flash.o
 --- /dev/null
 +++ b/drivers/mtd/maps/bcm963xx-flash.c
-@@ -0,0 +1,267 @@
+@@ -0,0 +1,288 @@
 +/*
 + * Copyright (C) 2006-2008  Florian Fainelli <florian@openwrt.org>
 + * 			    Mike Albon <malbon@openwrt.org>
@@ -101,6 +101,8 @@ Signed-off-by: Axel Gembe <ago@bastart.eu.org>
 +#include <linux/slab.h>
 +#include <linux/vmalloc.h>
 +#include <linux/platform_device.h>
++#include <linux/magic.h>
++#include <linux/jffs2.h>
 +
 +#include <bcm_tag.h>
 +#include <asm/io.h>
@@ -109,6 +111,12 @@ Signed-off-by: Axel Gembe <ago@bastart.eu.org>
 +#define EXTENDED_SIZE 0xBFC00000       /* Extended flash address */
 +
 +#define PFX KBUILD_MODNAME ": "
++
++struct squashfs_super_block {
++	__le32 s_magic;
++	__le32 pad0[9];
++	__le64 bytes_used;
++};
 +
 +extern int parse_redboot_partitions(struct mtd_info *master, struct mtd_partition **pparts, unsigned long fis_origin);
 +static struct mtd_partition *parsed_parts;
@@ -120,7 +128,6 @@ Signed-off-by: Axel Gembe <ago@bastart.eu.org>
 +       .bankwidth	= BUSWIDTH,
 +};
 +
-+
 +static int parse_cfe_partitions( struct mtd_info *master, struct mtd_partition **pparts)
 +{
 +	int nrparts = 3, curpart = 0; /* CFE,NVRAM and global LINUX are always present. */
@@ -131,9 +138,10 @@ Signed-off-by: Axel Gembe <ago@bastart.eu.org>
 +	unsigned int rootfsaddr, kerneladdr, spareaddr;
 +	unsigned int rootfslen, kernellen, sparelen, totallen;
 +	int namelen = 0;
-+	int i;
++	int i, offset;
 +	char *boardid;
-+        char *tagversion;
++    char *tagversion;
++	struct squashfs_super_block sb;
 +
 +	/* Allocate memory for buffer */
 +	buf = vmalloc(sizeof(struct bcm_tag));
@@ -150,6 +158,7 @@ Signed-off-by: Axel Gembe <ago@bastart.eu.org>
 +	sscanf(buf->kernelAddress, "%u", &kerneladdr);
 +	sscanf(buf->kernelLength, "%u", &kernellen);
 +	sscanf(buf->totalLength, "%u", &totallen);
++	sscanf(buf->rootLength, "%u", &rootfslen);
 +	tagversion = &(buf->tagVersion[0]);
 +	boardid = &(buf->boardid[0]);
 +
@@ -157,9 +166,21 @@ Signed-off-by: Axel Gembe <ago@bastart.eu.org>
 +
 +	kerneladdr = kerneladdr - EXTENDED_SIZE;
 +	rootfsaddr = kerneladdr + kernellen;
++
++	//	offset = master->erasesize + sizeof(struct bcm_tag) + kernellen;
++	offset = rootfsaddr;
++	ret = master->read(master, offset, sizeof(sb), &retlen, (void *) &sb);
++	if (ret || (retlen != sizeof(sb))) {
++	  printk(KERN_ALERT PFX "parse_cfe_partitions: error occured while reading "
++			 "from \"%s\"\n", master->name);
++	  return -EINVAL;
++	}
++
++	rootfslen = ( ( rootfslen % master->erasesize ) > 0 ? (((rootfslen / master->erasesize) + 1 ) * master->erasesize) : rootfslen);
++	totallen = rootfslen + kernellen + sizeof(struct bcm_tag);
++
 +	spareaddr = roundup(totallen, master->erasesize) + master->erasesize;
 +	sparelen = master->size - spareaddr - master->erasesize;
-+	rootfslen = spareaddr - rootfsaddr;
 +
 +	/* Determine number of partitions */
 +	namelen = 8;

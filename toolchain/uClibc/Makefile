@@ -14,7 +14,7 @@ PKG_VERSION:=$(call qstrip,$(CONFIG_UCLIBC_VERSION))
 ifeq ($(CONFIG_UCLIBC_VERSION_0_9_32),y)
   PKG_SOURCE_URL:=git://git.busybox.net/uClibc
   PKG_SOURCE_PROTO:=git
-  PKG_SOURCE_VERSION:=ef487a35f428da6240003dca23b9d29908e2285e
+  PKG_SOURCE_VERSION:=e2903ddb06b1f50cb4ac9af0b035c74ed6b9d30f
   PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
   PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
   LIBC_SO_VERSION:=$(PKG_VERSION)-git
@@ -68,6 +68,12 @@ GEN_CONFIG=$(SCRIPT_DIR)/kconfig.pl -n \
 define Host/Prepare
 	$(call Host/SetToolchainInfo)
 	$(call Host/Prepare/Default)
+	$(if $(strip $(QUILT)), \
+		cd $(HOST_BUILD_DIR); \
+		if $(QUILT_CMD) next >/dev/null 2>&1; then \
+			$(QUILT_CMD) push -a; \
+		fi
+	)
 	ln -snf $(PKG_NAME)-$(PKG_VERSION) $(BUILD_DIR_TOOLCHAIN)/$(PKG_NAME)
 	$(GEN_CONFIG) > $(HOST_BUILD_DIR)/.config
 	$(SED) 's,^KERNEL_HEADERS=.*,KERNEL_HEADERS=\"$(BUILD_DIR_TOOLCHAIN)/linux-dev/include\",g' \
@@ -95,12 +101,17 @@ endef
 define Host/Configure
 endef
 
+CPU_CFLAGS = \
+	-funsigned-char -fno-builtin -fno-asm \
+	--std=gnu99 -ffunction-sections -fdata-sections \
+	$(TARGET_CFLAGS)
+
 UCLIBC_MAKE = PATH='$(TARGET_PATH)' $(MAKE) -C $(HOST_BUILD_DIR) \
 	$(TARGET_CONFIGURE_OPTS) \
 	DEVEL_PREFIX=/ \
 	RUNTIME_PREFIX=/ \
 	HOSTCC="$(HOSTCC)" \
-	CPU_CFLAGS="$(TARGET_CFLAGS)" \
+	CPU_CFLAGS="$(CPU_CFLAGS)" \
 	ARCH="$(CONFIG_ARCH)" \
 	LIBGCC="$(subst libgcc.a,libgcc_initial.a,$(shell $(TARGET_CC) -print-libgcc-file-name))" \
 	DOSTRIP=""

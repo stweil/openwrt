@@ -1,122 +1,346 @@
-#include <rt305x.h>
+#include <linux/ioport.h>
+
 #include <rt305x_regs.h>
+#include <rt305x_esw_platform.h>
 
-#define GPIO_PRUPOSE           0x60
-#define GPIO_MDIO_BIT          (1<<7)
-#define RT305X_ESW_PHY_WRITE		(1 << 13)
-#define RT305X_ESW_PHY_TOUT			(5 * HZ)
-#define RT305X_ESW_PHY_CONTROL_0	0xC0
-#define RT305X_ESW_PHY_CONTROL_1	0xC4
+#define RT305X_ESW_REG_FCT0		0x08
+#define RT305X_ESW_REG_PFC1		0x14
+#define RT305X_ESW_REG_PVIDC(_n)	(0x48 + 4 * (_n))
+#define RT305X_ESW_REG_VLANI(_n)	(0x50 + 4 * (_n))
+#define RT305X_ESW_REG_VMSC(_n)		(0x70 + 4 * (_n))
+#define RT305X_ESW_REG_FPA		0x84
+#define RT305X_ESW_REG_SOCPC		0x8c
+#define RT305X_ESW_REG_POC1		0x90
+#define RT305X_ESW_REG_POC2		0x94
+#define RT305X_ESW_REG_POC3		0x98
+#define RT305X_ESW_REG_SGC		0x9c
+#define RT305X_ESW_REG_PCR0		0xc0
+#define RT305X_ESW_REG_PCR1		0xc4
+#define RT305X_ESW_REG_FPA2		0xc8
+#define RT305X_ESW_REG_FCT2		0xcc
+#define RT305X_ESW_REG_SGC2		0xe4
 
-static void __iomem *ramips_esw_base = 0;
+#define RT305X_ESW_PCR0_WT_NWAY_DATA_S	16
+#define RT305X_ESW_PCR0_WT_PHY_CMD	BIT(13)
+#define RT305X_ESW_PCR0_CPU_PHY_REG_S	8
+
+#define RT305X_ESW_PCR1_WT_DONE		BIT(0)
+
+#define RT305X_ESW_PHY_TIMEOUT		(5 * HZ)
+
+#define RT305X_ESW_PVIDC_PVID_M		0xfff
+#define RT305X_ESW_PVIDC_PVID_S		12
+
+#define RT305X_ESW_VLANI_VID_M		0xfff
+#define RT305X_ESW_VLANI_VID_S		12
+
+#define RT305X_ESW_VMSC_MSC_M		0xff
+#define RT305X_ESW_VMSC_MSC_S		8
+
+#define RT305X_ESW_SOCPC_DISUN2CPU_S	0
+#define RT305X_ESW_SOCPC_DISMC2CPU_S	8
+#define RT305X_ESW_SOCPC_DISBC2CPU_S	16
+#define RT305X_ESW_SOCPC_CRC_PADDING	BIT(25)
+
+#define RT305X_ESW_POC1_EN_BP_S		0
+#define RT305X_ESW_POC1_EN_FC_S		8
+#define RT305X_ESW_POC1_DIS_RMC2CPU_S	16
+#define RT305X_ESW_POC1_DIS_PORT_S	23
+
+#define RT305X_ESW_POC3_UNTAG_EN_S	0
+#define RT305X_ESW_POC3_ENAGING_S	8
+#define RT305X_ESW_POC3_DIS_UC_PAUSE_S	16
+
+#define RT305X_ESW_PORT0		0
+#define RT305X_ESW_PORT1		1
+#define RT305X_ESW_PORT2		2
+#define RT305X_ESW_PORT3		3
+#define RT305X_ESW_PORT4		4
+#define RT305X_ESW_PORT5		5
+#define RT305X_ESW_PORT6		6
+
+#define RT305X_ESW_PORTS_INTERNAL					\
+		(BIT(RT305X_ESW_PORT0) | BIT(RT305X_ESW_PORT1) |	\
+		 BIT(RT305X_ESW_PORT2) | BIT(RT305X_ESW_PORT3) |	\
+		 BIT(RT305X_ESW_PORT4))
+
+#define RT305X_ESW_PORTS_NOCPU	\
+		(RT305X_ESW_PORTS_INTERNAL | BIT(RT305X_ESW_PORT5))
+
+#define RT305X_ESW_PORTS_CPU	BIT(RT305X_ESW_PORT6)
+
+#define RT305X_ESW_PORTS_ALL	\
+		(RT305X_ESW_PORTS_NOCPU | RT305X_ESW_PORTS_CPU)
+
+struct rt305x_esw {
+	void __iomem *base;
+	struct rt305x_esw_platform_data *pdata;
+	spinlock_t reg_rw_lock;
+};
 
 static inline void
-ramips_esw_wr(u32 val, unsigned reg)
+rt305x_esw_wr(struct rt305x_esw *esw, u32 val, unsigned reg)
 {
-	__raw_writel(val, ramips_esw_base + reg);
+	__raw_writel(val, esw->base + reg);
 }
 
 static inline u32
-ramips_esw_rr(unsigned reg)
+rt305x_esw_rr(struct rt305x_esw *esw, unsigned reg)
 {
-	return __raw_readl(ramips_esw_base + reg);
+	return __raw_readl(esw->base + reg);
+}
+
+static inline void
+rt305x_esw_rmw_raw(struct rt305x_esw *esw, unsigned reg, unsigned long mask,
+		   unsigned long val)
+{
+	unsigned long t;
+
+	t = __raw_readl(esw->base + reg) & ~mask;
+	__raw_writel(t | val, esw->base + reg);
 }
 
 static void
-ramips_enable_mdio(int s)
+rt305x_esw_rmw(struct rt305x_esw *esw, unsigned reg, unsigned long mask,
+	       unsigned long val)
 {
-	u32 gpio = rt305x_sysc_rr(GPIO_PRUPOSE);
-	if(s)
-		gpio &= ~GPIO_MDIO_BIT;
-	else
-		gpio |= GPIO_MDIO_BIT;
-	rt305x_sysc_wr(gpio, GPIO_PRUPOSE);
+	unsigned long flags;
+
+	spin_lock_irqsave(&esw->reg_rw_lock, flags);
+	rt305x_esw_rmw_raw(esw, reg, mask, val);
+	spin_unlock_irqrestore(&esw->reg_rw_lock, flags);
 }
 
-u32
-mii_mgr_write(u32 phy_addr, u32 phy_register, u32 write_data)
+static u32
+rt305x_mii_write(struct rt305x_esw *esw, u32 phy_addr, u32 phy_register,
+		 u32 write_data)
 {
-	unsigned long volatile t_start = jiffies;
+	unsigned long t_start = jiffies;
 	int ret = 0;
 
-	ramips_enable_mdio(1);
-	while(1)
-	{
-		if(!(ramips_esw_rr(RT305X_ESW_PHY_CONTROL_1) & (0x1 << 0)))
+	while (1) {
+		if (!(rt305x_esw_rr(esw, RT305X_ESW_REG_PCR1) &
+		      RT305X_ESW_PCR1_WT_DONE))
 			break;
-		if(time_after(jiffies, t_start + RT305X_ESW_PHY_TOUT))
-		{
+		if (time_after(jiffies, t_start + RT305X_ESW_PHY_TIMEOUT)) {
 			ret = 1;
 			goto out;
 		}
 	}
-	ramips_esw_wr(((write_data & 0xFFFF) << 16) | (phy_register << 8) |
-		(phy_addr) | RT305X_ESW_PHY_WRITE, RT305X_ESW_PHY_CONTROL_0);
+
+	write_data &= 0xffff;
+	rt305x_esw_wr(esw,
+		      (write_data << RT305X_ESW_PCR0_WT_NWAY_DATA_S) |
+		      (phy_register << RT305X_ESW_PCR0_CPU_PHY_REG_S) |
+		      (phy_addr) | RT305X_ESW_PCR0_WT_PHY_CMD,
+		      RT305X_ESW_REG_PCR0);
+
 	t_start = jiffies;
-	while(1)
-	{
-		if(ramips_esw_rr(RT305X_ESW_PHY_CONTROL_1) & (0x1 << 0))
+	while (1) {
+		if (rt305x_esw_rr(esw, RT305X_ESW_REG_PCR1) &
+		    RT305X_ESW_PCR1_WT_DONE)
 			break;
-		if(time_after(jiffies, t_start + RT305X_ESW_PHY_TOUT))
-		{
+
+		if (time_after(jiffies, t_start + RT305X_ESW_PHY_TIMEOUT)) {
 			ret = 1;
 			break;
 		}
 	}
 out:
-	ramips_enable_mdio(0);
-	if(ret)
+	if (ret)
 		printk(KERN_ERR "ramips_eth: MDIO timeout\n");
 	return ret;
 }
 
-static int
-rt305x_esw_init(void)
+static void
+rt305x_esw_set_vlan_id(struct rt305x_esw *esw, unsigned vlan, unsigned vid)
+{
+	unsigned s;
+
+	s = RT305X_ESW_VLANI_VID_S * (vlan % 2);
+	rt305x_esw_rmw(esw,
+		       RT305X_ESW_REG_VLANI(vlan / 2),
+		       RT305X_ESW_VLANI_VID_M << s,
+		       (vid & RT305X_ESW_VLANI_VID_M) << s);
+}
+
+static void
+rt305x_esw_set_pvid(struct rt305x_esw *esw, unsigned port, unsigned pvid)
+{
+	unsigned s;
+
+	s = RT305X_ESW_PVIDC_PVID_S * (port % 2);
+	rt305x_esw_rmw(esw,
+		       RT305X_ESW_REG_PVIDC(port / 2),
+		       RT305X_ESW_PVIDC_PVID_S << s,
+		       (pvid & RT305X_ESW_PVIDC_PVID_M) << s);
+}
+
+static void
+rt305x_esw_set_vmsc(struct rt305x_esw *esw, unsigned vlan, unsigned msc)
+{
+	unsigned s;
+
+	s = RT305X_ESW_VMSC_MSC_S * (vlan % 4);
+	rt305x_esw_rmw(esw,
+		       RT305X_ESW_REG_VMSC(vlan / 4),
+		       RT305X_ESW_VMSC_MSC_M << s,
+		       (msc & RT305X_ESW_VMSC_MSC_M) << s);
+}
+
+static void
+rt305x_esw_hw_init(struct rt305x_esw *esw)
 {
 	int i;
 
-	ramips_esw_base = ioremap_nocache(RT305X_SWITCH_BASE, PAGE_SIZE);
-	if(!ramips_esw_base)
-		return -ENOMEM;
-
 	/* vodoo from original driver */
-	ramips_esw_wr(0xC8A07850, 0x08);
-	ramips_esw_wr(0x00000000, 0xe4);
-	ramips_esw_wr(0x00405555, 0x14);
-	ramips_esw_wr(0x00002001, 0x50);
-	ramips_esw_wr(0x00007f7f, 0x90);
-	ramips_esw_wr(0x00007f3f, 0x98);
-	ramips_esw_wr(0x00d6500c, 0xcc);
-	ramips_esw_wr(0x0008a301, 0x9c);
-	ramips_esw_wr(0x02404040, 0x8c);
-	ramips_esw_wr(0x00001002, 0x48);
-	ramips_esw_wr(0x3f502b28, 0xc8);
-	ramips_esw_wr(0x00000000, 0x84);
+	rt305x_esw_wr(esw, 0xC8A07850, RT305X_ESW_REG_FCT0);
+	rt305x_esw_wr(esw, 0x00000000, RT305X_ESW_REG_SGC2);
+	rt305x_esw_wr(esw, 0x00405555, RT305X_ESW_REG_PFC1);
 
-	mii_mgr_write(0, 31, 0x8000);
-	for(i = 0; i < 5; i++)
-	{
-		mii_mgr_write(i, 0, 0x3100);   //TX10 waveform coefficient
-		mii_mgr_write(i, 26, 0x1601);   //TX10 waveform coefficient
-		mii_mgr_write(i, 29, 0x7058);   //TX100/TX10 AD/DA current bias
-		mii_mgr_write(i, 30, 0x0018);   //TX100 slew rate control
+	/* Enable Back Pressure, and Flow Control */
+	rt305x_esw_wr(esw,
+		      ((RT305X_ESW_PORTS_ALL << RT305X_ESW_POC1_EN_BP_S) |
+		       (RT305X_ESW_PORTS_ALL << RT305X_ESW_POC1_EN_FC_S)),
+		      RT305X_ESW_REG_POC1);
+
+	/* Enable Aging, and VLAN TAG removal */
+	rt305x_esw_wr(esw,
+		      ((RT305X_ESW_PORTS_ALL << RT305X_ESW_POC3_ENAGING_S) |
+		       (RT305X_ESW_PORTS_NOCPU << RT305X_ESW_POC3_UNTAG_EN_S)),
+		      RT305X_ESW_REG_POC3);
+
+	rt305x_esw_wr(esw, 0x00d6500c, RT305X_ESW_REG_FCT2);
+	rt305x_esw_wr(esw, 0x0008a301, RT305X_ESW_REG_SGC);
+
+	/* Setup SoC Port control register */
+	rt305x_esw_wr(esw,
+		      (RT305X_ESW_SOCPC_CRC_PADDING |
+		       (RT305X_ESW_PORTS_CPU << RT305X_ESW_SOCPC_DISUN2CPU_S) |
+		       (RT305X_ESW_PORTS_CPU << RT305X_ESW_SOCPC_DISMC2CPU_S) |
+		       (RT305X_ESW_PORTS_CPU << RT305X_ESW_SOCPC_DISBC2CPU_S)),
+		      RT305X_ESW_REG_SOCPC);
+
+	rt305x_esw_set_pvid(esw, RT305X_ESW_PORT4, 2);
+	rt305x_esw_set_pvid(esw, RT305X_ESW_PORT5, 1);
+	rt305x_esw_wr(esw, 0x3f502b28, RT305X_ESW_REG_FPA2);
+	rt305x_esw_wr(esw, 0x00000000, RT305X_ESW_REG_FPA);
+
+	rt305x_mii_write(esw, 0, 31, 0x8000);
+	for (i = 0; i < 5; i++) {
+		/* TX10 waveform coefficient */
+		rt305x_mii_write(esw, i, 0, 0x3100);
+		/* TX10 waveform coefficient */
+		rt305x_mii_write(esw, i, 26, 0x1601);
+		/* TX100/TX10 AD/DA current bias */
+		rt305x_mii_write(esw, i, 29, 0x7058);
+		/* TX100 slew rate control */
+		rt305x_mii_write(esw, i, 30, 0x0018);
 	}
-	/* PHY IOT */
-	mii_mgr_write(0, 31, 0x0);      //select global register
-	mii_mgr_write(0, 22, 0x052f);   //tune TP_IDL tail and head waveform
-	mii_mgr_write(0, 17, 0x0fe0);   //set TX10 signal amplitude threshold to minimum
-	mii_mgr_write(0, 18, 0x40ba);   //set squelch amplitude to higher threshold
-	mii_mgr_write(0, 14, 0x65);     //longer TP_IDL tail length
-	mii_mgr_write(0, 31, 0x8000);   //select local register
 
-	/* Port 5 Disabled */
-	rt305x_sysc_wr(rt305x_sysc_rr(0x60) | (1 << 9), 0x60); //set RGMII to GPIO mode (GPIO41-GPIO50)
-	rt305x_sysc_wr(0xfff, 0x674); //GPIO41-GPIO50 output mode
-	rt305x_sysc_wr(0x0, 0x670); //GPIO41-GPIO50 output low
+	/* PHY IOT */
+	/* select global register */
+	rt305x_mii_write(esw, 0, 31, 0x0);
+	/* tune TP_IDL tail and head waveform */
+	rt305x_mii_write(esw, 0, 22, 0x052f);
+	/* set TX10 signal amplitude threshold to minimum */
+	rt305x_mii_write(esw, 0, 17, 0x0fe0);
+	/* set squelch amplitude to higher threshold */
+	rt305x_mii_write(esw, 0, 18, 0x40ba);
+	/* longer TP_IDL tail length */
+	rt305x_mii_write(esw, 0, 14, 0x65);
+	/* select local register */
+	rt305x_mii_write(esw, 0, 31, 0x8000);
 
 	/* set default vlan */
-	ramips_esw_wr(0x2001, 0x50);
-	ramips_esw_wr(0x504f, 0x70);
+	rt305x_esw_set_vlan_id(esw, 0, 1);
+	rt305x_esw_set_vlan_id(esw, 1, 2);
+	rt305x_esw_set_vmsc(esw, 0,
+			    (BIT(RT305X_ESW_PORT0) | BIT(RT305X_ESW_PORT1) |
+			     BIT(RT305X_ESW_PORT2) | BIT(RT305X_ESW_PORT3) |
+			     BIT(RT305X_ESW_PORT6)));
+	rt305x_esw_set_vmsc(esw, 1,
+			    (BIT(RT305X_ESW_PORT4) | BIT(RT305X_ESW_PORT6)));
+	rt305x_esw_set_vmsc(esw, 2, 0);
+	rt305x_esw_set_vmsc(esw, 3, 0);
+}
+
+static int
+rt305x_esw_probe(struct platform_device *pdev)
+{
+	struct rt305x_esw_platform_data *pdata;
+	struct rt305x_esw *esw;
+	struct resource *res;
+	int err;
+
+	pdata = pdev->dev.platform_data;
+	if (!pdata)
+		return -EINVAL;
+
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+	if (!res) {
+		dev_err(&pdev->dev, "no memory resource found\n");
+		return -ENOMEM;
+	}
+
+	esw = kzalloc(sizeof(struct rt305x_esw), GFP_KERNEL);
+	if (!esw) {
+		dev_err(&pdev->dev, "no memory for private data\n");
+		return -ENOMEM;
+	}
+
+	esw->base = ioremap(res->start, resource_size(res));
+	if (!esw->base) {
+		dev_err(&pdev->dev, "ioremap failed\n");
+		err = -ENOMEM;
+		goto free_esw;
+	}
+
+	platform_set_drvdata(pdev, esw);
+
+	esw->pdata = pdata;
+	spin_lock_init(&esw->reg_rw_lock);
+	rt305x_esw_hw_init(esw);
 
 	return 0;
+
+free_esw:
+	kfree(esw);
+	return err;
+}
+
+static int
+rt305x_esw_remove(struct platform_device *pdev)
+{
+	struct rt305x_esw *esw;
+
+	esw = platform_get_drvdata(pdev);
+	if (esw) {
+		platform_set_drvdata(pdev, NULL);
+		iounmap(esw->base);
+		kfree(esw);
+	}
+
+	return 0;
+}
+
+static struct platform_driver rt305x_esw_driver = {
+	.probe = rt305x_esw_probe,
+	.remove = rt305x_esw_remove,
+	.driver = {
+		.name = "rt305x-esw",
+		.owner = THIS_MODULE,
+	},
+};
+
+static int __init
+rt305x_esw_init(void)
+{
+	return platform_driver_register(&rt305x_esw_driver);
+}
+
+static void __exit
+rt305x_esw_exit(void)
+{
+	platform_driver_unregister(&rt305x_esw_driver);
 }

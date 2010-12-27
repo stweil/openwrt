@@ -105,11 +105,13 @@ mac80211_hostapd_setup_bss() {
 
 	config_get macaddr "$vif" macaddr
 	config_get_bool hidden "$vif" hidden 0
+	config_get maxassoc "$vif" maxassoc
 	cat >> /var/run/hostapd-$phy.conf <<EOF
 $hostapd_cfg
 wmm_enabled=1
 bssid=$macaddr
 ignore_broadcast_ssid=$hidden
+${maxassoc:+max_num_sta=$maxassoc}
 EOF
 }
 
@@ -317,12 +319,11 @@ enable_mac80211() {
 			[ -n "$fixed" -a -n "$channel" ] && iw dev "$ifname" set channel "$channel"
 		fi
 
-		# txpower is not yet implemented in iw
 		config_get vif_txpower "$vif" txpower
 		# use vif_txpower (from wifi-iface) to override txpower (from
 		# wifi-device) if the latter doesn't exist
 		txpower="${txpower:-$vif_txpower}"
-		[ -z "$txpower" ] || iwconfig "$ifname" txpower "${txpower%%.*}"
+		[ -z "$txpower" ] || iw dev "$ifname" set txpower fixed "${txpower%%.*}00"
 	done
 
 	local start_hostapd=
