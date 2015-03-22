@@ -11,7 +11,8 @@ DROP_SECTIONS:=.reginfo .mdebug .comment .note .pdr .options .MIPS.options
 OBJCOPY_SREC:=$(TARGET_CROSS)objcopy -S -O srec $(addprefix --remove-section=,$(DROP_SECTIONS))
 
 LOADADDR:=0x94600000
-KERNEL_ENTRY:=0x94100000
+#~ KERNEL_ENTRY:=0x94100000
+KERNEL_ENTRY:=0x94000000
 RAMSTART:=0x94000000
 RAMSIZE:=0x00100000
 
@@ -93,7 +94,14 @@ endef
 define Image/Build/Initramfs
 	$(CP) $(KDIR)/vmlinux-initramfs.bin $(BIN_DIR)/$(IMG_PREFIX)-initramfs.bin
 endef
+endif
 
+ifeq ($(CONFIG_TARGET_ar7_Sinus),y)
+define Image/Build
+       # Don't build images for Sinus router.
+       # Parameter $(1) = filesystem, e.g. ext2.
+endef
+else
 ifeq ($(CONFIG_AR7_TI),y)
 define Image/Build
 	dd if=$(KDIR)/loader.bin $(call align/$(1)) > $(BIN_DIR)/$(IMG_PREFIX)-$(1).bin
