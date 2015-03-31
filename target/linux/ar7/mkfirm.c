@@ -111,7 +111,7 @@ static const device_t device[] = {
     //{"BRN154BAS", "Sinus 154 DSL Basic SE", 0x30000, 0xbb800},
     {"BRN154BAS", "Sinus 154 DSL Basic SE", 832 * KiB, 896 * KiB},
     {"BRNDTBAS3", "Sinus 154 DSL Basic 3", 832 * KiB, 896 * KiB},
-    {"BRN154DSL", "Sinus 154 DSL", 0 * KiB, 0 * KiB},
+    {"BRN154DSL", "Sinus 154 DSL SE", 704 * KiB, 1024 * KiB},
     {"BRN154KOM", "Sinus 154 DSL Komfort", 0 * KiB, 0 * KiB},
     {"", "", 0, 0}
 };
