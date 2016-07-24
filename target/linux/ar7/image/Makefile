@@ -94,14 +94,13 @@ endef
 define Image/Build/Initramfs
 	$(CP) $(KDIR)/vmlinux-initramfs.bin $(BIN_DIR)/$(IMG_PREFIX)-initramfs.bin
 endef
-endif
 
 ifeq ($(CONFIG_TARGET_ar7_Sinus),y)
 define Image/Build
        # Don't build images for Sinus router.
        # Parameter $(1) = filesystem, e.g. ext2.
 endef
-else
+else # CONFIG_TARGET_ar7_Sinus
 ifeq ($(CONFIG_AR7_TI),y)
 define Image/Build
 	dd if=$(KDIR)/loader.bin $(call align/$(1)) > $(BIN_DIR)/$(IMG_PREFIX)-$(1).bin
@@ -141,5 +140,6 @@ ifeq ($(CONFIG_TARGET_ROOTFS_INITRAMFS),y)
 endif
 endef
 endif
+endif # CONFIG_TARGET_ar7_Sinus
 
 $(eval $(call BuildImage))
